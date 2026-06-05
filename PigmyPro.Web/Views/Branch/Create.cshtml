@@ -1,0 +1,73 @@
+@model PigmyPro.Web.ViewModels.Branch.BranchCreateEditVM
+
+@{
+    var isEdit = Model.BranchID > 0;
+    ViewData["Title"] = isEdit ? "Edit Branch" : "Add Branch";
+    ViewData["Breadcrumb"] = $"<li class='breadcrumb-item'><a href='/Branch/Index'>Branches</a></li><li class='breadcrumb-item active'>{(isEdit ? "Edit" : "Add")} Branch</li>";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+                    @(Model.BranchID > 0 ? "Edit Branch" : "Register New Branch")
+                </h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="@(Model.BranchID > 0 ? "Edit" : "Create")" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="BranchID" />
+
+                    @if (Model.IsSuperAdmin)
+                    {
+                        <div class="mb-3">
+                            <label asp-for="BankID" class="form-label">Select Bank</label>
+                            <select asp-for="BankID" asp-items="Model.BankList" class="form-select">
+                                <option value="">-- Select Bank --</option>
+                            </select>
+                            <span asp-validation-for="BankID" class="text-danger small"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="BankID" />
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label">Branch Name</label>
+                        <input asp-for="Name" class="form-control" placeholder="e.g. Main Branch" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label d-block">Status</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" asp-for="Active" value="Y" id="statusActive">
+                                <label class="form-check-label" for="statusActive">Active</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" asp-for="Active" value="N" id="statusInactive">
+                                <label class="form-check-label" for="statusInactive">Inactive</label>
+                            </div>
+                        </div>
+                        <span asp-validation-for="Active" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Save Branch
+                        </button>
+                        <a href="/Branch/Index" class="btn btn-outline">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

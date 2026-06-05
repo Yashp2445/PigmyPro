@@ -1,0 +1,246 @@
+@model PigmyPro.Web.ViewModels.Account.AccountCreateEditVM
+
+@{
+    var isEdit = Model.IsEdit;
+    ViewData["Title"] = isEdit ? "Update Account Record" : "Open Customer Account";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item'><a href='/Account/Index'>Account Ledger</a></li>" +
+                             "<li class='breadcrumb-item active'>" + (isEdit ? "Edit" : "Create") + "</li>";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-10 col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="bi bi-wallet2 text-primary me-2"></i>
+                    @(isEdit ? "Edit Account Record" : "Register New Account")
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" asp-for="IsSuperAdmin" />
+                    <input type="hidden" asp-for="IsBankAdmin" />
+                    <input type="hidden" asp-for="IsEdit" />
+
+                    @* ── Bank + Branch selection ── *@
+                    <div class="filter-panel mb-4">
+                        <div class="row g-3">
+                            @if (Model.IsSuperAdmin)
+                            {
+                                <div class="col-md-6">
+                                    <label asp-for="SelectedBankID" class="form-label">Select Bank</label>
+                                    <select asp-for="SelectedBankID" asp-items="Model.BankList"
+                                            class="form-select" id="SelectedBankID"
+                                            onchange="onBankChange(this.value)">
+                                        <option value="">-- Select Bank --</option>
+                                    </select>
+                                    <span asp-validation-for="SelectedBankID" class="text-danger small"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" asp-for="SelectedBankID" />
+                            }
+
+                            @if (Model.IsSuperAdmin || Model.IsBankAdmin)
+                            {
+                                <div class="col-md-6">
+                                    <label asp-for="SelectedBranchCode" class="form-label">Select Branch</label>
+                                    <select asp-for="SelectedBranchCode" asp-items="Model.BranchList"
+                                            class="form-select" id="SelectedBranchCode"
+                                            onchange="loadAgents(this.value)">
+                                        <option value="">-- Select Branch --</option>
+                                    </select>
+                                    <span asp-validation-for="SelectedBranchCode" class="text-danger small"></span>
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="hidden" asp-for="SelectedBranchCode" />
+                            }
+                        </div>
+                    </div>
+
+                    @* ── Account Type + Account Number ── *@
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-5">
+                            <label asp-for="Code1" class="form-label">Account Type</label>
+                            @if (isEdit)
+                            {
+                                <input type="hidden" asp-for="Code1" />
+                                <select asp-items="Model.AccountTypeList" class="form-select" style="background-color: var(--color-bg-elevated);" disabled>
+                                    <option value="@Model.Code1" selected>@(Model.Code1 == 1 ? "Pigmy" : Model.Code1 == 2 ? "Loan" : "Recurring")</option>
+                                </select>
+                            }
+                            else
+                            {
+                                <select asp-for="Code1" asp-items="Model.AccountTypeList"
+                                        class="form-select" id="Code1">
+                                    <option value="">-- Select Type --</option>
+                                </select>
+                            }
+                            <span asp-validation-for="Code1" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-7">
+                            <label asp-for="Code2" class="form-label">Account Number</label>
+                            @if (isEdit)
+                            {
+                                <input asp-for="Code2" class="form-control" style="background-color:var(--color-bg-elevated);" readonly />
+                            }
+                            else
+                            {
+                                <input asp-for="Code2" class="form-control" placeholder="Enter Code2"
+                                       id="Code2Input" onblur="checkDuplicate()" />
+                                <div id="duplicateMsg" class="text-danger small mt-1" style="display:none;">
+                                    This account number already exists for the selected type and branch.
+                                </div>
+                            }
+                            <span asp-validation-for="Code2" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    @* ── Customer Name ── *@
+                    <div class="mb-4">
+                        <label asp-for="Name" class="form-label">Customer Name</label>
+                        <input asp-for="Name" class="form-control" placeholder="Customer name" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    @* ── Opening Date + Agent ── *@
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="OpenDate" class="form-label">Opening Date</label>
+                            <input asp-for="OpenDate" type="date" class="form-control" />
+                            <span asp-validation-for="OpenDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AgnCode" class="form-label">Assign Agent</label>
+                            <select asp-for="AgnCode" asp-items="Model.AgentList"
+                                    class="form-select" id="AgnCode">
+                                <option value="">-- Assign Agent --</option>
+                            </select>
+                            <span asp-validation-for="AgnCode" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    @* ── Balance + Mobile ── *@
+                    <div class="row g-3 mb-4 border-top pt-4">
+                        <div class="col-md-6">
+                            <label asp-for="Balance" class="form-label">Initial Balance</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0">₹</span>
+                                <input asp-for="Balance" class="form-control border-start-0 fw-bold" placeholder="0.00" />
+                            </div>
+                            <span asp-validation-for="Balance" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="MobileNo" class="form-label">Contact Number</label>
+                            <input asp-for="MobileNo" class="form-control" placeholder="+91..." />
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg"></i>
+                            @(isEdit ? "Update Record" : "Open Account")
+                        </button>
+                        <a href="/Account/Index" class="btn btn-outline px-4">Cancel</a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        function onBankChange(bankId) {
+            const branchSelect = document.getElementById('SelectedBranchCode');
+            const code1Select  = document.getElementById('Code1');
+            const agentSelect  = document.getElementById('AgnCode');
+
+            if (branchSelect) {
+                branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+            }
+            if (code1Select) {
+                code1Select.innerHTML = '<option value="">-- Select Type --</option>';
+            }
+            if (agentSelect) {
+                agentSelect.innerHTML = '<option value="">-- Assign Agent --</option>';
+            }
+
+            if (!bankId) return;
+
+            fetch('/Account/GetBranches?bankId=' + bankId)
+                .then(r => r.json())
+                .then(data => {
+                    if (branchSelect) {
+                        data.forEach(b => {
+                            branchSelect.innerHTML += `<option value="${b.value}">${b.text}</option>`;
+                        });
+                    }
+                });
+
+            if (code1Select) {
+                fetch('/Account/GetAccountTypes?bankId=' + bankId)
+                    .then(r => r.json())
+                    .then(data => {
+                        data.forEach(t => {
+                            code1Select.innerHTML += `<option value="${t.value}">${t.text}</option>`;
+                        });
+                    });
+            }
+        }
+
+        function loadAgents(branchCode) {
+            const agentSelect = document.getElementById('AgnCode');
+            if (!agentSelect) return;
+
+            agentSelect.innerHTML = '<option value="">-- Assign Agent --</option>';
+            if (!branchCode) return;
+
+            const bankIdEl = document.getElementById('SelectedBankID');
+            const bankId   = bankIdEl ? bankIdEl.value : '@(Model.SelectedBankID ?? 0)';
+
+            fetch(`/Account/GetAgents?bankId=${bankId}&branchCode=${branchCode}`)
+                .then(r => r.json())
+                .then(data => {
+                    data.forEach(a => {
+                        agentSelect.innerHTML += `<option value="${a.value}">${a.text}</option>`;
+                    });
+                });
+        }
+
+        function checkDuplicate() {
+            const code2      = document.getElementById('Code2Input')?.value;
+            const code1      = document.getElementById('Code1')?.value;
+            const branchCode = document.getElementById('SelectedBranchCode')?.value
+                            || '@Model.SelectedBranchCode';
+            const bankIdEl   = document.getElementById('SelectedBankID');
+            const bankId     = bankIdEl ? bankIdEl.value : '@(Model.SelectedBankID ?? 0)';
+            const msg        = document.getElementById('duplicateMsg');
+
+            if (!code2 || !code1 || !branchCode || branchCode === '0') return;
+
+            fetch(`/Account/CheckDuplicate?bankId=${bankId}&code1=${code1}&branchCode=${branchCode}&code2=${code2}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.exists) {
+                        msg.style.display = 'block';
+                        document.getElementById('Code2Input').classList.add('is-invalid');
+                    } else {
+                        msg.style.display = 'none';
+                        document.getElementById('Code2Input').classList.remove('is-invalid');
+                    }
+                });
+        }
+    </script>
+}

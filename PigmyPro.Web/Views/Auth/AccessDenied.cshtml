@@ -1,0 +1,22 @@
+@{
+    ViewData["Title"] = "Access Denied";
+}
+
+<div class="d-flex justify-content-center align-items-center" style="min-height:70vh;">
+    <div class="text-center card p-5" style="max-width: 500px;">
+        <div style="font-size:72px; color:var(--color-warning); margin-bottom:24px;">
+            <i class="bi bi-shield-lock"></i>
+        </div>
+        <h4 style="font-weight:700; color:var(--color-text-primary); margin-bottom:12px;">Restricted Access</h4>
+        <p style="font-size:14px; color:var(--color-text-secondary); margin-bottom:32px; line-height:1.6;">
+            Your current account permissions do not allow viewing this section. This security measure ensures data integrity within our multi-tenant banking platform.
+        </p>
+        <div class="d-flex gap-3 justify-content-center">
+            <a href="/Dashboard/Index" class="btn btn-primary px-4">Return to Dashboard</a>
+            <form asp-controller="Auth" asp-action="Logout" method="post" id="accessDeniedLogout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline px-4">Sign Out</button>
+            </form>
+        </div>
+    </div>
+</div>

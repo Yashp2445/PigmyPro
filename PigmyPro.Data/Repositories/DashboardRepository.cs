@@ -1,0 +1,321 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Dapper;
+using PigmyPro.Data.Context;
+using PigmyPro.Data.Interfaces;
+
+namespace PigmyPro.Data.Repositories
+{
+    public class DashboardRepository : IDashboardRepository
+    {
+        private readonly DapperContext _context;
+
+        public DashboardRepository(DapperContext context)
+        {
+            _context = context;
+        }
+
+        // ── Dropdown Helpers ────────────────────────────────────────────
+
+        public async Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync()
+        {
+            var sql = "SELECT BankID, Name FROM Banks WHERE ActiveYN = 1 ORDER BY Name";
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<BankDropdownItem>(sql);
+        }
+
+        public async Task<IEnumerable<BranchDropdownItem>> GetBranchDropdownAsync(int bankId)
+        {
+            var sql = "SELECT BranchID, name AS Name FROM brncmast WHERE BankID = @BankID AND active = 'Y' ORDER BY name";
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<BranchDropdownItem>(sql, new { BankID = bankId });
+        }
+
+        // ── SuperAdmin ─────────────────────────────────────────────────
+
+        // Scope: System-wide (SuperAdmin only) — optionally filtered to a single bank
+        public async Task<SuperAdminSummary> GetSuperAdminSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null)
+        {
+            var bankFilter = filterBankId.HasValue ? " AND BankID = @FilterBankID" : "";
+            var bankFilterBranch = filterBankId.HasValue ? " AND BankID = @FilterBankID" : "";
+
+            var sql = $@"
+                SELECT
+                    (SELECT COUNT(*) FROM Banks WHERE ActiveYN = 1{(filterBankId.HasValue ? " AND BankID = @FilterBankID" : "")}) AS TotalBanks,
+                    (SELECT COUNT(*) FROM brncmast WHERE active = 'Y'{bankFilterBranch}) AS TotalBranches,
+                    (SELECT COUNT(*) FROM agntmast WHERE Block = 0{bankFilter}) AS TotalAgents,
+                    (SELECT COUNT(*) FROM acmaster WHERE 1=1{bankFilter}) AS TotalAccounts,
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{bankFilter}) AS TodayCollection";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstAsync<SuperAdminSummary>(sql, new
+            {
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                FilterBankID = filterBankId
+            });
+        }
+
+        // Scope: System-wide (SuperAdmin only) — aggregates per bank, optionally filtered
+        public async Task<IEnumerable<BankWiseSummary>> GetBankWiseSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null)
+        {
+            var bankWhere = filterBankId.HasValue ? " AND b.BankID = @FilterBankID" : "";
+
+            var sql = $@"
+                SELECT 
+                    b.BankID,
+                    b.Name AS BankName,
+                    ISNULL(br.BranchCount, 0) AS BranchCount,
+                    ISNULL(ag.AgentCount, 0) AS AgentCount,
+                    ISNULL(ac.AccountCount, 0) AS AccountCount,
+                    ISNULL(tc.TodayCollection, 0) AS TodayCollection
+                FROM Banks b
+                LEFT JOIN (
+                    SELECT BankID, COUNT(*) AS BranchCount 
+                    FROM brncmast WHERE active = 'Y' 
+                    GROUP BY BankID
+                ) br ON br.BankID = b.BankID
+                LEFT JOIN (
+                    SELECT BankID, COUNT(*) AS AgentCount 
+                    FROM agntmast WHERE Block = 0 
+                    GROUP BY BankID
+                ) ag ON ag.BankID = b.BankID
+                LEFT JOIN (
+                    SELECT BankID, COUNT(*) AS AccountCount 
+                    FROM acmaster 
+                    GROUP BY BankID
+                ) ac ON ac.BankID = b.BankID
+                LEFT JOIN (
+                    SELECT BankID, SUM(Amount) AS TodayCollection 
+                    FROM MobilePygTrn 
+                    WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    GROUP BY BankID
+                ) tc ON tc.BankID = b.BankID
+                WHERE b.ActiveYN = 1{bankWhere}
+                ORDER BY b.Name";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<BankWiseSummary>(sql, new
+            {
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                FilterBankID = filterBankId
+            });
+        }
+
+        // Scope: System-wide (SuperAdmin only) — account type distribution across all banks
+        public async Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionAsync()
+        {
+            var sql = @"
+                SELECT 
+                    CASE CODE1 
+                        WHEN 1 THEN 'Pigmy' 
+                        WHEN 2 THEN 'Loan' 
+                        WHEN 3 THEN 'Recurring' 
+                        ELSE 'Other' 
+                    END AS AccountType,
+                    COUNT(*) AS [Count]
+                FROM acmaster
+                GROUP BY CODE1
+                ORDER BY CODE1";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<AccountTypeCount>(sql);
+        }
+
+        // ── BankAdmin ───────────────────────────────────────────────────
+
+        // Scope: Single bank (BankAdmin only) — filtered by BankID parameter
+        public async Task<BankAdminSummary> GetBankAdminSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo)
+        {
+            var sql = @"
+                SELECT
+                    (SELECT COUNT(*) FROM brncmast WHERE BankID = @BankID AND active = 'Y') AS TotalBranches,
+                    (SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND Block = 0) AS TotalAgents,
+                    (SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID) AS TotalAccounts,
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo) AS TodayCollection";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstAsync<BankAdminSummary>(sql, new { BankID = bankId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
+        }
+
+        // Scope: Single bank (BankAdmin only) — branch-wise breakdown filtered by BankID, optionally by BranchID
+        public async Task<IEnumerable<BranchWiseSummary>> GetBranchWiseSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
+        {
+            var branchFilter = filterBranchId.HasValue ? " AND br.BranchID = @FilterBranchID" : "";
+
+            var sql = $@"
+                SELECT 
+                    br.BranchID,
+                    br.name AS BranchName,
+                    ISNULL(ag.AgentCount, 0) AS AgentCount,
+                    ISNULL(ac.AccountCount, 0) AS AccountCount,
+                    ISNULL(tc.TodayCollection, 0) AS TodayCollection
+                FROM brncmast br
+                LEFT JOIN (
+                    SELECT BankID, brnc_code, COUNT(*) AS AgentCount 
+                    FROM agntmast WHERE BankID = @BankID AND Block = 0 
+                    GROUP BY BankID, brnc_code
+                ) ag ON ag.BankID = br.BankID AND ag.brnc_code = br.BranchID
+                LEFT JOIN (
+                    SELECT BankID, brnc_code, COUNT(*) AS AccountCount 
+                    FROM acmaster WHERE BankID = @BankID 
+                    GROUP BY BankID, brnc_code
+                ) ac ON ac.BankID = br.BankID AND ac.brnc_code = br.BranchID
+                LEFT JOIN (
+                    SELECT BankID, Brnc_code, SUM(Amount) AS TodayCollection 
+                    FROM MobilePygTrn 
+                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    GROUP BY BankID, Brnc_code
+                ) tc ON tc.BankID = br.BankID AND tc.Brnc_code = br.BranchID
+                WHERE br.BankID = @BankID AND br.active = 'Y'{branchFilter}
+                ORDER BY br.name";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<BranchWiseSummary>(sql, new
+            {
+                BankID = bankId,
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                FilterBranchID = filterBranchId
+            });
+        }
+
+        // Scope: Single bank (BankAdmin only) — top N agents by collection filtered by BankID, optionally by BranchID
+        public async Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
+        {
+            var branchFilter = filterBranchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
+            var branchFilterTrn = filterBranchId.HasValue ? " AND Brnc_code = @FilterBranchID" : "";
+
+            var sql = $@"
+                SELECT TOP (@Top)
+                    a.NAME AS AgentName,
+                    ISNULL(br.name, '') AS BranchName,
+                    ISNULL(tc.TodayAmount, 0) AS TodayAmount,
+                    ISNULL(tc.AccountsCollected, 0) AS AccountsCollected
+                FROM agntmast a
+                LEFT JOIN brncmast br ON br.BankID = a.BankID AND br.BranchID = a.brnc_code
+                LEFT JOIN (
+                    SELECT BankID, Agent, Brnc_code,
+                        SUM(Amount) AS TodayAmount,
+                        COUNT(DISTINCT Code2) AS AccountsCollected
+                    FROM MobilePygTrn
+                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
+                    GROUP BY BankID, Agent, Brnc_code
+                ) tc ON tc.BankID = a.BankID AND tc.Agent = a.code AND tc.Brnc_code = a.brnc_code
+                WHERE a.BankID = @BankID AND a.Block = 0 AND ISNULL(tc.TodayAmount, 0) > 0{branchFilter}
+                ORDER BY tc.TodayAmount DESC";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<TopAgentCollection>(sql, new
+            {
+                BankID = bankId,
+                Top = top,
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                FilterBranchID = filterBranchId
+            });
+        }
+
+        // Scope: Single bank (BankAdmin only) — account type distribution filtered by BankID
+        public async Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionByBankAsync(int bankId)
+        {
+            var sql = @"
+                SELECT 
+                    CASE CODE1 
+                        WHEN 1 THEN 'Pigmy' 
+                        WHEN 2 THEN 'Loan' 
+                        WHEN 3 THEN 'Recurring' 
+                        ELSE 'Other' 
+                    END AS AccountType,
+                    COUNT(*) AS [Count]
+                FROM acmaster
+                WHERE BankID = @BankID
+                GROUP BY CODE1
+                ORDER BY CODE1";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<AccountTypeCount>(sql, new { BankID = bankId });
+        }
+
+        // ── BranchAdmin ─────────────────────────────────────────────────
+
+        // Scope: Single branch (BranchAdmin only) — filtered by BankID + BranchID
+        public async Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo)
+        {
+            var sql = @"
+                SELECT
+                    (SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND brnc_code = @BranchID) AS TotalAgents,
+                    (SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID AND brnc_code = @BranchID) AS TotalAccounts,
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE BankID = @BankID AND Brnc_code = @BranchID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo) AS TodayCollection,
+                    (SELECT COUNT(DISTINCT Code2) FROM MobilePygTrn WHERE BankID = @BankID AND Brnc_code = @BranchID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo) AS AccountsCollectedToday";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstAsync<BranchAdminSummary>(sql, new { BankID = bankId, BranchID = branchId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
+        }
+
+        public async Task<IEnumerable<AgentCollectionRow>> GetAgentCollectionsByBranchAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo)
+        {
+            var sql = @"
+                SELECT 
+                    a.NAME AS AgentName,
+                    ISNULL(tc.TodayAmount, 0) AS TodayAmount,
+                    ISNULL(tc.AccountsCollected, 0) AS AccountsCollected,
+                    CAST(a.Block AS BIT) AS IsBlocked
+                FROM agntmast a
+                LEFT JOIN (
+                    SELECT BankID, Agent, Brnc_code,
+                        SUM(Amount) AS TodayAmount,
+                        COUNT(DISTINCT Code2) AS AccountsCollected
+                    FROM MobilePygTrn
+                    WHERE BankID = @BankID AND Brnc_code = @BranchID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    GROUP BY BankID, Agent, Brnc_code
+                ) tc ON tc.BankID = a.BankID AND tc.Agent = a.code AND tc.Brnc_code = a.brnc_code
+                WHERE a.BankID = @BankID AND a.brnc_code = @BranchID
+                ORDER BY tc.TodayAmount DESC, a.NAME";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<AgentCollectionRow>(sql, new { BankID = bankId, BranchID = branchId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
+        }
+
+        public async Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
+        {
+            var branchFilter = filterBranchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
+            var branchFilterTrn = filterBranchId.HasValue ? " AND Brnc_code = @FilterBranchID" : "";
+
+            var sql = $@"
+                SELECT 
+                    a.code AS AgentCode,
+                    a.NAME AS AgentName,
+                    ISNULL(br.name, '') AS BranchName,
+                    ISNULL(a.MobileNo, '') AS MobileNumber,
+                    CAST(a.Block AS BIT) AS IsBlocked,
+                    ISNULL(tc.TodayAmount, 0) AS TodayAmount,
+                    ISNULL(tc.AccountsCollected, 0) AS AccountsCollected
+                FROM agntmast a
+                LEFT JOIN brncmast br ON br.BankID = a.BankID AND br.BranchID = a.brnc_code
+                LEFT JOIN (
+                    SELECT BankID, Agent, Brnc_code,
+                        SUM(Amount) AS TodayAmount,
+                        COUNT(DISTINCT Code2) AS AccountsCollected
+                    FROM MobilePygTrn
+                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
+                    GROUP BY BankID, Agent, Brnc_code
+                ) tc ON tc.BankID = a.BankID 
+                    AND CAST(tc.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
+                    AND CAST(tc.Brnc_code AS NUMERIC(18,0)) = CAST(a.brnc_code AS NUMERIC(18,0))
+                WHERE a.BankID = @BankID{branchFilter}
+                ORDER BY tc.TodayAmount DESC, a.NAME";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<AgentOverviewRow>(sql, new
+            {
+                BankID = bankId,
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                FilterBranchID = filterBranchId
+            });
+        }
+    }
+}

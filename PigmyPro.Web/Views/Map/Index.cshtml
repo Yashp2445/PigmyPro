@@ -1,0 +1,511 @@
+@model PigmyPro.Web.ViewModels.Map.MapIndexVM
+
+@{
+    ViewData["Title"] = "Agent Collection Map";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Collection Geography</li>";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+    #map {
+        height: 620px;
+        width: 100%;
+        z-index: 1;
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    .map-container {
+        position: relative;
+        overflow: visible; /* allow label chips to show outside bounds */
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--color-border);
+        box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+
+    /* Google-Maps-style tiles */
+    .leaflet-tile-pane {
+        filter: saturate(1.05) brightness(1.02);
+    }
+
+    /* ── ZOOM CONTROLS ────────────────────────── */
+    .leaflet-control-zoom {
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
+        border-radius: 8px !important;
+        overflow: hidden;
+    }
+    .leaflet-control-zoom a {
+        background: #fff !important;
+        color: #3c4043 !important;
+        border: none !important;
+        font-size: 18px !important;
+        line-height: 28px !important;
+        width: 32px !important;
+        height: 32px !important;
+        font-weight: 400 !important;
+    }
+    .leaflet-control-zoom a:hover { background: #f1f3f4 !important; }
+
+    /* ── POPUP ────────────────────────────────── */
+    .leaflet-popup-content-wrapper {
+        border-radius: 12px !important;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+        padding: 0 !important;
+        overflow: hidden;
+        border: 1px solid #e8eaed;
+        font-family: 'DM Sans', sans-serif;
+    }
+    .leaflet-popup-content { margin: 0 !important; width: 290px !important; }
+    .leaflet-popup-tip-container { margin-top: -1px; }
+
+    .map-popup-header {
+        padding: 14px 16px;
+        background: #fff;
+        border-bottom: 1px solid #f1f3f4;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .agent-avatar {
+        width: 38px; height: 38px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; color: white; font-size: 13px;
+        flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    .popup-agent-name { font-weight: 700; font-size: 14px; color: #1a1a2e; }
+    .popup-branch { font-size: 11px; color: #70757a; margin-top: 1px; }
+
+    .map-popup-body {
+        padding: 8px 0;
+        max-height: 210px;
+        overflow-y: auto;
+        background: #fff;
+    }
+    .map-popup-body::-webkit-scrollbar { width: 4px; }
+    .map-popup-body::-webkit-scrollbar-thumb { background: #dadce0; border-radius: 2px; }
+
+    .txn-entry {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 7px 16px;
+        border-bottom: 1px solid #f8f9fa;
+        transition: background 0.15s;
+    }
+    .txn-entry:last-child { border-bottom: none; }
+    .txn-entry:hover { background: #f8f9fa; }
+    .txn-seq {
+        width: 20px; height: 20px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 9px; font-weight: 700; color: white;
+        flex-shrink: 0; margin-right: 8px;
+    }
+    .txn-customer { font-size: 12px; font-weight: 600; color: #3c4043; }
+    .txn-time { font-size: 10px; color: #70757a; margin-top: 1px; }
+    .txn-amt { font-weight: 700; font-size: 13px; }
+
+    .map-popup-footer {
+        padding: 7px 16px;
+        background: #f8f9fa;
+        border-top: 1px solid #f1f3f4;
+        font-size: 10px; color: #70757a;
+        display: flex; align-items: center; gap: 4px;
+    }
+
+    /* ── PIN ICON ─────────────────────────────── */
+    .map-pin { overflow: visible !important; }
+
+    .pin-label {
+        position: absolute;
+        top: 46px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        background: #fff;
+        border-radius: 20px;
+        padding: 2px 7px;
+        font-size: 10px;
+        font-weight: 600;
+        color: #3c4043;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.22);
+        pointer-events: none;
+        line-height: 1.5;
+        border: 1.5px solid;
+        font-family: 'DM Sans', sans-serif;
+        letter-spacing: 0.01em;
+    }
+
+    /* ── LOADER ───────────────────────────────── */
+    #map-loader {
+        position: absolute; inset: 0;
+        background: rgba(255,255,255,0.82);
+        backdrop-filter: blur(6px);
+        z-index: 1000;
+        display: none;
+        align-items: center; justify-content: center; flex-direction: column;
+        border-radius: var(--radius-lg);
+    }
+    #map-loader.active { display: flex; }
+    .loader-dot {
+        width: 10px; height: 10px; border-radius: 50%; background: #4285f4;
+        animation: pulse-dot 1.2s ease-in-out infinite;
+    }
+    .loader-dot:nth-child(2) { background: #ea4335; animation-delay: 0.2s; }
+    .loader-dot:nth-child(3) { background: #fbbc04; animation-delay: 0.4s; }
+    .loader-dot:nth-child(4) { background: #34a853; animation-delay: 0.6s; }
+    @@keyframes pulse-dot {
+        0%,80%,100% { transform: scale(0.7); opacity: 0.5; }
+        40% { transform: scale(1.2); opacity: 1; }
+    }
+    .loader-dots { display: flex; gap: 6px; margin-bottom: 10px; }
+
+    /* ── LEGEND ───────────────────────────────── */
+    .map-legend {
+        position: absolute; bottom: 28px; right: 12px; z-index: 500;
+        background: #fff; padding: 10px 14px;
+        border: 1px solid #e8eaed; border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.14);
+        max-height: 200px; overflow-y: auto;
+        font-family: 'DM Sans', sans-serif;
+    }
+    .legend-title { font-size: 10px; font-weight: 700; color: #70757a; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; font-weight: 500; color: #3c4043; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── ATTRIBUTION (Google Maps style) ─────── */
+    .leaflet-control-attribution {
+        background: rgba(255,255,255,0.85) !important;
+        font-size: 10px !important;
+        border-radius: 4px 0 0 0 !important;
+    }
+
+    /* ── SCALE ────────────────────────────────── */
+    .leaflet-control-scale-line {
+        border: 2px solid #70757a !important;
+        border-top: none !important;
+        color: #3c4043 !important;
+        font-family: 'DM Sans', sans-serif !important;
+        font-size: 10px !important;
+        background: rgba(255,255,255,0.85) !important;
+    }
+
+    /* ── STATS BADGE ──────────────────────────── */
+    .map-stats-bar {
+        display: flex; gap: 8px; align-items: center;
+    }
+    .gmap-badge {
+        background: #f1f3f4; color: #3c4043;
+        border-radius: 20px; padding: 4px 12px;
+        font-size: 12px; font-weight: 600;
+        border: 1px solid #e8eaed;
+        font-family: 'DM Sans', sans-serif;
+    }
+    .gmap-badge.green { background: #e6f4ea; color: #137333; border-color: #ceead6; }
+</style>
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Collection Geography</h4>
+        <p class="page-subtitle">Real-time GPS tracking of field agent deposit collections</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge badge-success d-flex align-items-center gap-2 px-3 py-2">
+            <span class="spinner-grow spinner-grow-sm" role="status"></span>
+            LIVE GPS ACTIVE
+        </span>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel">
+    <form id="mapFilterForm" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label">Collection Date</label>
+            <input asp-for="Date" type="date" class="form-control" id="filterDate" />
+        </div>
+        @if (Model.UserRole == "BankAdmin")
+        {
+            <div class="col-md-3">
+                <label class="form-label">Branch Office</label>
+                <select asp-for="BranchCode" asp-items="Model.Branches" class="form-select" id="branchDropdown">
+                    <option value="">— All Branches —</option>
+                </select>
+            </div>
+        }
+        <div class="col-md-3">
+            <label class="form-label">Field Agent</label>
+            <select asp-for="AgentCode" asp-items="Model.Agents" class="form-select" id="agentDropdown">
+                <option value="">— All Agents —</option>
+            </select>
+        </div>
+        <div class="col-md-auto">
+            <div class="d-flex gap-2">
+                <button type="button" id="btnApply" class="btn btn-primary">
+                    <i class="bi bi-geo-alt"></i> Update Map
+                </button>
+                <button type="button" id="btnClear" class="btn btn-outline">
+                    <i class="bi bi-arrow-counterclockwise"></i> Reset
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Map Card -->
+<div class="card overflow-visible">
+    <div class="card-header border-0 bg-white d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-2">
+            <div class="stat-icon" style="margin-bottom:0;">
+                <i class="bi bi-map-fill"></i>
+            </div>
+            <div>
+                <h5 class="card-title mb-0">Agent Route Overlay</h5>
+                <p class="text-muted small mb-0" id="map-status">Initializing map layer...</p>
+            </div>
+        </div>
+        <div id="stats-pill-container" class="map-stats-bar" style="display:none;">
+            <span class="gmap-badge" id="stat-pins">-- pins</span>
+            <span class="gmap-badge green" id="stat-amount">₹--</span>
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div id="map"></div>
+
+        <!-- Loader -->
+        <div id="map-loader">
+            <div class="loader-dots">
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+                <div class="loader-dot"></div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#5f6368;font-family:'DM Sans',sans-serif;">
+                Retrieving GPS coordinates…
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div id="agent-legend" class="map-legend" style="display:none;">
+            <div class="legend-title">Agents</div>
+            <div id="legend-items"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.6.0/leaflet.polylineDecorator.min.js"></script>
+<script>
+$(document).ready(function () {
+
+    // ── Google Maps-style palette ─────────────────────
+    var COLORS = ['#4285f4','#ea4335','#34a853','#fbbc04','#9334e6',
+                  '#00897b','#e91e63','#ff6d00','#00acc1','#558b2f'];
+
+    // ── Init map (no initial view — fitBounds will handle it) ──
+    var map = L.map('map', {
+        zoomControl: false,
+        scrollWheelZoom: true,
+        inertia: true,
+        inertiaDeceleration: 2000,
+        worldCopyJump: true,
+        minZoom: 4,
+        maxZoom: 19
+    }).setView([20.5937, 78.9629], 5);   // fallback centre (India)
+
+    // Google-Maps-style zoom control (top-right)
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+
+    // ── Google Maps tile layer ────────────────────────
+    // Using CartoDB Voyager — closest free match to Google Maps look
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(map);
+
+    // ── Layer groups ──────────────────────────────────
+    var markersGroup = L.featureGroup().addTo(map);   // use featureGroup for getBounds()
+    var routesLayer  = L.layerGroup().addTo(map);
+
+    // ── Pin icon factory ──────────────────────────────
+    function makePinIcon(color, seqNo, customerName) {
+        var label = customerName
+            ? (customerName.length > 15 ? customerName.substring(0, 14) + '…' : customerName)
+            : '';
+
+        var html = `
+            <div style="position:relative;width:32px;height:42px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42" style="filter:drop-shadow(0 3px 6px rgba(0,0,0,0.30));">
+                    <path d="M16 1C8.82 1 3 6.82 3 14c0 10.5 13 27 13 27S29 24.5 29 14C29 6.82 23.18 1 16 1z" fill="${color}"/>
+                    <circle cx="16" cy="14" r="7" fill="rgba(255,255,255,0.9)"/>
+                    <text x="16" y="18" text-anchor="middle" font-size="8" font-weight="800"
+                          fill="${color}" font-family="DM Sans,sans-serif">${seqNo}</text>
+                </svg>
+                <div class="pin-label" style="border-color:${color};top:44px;">${label}</div>
+            </div>`;
+
+        return L.divIcon({
+            html: html,
+            className: 'map-pin',
+            iconSize:   [32, 42],
+            iconAnchor: [16, 42],
+            popupAnchor:[0, -46]
+        });
+    }
+
+    // ── Load pins ─────────────────────────────────────
+    function loadPins() {
+        var date   = $('#filterDate').val();
+        var branch = $('#branchDropdown').val() || '';
+        var agent  = $('#agentDropdown').val() || '';
+
+        $('#map-loader').addClass('active');
+        $('#agent-legend').hide();
+        $('#stats-pill-container').hide();
+        markersGroup.clearLayers();
+        routesLayer.clearLayers();
+
+        $.getJSON('/Map/GetPins', { date: date, branchCode: branch, agentCode: agent })
+            .done(function (data) {
+                $('#map-loader').removeClass('active');
+
+                if (!data || data.length === 0) {
+                    $('#map-status').text('No collections found for this period.');
+                    return;
+                }
+
+                var agentColors = {};
+                var agentData   = {};
+                var totalAmt    = 0;
+
+                data.forEach(function (pin) {
+                    totalAmt += pin.totalAmount;
+
+                    if (!agentColors[pin.agentCode]) {
+                        var cIdx = Object.keys(agentColors).length % COLORS.length;
+                        agentColors[pin.agentCode] = COLORS[cIdx];
+                        agentData[pin.agentCode]   = { name: pin.agentName, pins: [] };
+                    }
+                    agentData[pin.agentCode].pins.push(pin);
+
+                    var color       = agentColors[pin.agentCode];
+                    var firstCustomer = pin.entries.length > 0 ? pin.entries[0].customerName : '';
+                    var marker = L.marker([pin.latitude, pin.longitude], {
+                        icon: makePinIcon(color, pin.sequenceNo, firstCustomer)
+                    });
+
+                    var initials = pin.agentName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                    var rows = pin.entries.map(e => `
+                        <div class="txn-entry">
+                            <div class="d-flex align-items-center">
+                                <div class="txn-seq" style="background:${color};">${e.sequenceNo}</div>
+                                <div>
+                                    <div class="txn-customer">${e.customerName}</div>
+                                    <div class="txn-time">${e.entryTime}</div>
+                                </div>
+                            </div>
+                            <div class="txn-amt" style="color:${color};">₹${Number(e.amount).toLocaleString('en-IN')}</div>
+                        </div>`).join('');
+
+                    marker.bindPopup(`
+                        <div class="map-popup">
+                            <div class="map-popup-header">
+                                <div class="agent-avatar" style="background:${color};">${initials}</div>
+                                <div>
+                                    <div class="popup-agent-name">${pin.agentName}</div>
+                                    <div class="popup-branch">${pin.branchName} &nbsp;·&nbsp; ${pin.transactionCount} collection${pin.transactionCount !== 1 ? 's' : ''}</div>
+                                </div>
+                            </div>
+                            <div class="map-popup-body">${rows}</div>
+                            <div class="map-popup-footer">
+                                <i class="bi bi-geo-alt-fill"></i>
+                                ${pin.latitude.toFixed(6)}, ${pin.longitude.toFixed(6)}
+                                &nbsp;·&nbsp; Total: <strong style="color:${color};margin-left:3px;">₹${Number(pin.totalAmount).toLocaleString('en-IN')}</strong>
+                            </div>
+                        </div>`, { maxWidth: 300 });
+
+                    markersGroup.addLayer(marker);
+                });
+
+                $('#legend-items').empty();
+                Object.keys(agentData).forEach(aid => {
+                    var ag    = agentData[aid];
+                    var color = agentColors[aid];
+
+                    $('#legend-items').append(`
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:${color};"></div>
+                            <span>${ag.name}</span>
+                        </div>`);
+
+                    if (ag.pins.length > 1) {
+                        ag.pins.sort((a, b) => a.sequenceNo - b.sequenceNo);
+                        var path = ag.pins.map(p => [p.latitude, p.longitude]);
+                        var poly = L.polyline(path, {
+                            color: color, weight: 3, opacity: 0.55, dashArray: '8 6'
+                        }).addTo(routesLayer);
+                        L.polylineDecorator(poly, {
+                            patterns: [{
+                                offset: '50%', repeat: '50%',
+                                symbol: L.Symbol.arrowHead({
+                                    pixelSize: 10,
+                                    pathOptions: { fillOpacity: 1, weight: 0, color: color }
+                                })
+                            }]
+                        }).addTo(routesLayer);
+                    }
+                });
+
+                $('#agent-legend').show();
+                $('#map-status').text(
+                    `Showing ${data.length} pin${data.length !== 1 ? 's' : ''} · ${Object.keys(agentData).length} agent${Object.keys(agentData).length !== 1 ? 's' : ''}`
+                );
+                $('#stat-pins').text(`${data.length} pin${data.length !== 1 ? 's' : ''}`);
+                $('#stat-amount').text(`₹${Number(totalAmt).toLocaleString('en-IN')}`);
+                $('#stats-pill-container').css('display', 'flex');
+
+                var bounds = markersGroup.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [70, 70], maxZoom: 16 });
+                    map.once('zoomend', function () {
+                        if (map.getZoom() > 15) map.setZoom(15);
+                    });
+                }
+
+            })
+            .fail(function () {
+                $('#map-loader').removeClass('active');
+                $('#map-status').text('Failed to load map data. Please try again.');
+            });
+    }
+
+    $('#btnApply').on('click', loadPins);
+
+    $('#btnClear').on('click', function () {
+        $('#filterDate').val(new Date().toISOString().split('T')[0]);
+        $('#branchDropdown').val('');
+        $('#agentDropdown').val('');
+        loadPins();
+    });
+
+    $('#branchDropdown').on('change', function () {
+        var bid = $(this).val();
+        $('#agentDropdown').empty().append('<option value="">— All Agents —</option>');
+        $.getJSON('/Map/GetAgents', { branchCode: bid }, function (list) {
+            $.each(list, function (i, item) {
+                $('#agentDropdown').append(`<option value="${item.value}">${item.text}</option>`);
+            });
+        });
+    });
+
+    loadPins();
+});
+</script>
+}

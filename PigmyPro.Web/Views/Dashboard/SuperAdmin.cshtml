@@ -1,0 +1,216 @@
+@model PigmyPro.Web.ViewModels.Dashboard.SuperAdminDashboardVM
+
+@{
+    ViewData["Title"] = "SuperAdmin Dashboard";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>System Overview</li>";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">System Overview</h4>
+        <p class="page-subtitle">Aggregated performance across all banking tenants</p>
+    </div>
+    <div class="badge badge-info py-2 px-3">
+        <i class="bi bi-clock-history me-1"></i> Last updated: <span class="mono-data">@Model.LastUpdated.ToString("dd MMM yyyy, hh:mm:ss tt")</span>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel">
+    <form asp-action="SuperAdmin" method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Date From</label>
+            <input type="date" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date To</label>
+            <input type="date" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Bank</label>
+            <select name="bankId" class="form-select">
+                <option value="">All Banks</option>
+                @foreach (var bank in Model.Banks)
+                {
+                    <option value="@bank.Value" selected="@(bank.Value == Model.FilterBankID?.ToString())">@bank.Text</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-funnel-fill"></i> Apply</button>
+            <a href="/Dashboard/SuperAdmin" class="btn btn-outline">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl col-md-4">
+        <div class="stat-card brand">
+            <div class="stat-icon"><i class="bi bi-bank"></i></div>
+            <div class="stat-value">@Model.TotalBanks</div>
+            <div class="stat-label">Active Banks</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-diagram-3-fill"></i></div>
+            <div class="stat-value">@Model.TotalBranches</div>
+            <div class="stat-label">Total Branches</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card warning">
+            <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
+            <div class="stat-value">@Model.TotalAgents</div>
+            <div class="stat-label">Field Agents</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+            <div class="stat-value">@Model.TotalAccounts.ToString("N0")</div>
+            <div class="stat-label">Active Accounts</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-6">
+        <div class="stat-card brand" style="background: var(--color-brand-primary); border-color: var(--color-brand-primary);">
+            <div class="stat-icon" style="background: rgba(255,255,255,0.15); color: white;"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-value" style="color: white;">₹@Model.TodayCollection.ToString("N2")</div>
+            <div class="stat-label" style="color: rgba(255,255,255,0.7);">Period Collection</div>
+        </div>
+    </div>
+</div>
+
+<!-- Bank-wise Table + Pie Chart -->
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Bank-wise Performance</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Bank Name</th>
+                                <th class="text-center">Branches</th>
+                                <th class="text-center">Agents</th>
+                                <th class="text-center">Accounts</th>
+                                <th class="text-end">Total Collection</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.BankWiseData.Any())
+                            {
+                                @foreach (var bank in Model.BankWiseData)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@bank.BankName</td>
+                                        <td class="text-center mono-data">@bank.BranchCount</td>
+                                        <td class="text-center mono-data">@bank.AgentCount</td>
+                                        <td class="text-center mono-data">@bank.AccountCount.ToString("N0")</td>
+                                        <td class="text-end fw-bold text-primary mono-data">
+                                            @if (bank.TodayCollection > 0)
+                                            {
+                                                <span>₹@bank.TodayCollection.ToString("N2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="opacity:0.6;">₹0.00</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <i class="bi bi-database-exclamation empty-state-icon"></i>
+                                            <div class="empty-state-title">No operational data found for this period</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        @if (Model.BankWiseData.Any())
+                        {
+                            <tfoot style="background: var(--color-bg-elevated); font-weight: 700;">
+                                <tr>
+                                    <td style="padding: 14px 20px;">System Total</td>
+                                    <td class="text-center mono-data">@Model.BankWiseData.Sum(x => x.BranchCount)</td>
+                                    <td class="text-center mono-data">@Model.BankWiseData.Sum(x => x.AgentCount)</td>
+                                    <td class="text-center mono-data">@Model.BankWiseData.Sum(x => x.AccountCount).ToString("N0")</td>
+                                    <td class="text-end text-primary mono-data">₹@Model.BankWiseData.Sum(x => x.TodayCollection).ToString("N2")</td>
+                                </tr>
+                            </tfoot>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="chart-card h-100">
+            <h5 class="chart-title">Portfolio Mix</h5>
+            <div style="position:relative; height:320px;">
+                <canvas id="accountTypePieChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AccountTypeData.Select(x => x.AccountType)));
+            var data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AccountTypeData.Select(x => x.Count)));
+
+            var colors = ['#3b82f6', '#0ea5e9', '#16a34a', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#be185d'];
+
+            var ctx = document.getElementById('accountTypePieChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyleWidth: 10,
+                                font: { family: 'Inter', size: 11, weight: '500' },
+                                color: '#4b5563'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: '#111827',
+                            titleFont: { family: 'Inter', size: 13, weight: '700' },
+                            bodyFont: { family: 'JetBrains Mono', size: 12 },
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        })();
+    </script>
+}

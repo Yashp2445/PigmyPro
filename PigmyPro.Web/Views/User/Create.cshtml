@@ -1,0 +1,152 @@
+@model PigmyPro.Web.ViewModels.User.UserCreateEditVM
+
+@{
+    var isEdit = Model.UserID > 0;
+    ViewData["Title"] = isEdit ? "Update User" : "New User Registration";
+    ViewData["Breadcrumb"] = $"<a href='/Home/Index'>Home</a><span>›</span><a href='/User/Index'>Users</a><span>›</span>{(isEdit ? "Edit" : "Add")} User";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-7">
+        <div class="card">
+
+            <div class="card-header">
+                <i class="bi bi-person-gear me-2" style="color: var(--color-brand-primary);"></i>
+                @(isEdit ? "Update System User" : "New User Registration")
+            </div>
+
+            <div class="card-body p-4">
+                <p class="text-meta mb-4">Configure access level and branch assignment</p>
+                
+                <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @if (isEdit)
+                    {
+                        <input type="hidden" asp-for="UserID" />
+                    }
+
+                    <input type="hidden" asp-for="IsSuperAdmin" />
+
+                    <!-- ROLE + BANK ROW -->
+                    <div class="row g-3 mb-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">ROLE</label>
+                            <select asp-for="Role" asp-items="Model.FilteredRoles"
+                                    class="form-select" id="roleSelector"></select>
+                            <span asp-validation-for="Role" class="text-danger" style="font-size:11px;"></span>
+                        </div>
+
+                        @if (Model.IsSuperAdmin)
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label">BANK</label>
+                                <select asp-for="SelectedBankID" asp-items="Model.BankList"
+                                        class="form-select" id="bankSelector">
+                                    <option value="">-- Select Bank --</option>
+                                </select>
+                                <span asp-validation-for="SelectedBankID" class="text-danger" style="font-size:11px;"></span>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- BRANCH -->
+                    <div class="mb-3" id="branchDiv">
+                        <label class="form-label">ASSIGNED BRANCH</label>
+                        <select asp-for="BranchID" asp-items="Model.BranchList"
+                                class="form-select" id="branchSelector">
+                            <option value="">-- Select Branch --</option>
+                        </select>
+                        <span asp-validation-for="BranchID" class="text-danger" style="font-size:11px;"></span>
+                    </div>
+
+                    <!-- FULL NAME -->
+                    <div class="mb-3">
+                        <label class="form-label">FULL NAME</label>
+                        <input asp-for="Name" class="form-control" placeholder="Enter full name" />
+                        <span asp-validation-for="Name" class="text-danger" style="font-size:11px;"></span>
+                    </div>
+
+                    <!-- USERNAME + PASSWORD -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">USERNAME</label>
+                            <input asp-for="Username" class="form-control" placeholder="login_id" />
+                            <span asp-validation-for="Username" class="text-danger" style="font-size:11px;"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                @(isEdit ? "PASSWORD (leave blank to keep)" : "PASSWORD")
+                            </label>
+                            <input asp-for="Password" type="password" class="form-control" />
+                            <span asp-validation-for="Password" class="text-danger" style="font-size:11px;"></span>
+                        </div>
+                    </div>
+
+                    <!-- ACTIVE TOGGLE -->
+                    <div class="mb-4">
+                        <div class="form-check form-switch p-3 border rounded ps-5" style="background: var(--color-bg-elevated); border-color: var(--color-border) !important;">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActive" />
+                            <label class="form-check-label ms-2 fw-bold" for="isActive" style="font-size:13px; color: var(--color-text-primary);">
+                                User status is Active
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- BUTTONS -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg me-1"></i>
+                            @(isEdit ? "Update User" : "Create User")
+                        </button>
+                        <a href="/User/Index" class="btn btn-outline px-4">
+                            Cancel
+                        </a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        function toggleBranchDiv() {
+        var role = $("#roleSelector").val();
+        if (role === "SuperAdmin") {
+        $("#branchDiv").hide();
+        } else {
+        $("#branchDiv").show();
+        }
+        }
+
+        $("#roleSelector").on("change", toggleBranchDiv);
+        toggleBranchDiv();
+
+        $("#bankSelector").on("change", function () {
+        var bankId = $(this).val();
+        var branchDropdown = $("#branchSelector");
+
+        branchDropdown.empty();
+        branchDropdown.append('<option value="">-- Select Branch --</option>');
+
+        if (!bankId) return;
+
+        $.get('/Branch/GetByBankId?bankId=' + bankId, function (data) {
+        $.each(data, function (i, item) {
+        branchDropdown.append(
+        '<option value="' + item.value + '">' + item.text + '</option>'
+        );
+        });
+        });
+        });
+    </script>
+}

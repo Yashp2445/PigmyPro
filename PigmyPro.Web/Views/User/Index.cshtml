@@ -1,0 +1,212 @@
+@model IEnumerable<PigmyPro.Web.ViewModels.User.UserListVM>
+
+@{
+    ViewData["Title"] = "Users";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>User Management</li>";
+
+    var selectedBankId = Context.Request.Query["bankId"].ToString();
+    var selectedBranchId = Context.Request.Query["branchId"].ToString();
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success border-0 shadow-sm mb-4 d-flex align-items-center" role="alert" style="border-radius: var(--radius-md);">
+        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+        <div>@TempData["Success"]</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 shadow-sm mb-4 d-flex align-items-center" role="alert" style="border-radius: var(--radius-md);">
+        <i class="bi bi-exclamation-octagon-fill me-2 fs-5"></i>
+        <div>@TempData["Error"]</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="page-subtitle">
+            @(ViewBag.BankName != null
+                ? "Authorized personnel for " + ViewBag.BankName
+                : "Control access for branch staff and administrators")
+        </p>
+    </div>
+    <a href="/User/Create" class="btn btn-primary">
+        <i class="bi bi-person-plus-fill"></i> Register User
+    </a>
+</div>
+
+@* Filter Panels *@
+<div class="filter-card border-0 mb-4 bg-transparent p-0">
+    <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+        @if (ViewBag.IsSuperAdmin == true)
+        {
+            <div style="min-width: 250px;">
+                <label class="form-label">Bank Tenant</label>
+                <select name="bankId" class="form-select">
+                    <option value="">-- Choose Bank --</option>
+                    @foreach (var bank in ViewBag.BankList)
+                    {
+                        <option value="@bank.Value" selected="@(bank.Value == selectedBankId)">@bank.Text</option>
+                    }
+                </select>
+            </div>
+        }
+
+        @if (ViewBag.IsSuperAdmin != true && ViewBag.BranchList != null)
+        {
+            <div style="min-width: 250px;">
+                <label class="form-label">Branch Assignment</label>
+                <select name="branchId" class="form-select">
+                    <option value="">-- All Branches --</option>
+                    @foreach (var branch in ViewBag.BranchList)
+                    {
+                        <option value="@branch.Value" selected="@(branch.Value == selectedBranchId)">@branch.Text</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <button type="submit" class="btn btn-secondary">
+            <i class="bi bi-filter"></i> Apply Filters
+        </button>
+
+        @if (!string.IsNullOrEmpty(selectedBankId) || !string.IsNullOrEmpty(selectedBranchId))
+        {
+            <a href="/User/Index" class="btn btn-outline">Clear</a>
+        }
+    </form>
+</div>
+
+<div class="card elevated border-0">
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-people text-muted mb-3 d-block" style="font-size: 48px; opacity: 0.2;"></i>
+                <p class="text-muted fw-500">
+                    @if (ViewBag.IsSuperAdmin == true && string.IsNullOrEmpty(selectedBankId))
+                    {
+                        <span>Please select a bank to view its registered users.</span>
+                    }
+                    else
+                    {
+                        <span>No user accounts found for the current selection.</span>
+                    }
+                </p>
+            </div>
+        }
+        else
+        {
+            <div class="table-container border-0">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Identity</th>
+                            <th>Access Level</th>
+                            <th>Assigned Branch</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-3">
+                                        <div class="avatar-circle" style="background-color: var(--color-brand-light); color: var(--color-brand-primary); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700;">
+                                            @((user.Name ?? user.Username ?? "?")[0].ToString().ToUpper())
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold">@(string.IsNullOrEmpty(user.Name) ? "System User" : user.Name)</div>
+                                            <div class="text-muted mono-data" style="font-size: 12px;">@user.Username</div>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    @{
+                                        var badgeClass = user.Role switch
+                                        {
+                                            "SuperAdmin" => "badge-danger",
+                                            "BankAdmin" => "badge-info",
+                                            _ => "badge-secondary"
+                                        };
+                                    }
+                                    <span class="badge @badgeClass">@user.Role</span>
+                                </td>
+
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-building text-primary"></i>
+                                        <span>@(user.BranchName ?? "—")</span>
+                                    </div>
+                                </td>
+
+                                <td class="text-center">
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge badge-success">ACTIVE</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">DISABLED</span>
+                                    }
+                                </td>
+
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="/User/Edit/@user.UserID" class="btn btn-sm btn-outline">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline text-danger border-danger" onclick="confirmDelete(@user.UserID, '@user.Username')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4 text-danger">
+                    <i class="bi bi-person-x" style="font-size: 64px;"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Revoke Access?</h4>
+                <p id="deleteMsg" class="text-muted mb-4"></p>
+
+                <form id="deleteForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="d-flex gap-3 justify-content-center">
+                        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger px-4">Delete User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id, username) {
+            document.getElementById('deleteMsg').textContent = 'Are you sure you want to permanently delete access for user "' + username + '"?';
+            document.getElementById('deleteForm').action = '/User/Delete/' + id;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+}

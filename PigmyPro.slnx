@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="PigmyPro.Data/PigmyPro.Data.csproj" />
+  <Project Path="PigmyPro.Domain/PigmyPro.Domain.csproj" />
+  <Project Path="PigmyPro.Web/PigmyPro.Web.csproj" />
+</Solution>

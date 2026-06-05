@@ -1,0 +1,112 @@
+@model PigmyPro.Web.ViewModels.Bank.BankCreateEditVM
+
+@{
+    var isEdit = Model.BankID > 0;
+    ViewData["Title"] = isEdit ? "Modify Bank" : "New Bank";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0" style="border-radius:12px;">
+            <div class="card-header bg-white py-3">
+                <h5 class="mb-0 fw-bold text-dark">
+                    @(isEdit ? "Update Bank" : "Bank Registration")
+                </h5>
+            </div>
+
+            <div class="card-body p-4">
+                <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                    @Html.AntiForgeryToken()
+                    @if (isEdit)
+                    {
+                        <input type="hidden" asp-for="BankID" />
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-bold"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Address" class="form-label fw-bold"></label>
+                        <textarea asp-for="Address" class="form-control"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ContactPerson" class="form-label fw-bold"></label>
+                        <input asp-for="ContactPerson" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ContactNo" class="form-label fw-bold"></label>
+                        <input asp-for="ContactNo" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="EmailID" class="form-label fw-bold"></label>
+                        <input asp-for="EmailID" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <input asp-for="ActiveYN" type="checkbox" /> Active
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="fw-bold">Collection Type</label>
+
+                        <div class="border p-3">
+
+                            <div class="form-check">
+                                <input type="checkbox" checked disabled />
+                                <label>Pigmy</label>
+                            </div>
+                            <input type="hidden" asp-for="IsPigmy" value="true" />
+
+                            <div class="form-check">
+                                <input asp-for="IsLoan" type="checkbox" id="cbLoan" />
+                                <label asp-for="IsLoan">Loan</label>
+                            </div>
+
+                            <div class="form-check">
+                                <input asp-for="IsRecurring" type="checkbox" id="cbRecurring" />
+                                <label asp-for="IsRecurring">Recurring</label>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        Save
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary ms-2">
+                        Cancel
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        const loan = document.getElementById("cbLoan");
+        const recurring = document.getElementById("cbRecurring");
+
+        recurring.addEventListener("change", function () {
+            if (recurring.checked && !loan.checked) {
+                loan.checked = true;
+            }
+        });
+
+        loan.addEventListener("change", function () {
+            if (!loan.checked && recurring.checked) {
+                recurring.checked = false;
+            }
+        });
+    </script>
+}

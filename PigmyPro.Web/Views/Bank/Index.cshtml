@@ -1,0 +1,96 @@
+@model IEnumerable<PigmyPro.Web.ViewModels.Bank.BankListVM>
+
+@{
+    ViewData["Title"] = "Banks";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Bank Directory</li>";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h1 class="page-title">Bank Directory</h1>
+        <p class="page-subtitle">Multi-bank tenant management for Super Admins</p>
+    </div>
+    <a href="/Bank/Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> Add Bank
+    </a>
+</div>
+
+<div class="card elevated border-0">
+    <div class="card-body p-0">
+        <div class="table-container border-0">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Bank Name</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var bank in Model)
+                    {
+                        <tr>
+                            <td class="mono-data fw-bold text-muted">#@bank.BankID</td>
+                            <td class="fw-bold">@bank.Name</td>
+                            <td>
+                                @if (bank.ActiveYN)
+                                {
+                                    <span class="badge badge-success">ACTIVE</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-danger">SUSPENDED</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="/Bank/Edit/@bank.BankID" class="btn btn-sm btn-outline">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline text-danger border-danger" onclick="confirmDelete(@bank.BankID, '@bank.Name')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: var(--radius-lg);">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4 text-danger">
+                    <i class="bi bi-exclamation-octagon" style="font-size: 64px;"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Confirm Deletion</h4>
+                <p id="deleteMsg" class="text-muted mb-4"></p>
+
+                <form id="deleteForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="d-flex gap-3 justify-content-center">
+                        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger px-4">Delete Bank</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id, name) {
+            document.getElementById('deleteMsg').textContent = 'Are you sure you want to remove "' + name + '"? This will affect all associated branches and agents.';
+            document.getElementById('deleteForm').action = '/Bank/Delete/' + id;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+}
+

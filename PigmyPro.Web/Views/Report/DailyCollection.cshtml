@@ -1,0 +1,234 @@
+@model PigmyPro.Web.ViewModels.Report.DailyCollectionReportVM
+
+@{
+    ViewData["Title"] = "Daily Collection Report";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Daily Collection Report</li>";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Daily Collection Report</h4>
+        <p class="page-subtitle">Transaction-level collection records from the mobile archive</p>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel">
+    <form asp-action="DailyCollection" method="post" id="reportFilterForm" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label">Date From</label>
+            <input asp-for="DateFrom" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Date To</label>
+            <input asp-for="DateTo" type="date" class="form-control" />
+        </div>
+
+        @if (Model.UserRole == "SuperAdmin")
+        {
+            <div class="col-md-2">
+                <label class="form-label">Bank</label>
+                <select asp-for="FilterBankID" asp-items="Model.Banks" class="form-select" id="ddlBank">
+                    <option value="">All Banks</option>
+                </select>
+            </div>
+        }
+
+        @if (Model.UserRole != "BranchAdmin")
+        {
+            <div class="col-md-2">
+                <label class="form-label">Branch Office</label>
+                <select asp-for="FilterBranchID" asp-items="Model.Branches" class="form-select" id="ddlBranch">
+                    <option value="">All Branches</option>
+                </select>
+            </div>
+        }
+
+        <div class="col-md-2">
+            <label class="form-label">Field Agent</label>
+            <select asp-for="FilterAgentCode" asp-items="Model.Agents" class="form-select" id="ddlAgent">
+                <option value="">All Agents</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">Account Type</label>
+            <select asp-for="FilterCode1" class="form-select">
+                <option value="">All Types</option>
+                <option value="1">Pigmy</option>
+                <option value="2">Loan</option>
+                <option value="3">Recurring</option>
+            </select>
+        </div>
+
+        <div class="col-md-auto">
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-search"></i> Generate
+            </button>
+        </div>
+    </form>
+</div>
+
+@if (!Model.HasSearched)
+{
+    <div class="empty-state py-5">
+        <i class="bi bi-filter-circle empty-state-icon"></i>
+        <div class="empty-state-title">Apply filters to generate report</div>
+        <p class="empty-state-subtitle">Select date range and assignment criteria above</p>
+    </div>
+}
+else if (!Model.Rows.Any())
+{
+    <div class="empty-state py-5">
+        <i class="bi bi-exclamation-circle empty-state-icon text-danger" style="opacity: 0.5;"></i>
+        <div class="empty-state-title">No transaction records found</div>
+        <p class="empty-state-subtitle">Try adjusting your filters or date range</p>
+        <a href="/Report/DailyCollection" class="btn btn-outline btn-sm mt-3">Reset Filters</a>
+    </div>
+}
+else
+{
+    <!-- Summary & Export -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="badge badge-info d-flex align-items-center gap-3 py-2 px-3">
+            <span><span class="text-muted">Records:</span> <span class="mono-data fw-bold">@Model.TotalRecords</span></span>
+            <span style="opacity: 0.3;">|</span>
+            <span><span class="text-muted">Total:</span> <span class="mono-data fw-bold">₹@Model.TotalAmount.ToString("N2")</span></span>
+        </div>
+        <div class="d-flex gap-2">
+            <form asp-action="DailyCollectionExcel" method="post">
+                <input type="hidden" name="DateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="DateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="FilterBankID" value="@Model.FilterBankID" />
+                <input type="hidden" name="FilterBranchID" value="@Model.FilterBranchID" />
+                <input type="hidden" name="FilterAgentCode" value="@Model.FilterAgentCode" />
+                <input type="hidden" name="FilterCode1" value="@Model.FilterCode1" />
+                <button type="submit" class="btn btn-outline btn-sm text-success">
+                    <i class="bi bi-file-earmark-excel"></i> Excel
+                </button>
+            </form>
+            <form asp-action="DailyCollectionText" method="post">
+                <input type="hidden" name="DateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="DateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" />
+                <input type="hidden" name="FilterBankID" value="@Model.FilterBankID" />
+                <input type="hidden" name="FilterBranchID" value="@Model.FilterBranchID" />
+                <input type="hidden" name="FilterAgentCode" value="@Model.FilterAgentCode" />
+                <input type="hidden" name="FilterCode1" value="@Model.FilterCode1" />
+                <button type="submit" class="btn btn-outline btn-sm">
+                    <i class="bi bi-file-earmark-text"></i> Text
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            @if (Model.UserRole == "SuperAdmin")
+                            {
+                                <th>Bank</th>
+                            }
+                            <th>Date</th>
+                            <th>Branch</th>
+                            <th>Agent</th>
+                            <th>A/C No</th>
+                            <th>Customer Name</th>
+                            <th>Type</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                @if (Model.UserRole == "SuperAdmin")
+                                {
+                                    <td class="text-muted">@row.BankName</td>
+                                }
+                                <td class="mono-data">@row.Date.ToString("dd-MMM-yy")</td>
+                                <td>@row.BranchName</td>
+                                <td class="fw-bold">@row.AgentName</td>
+                                <td class="mono-data text-primary fw-bold">#@row.Code2</td>
+                                <td>@row.CustomerName</td>
+                                <td>
+                                    @{
+                                        var badgeClass = row.AccountType switch
+                                        {
+                                            "Pigmy" => "badge-info",
+                                            "Loan" => "badge-warning",
+                                            "Recurring" => "badge-success",
+                                            _ => "badge-secondary"
+                                        };
+                                    }
+                                    <span class="badge @badgeClass">@row.AccountType</span>
+                                </td>
+                                <td class="text-end fw-bold mono-data text-primary">₹@row.Amount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot style="background: var(--color-bg-elevated); font-weight: 700;">
+                        <tr>
+                            <td colspan="@(Model.UserRole == "SuperAdmin" ? 6 : 5)" style="padding: 14px 20px;">Grand Total</td>
+                            <td></td>
+                            <td class="text-end text-primary mono-data" style="font-size: 16px;">₹@Model.TotalAmount.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(function () {
+            @if (Model.UserRole == "SuperAdmin")
+            {
+                <text>
+                $('#ddlBank').on('change', function () {
+                    var bankId = $(this).val();
+                    var $branch = $('#ddlBranch');
+                    var $agent = $('#ddlAgent');
+
+                    $branch.html('<option value="">All Branches</option>');
+                    $agent.html('<option value="">All Agents</option>');
+
+                    if (bankId) {
+                        $.getJSON('/Report/GetBranches?bankId=' + bankId, function (data) {
+                            $.each(data, function (i, item) {
+                                $branch.append('<option value="' + item.branchID + '">' + item.name + '</option>');
+                            });
+                        });
+                    }
+                });
+                </text>
+            }
+
+            $('#ddlBranch').on('change', function () {
+                var branchId = $(this).val();
+                var $agent = $('#ddlAgent');
+                $agent.html('<option value="">All Agents</option>');
+
+                @if (Model.UserRole == "SuperAdmin")
+                {
+                    <text>var bankId = $('#ddlBank').val();</text>
+                }
+                else
+                {
+                    <text>var bankId = '@ViewContext.HttpContext.Session.GetInt32("BankID")';</text>
+                }
+
+                if (bankId && branchId) {
+                    $.getJSON('/Report/GetAgents?bankId=' + bankId + '&branchId=' + branchId, function (data) {
+                        $.each(data, function (i, item) {
+                            $agent.append('<option value="' + item.code + '">' + item.name + '</option>');
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+}

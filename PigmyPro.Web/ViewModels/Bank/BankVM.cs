@@ -1,0 +1,41 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace PigmyPro.Web.ViewModels.Bank
+{
+    public class BankCreateEditVM
+    {
+        public int BankID { get; set; }
+
+        [Required(ErrorMessage = "Bank Name is required")]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(200)]
+        public string? Address { get; set; }
+
+        [StringLength(15)]
+        public string? ContactNo { get; set; }
+
+        [StringLength(50)]
+        public string? ContactPerson { get; set; }
+
+        [EmailAddress]
+        [StringLength(50)]
+        public string? EmailID { get; set; }
+
+        public bool ActiveYN { get; set; } = true;
+
+        public bool IsPigmy { get; set; } = true; 
+        public bool IsLoan { get; set; }
+        public bool IsRecurring { get; set; }
+
+        public long SelectedCollectionGLCode { get; set; } = 1;
+    }
+
+    public class BankListVM
+    {
+        public int BankID { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public bool ActiveYN { get; set; }
+    }
+}

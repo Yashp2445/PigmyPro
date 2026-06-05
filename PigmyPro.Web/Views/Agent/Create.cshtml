@@ -1,0 +1,152 @@
+@model PigmyPro.Web.ViewModels.Agent.AgentCreateEditVM
+
+@{
+    var isEdit = Model.IsEdit;
+    ViewData["Title"] = isEdit ? "Update Agent" : "Register Agent";
+    ViewData["Breadcrumb"] = $"<li class='breadcrumb-item'><a href='/Agent/Index'>Field Agents</a></li><li class='breadcrumb-item active'>{(isEdit ? "Update" : "Register")}</li>";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-9 col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="bi bi-person-badge text-primary me-2"></i>
+                    @(isEdit ? "Edit Agent Details" : "Field Agent Registration")
+                </h5>
+            </div>
+
+            <div class="card-body">
+                <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" asp-for="IsSuperAdmin" />
+                    <input type="hidden" asp-for="IsBankAdmin" />
+
+                    @if (Model.IsSuperAdmin)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Bank</label>
+                            <select asp-for="SelectedBankID" asp-items="Model.BankList"
+                                    class="form-select" id="bankSelect"
+                                    onchange="loadBranches(this.value)">
+                                <option value="">— Select Bank —</option>
+                            </select>
+                            <span asp-validation-for="SelectedBankID" class="text-danger small"></span>
+                        </div>
+                    }
+
+                    @if (Model.IsSuperAdmin || Model.IsBankAdmin)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Assigned Branch</label>
+                            <select asp-for="BranchCode" asp-items="Model.BranchList"
+                                    class="form-select" id="branchSelect">
+                                <option value="">— Select Branch —</option>
+                            </select>
+                            <span asp-validation-for="BranchCode" class="text-danger small"></span>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="BranchCode" />
+                    }
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="Code" class="form-label">Agent Code</label>
+                            @if (isEdit)
+                            {
+                                <input asp-for="Code" class="form-control" style="background-color: var(--color-bg-elevated);" readonly />
+                            }
+                            else
+                            {
+                                <input asp-for="Code" class="form-control" placeholder="e.g. 101" />
+                            }
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label asp-for="NAME" class="form-label">Full Name</label>
+                            <input asp-for="NAME" class="form-control" placeholder="Full name of agent" />
+                            <span asp-validation-for="NAME" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-7">
+                            <label asp-for="MobileNo" class="form-label">Mobile Number</label>
+                            <input asp-for="MobileNo" class="form-control" placeholder="+91..." />
+                        </div>
+                        <div class="col-md-5">
+                            <label asp-for="NoOfHolidays" class="form-label">Holidays/Month</label>
+                            <input asp-for="NoOfHolidays" type="number" min="0" class="form-control" placeholder="0" />
+                        </div>
+                    </div>
+
+                    <div class="mb-4 pt-3 border-top">
+                        <h6 class="form-label" style="font-size: 13px; color: var(--color-text-primary); margin-bottom: 12px;">Business Rules</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-control d-flex align-items-center gap-3 py-3">
+                                    <div class="form-check form-switch m-0">
+                                        <input asp-for="Block" class="form-check-input" type="checkbox" id="blockToggle" />
+                                    </div>
+                                    <label class="form-check-label fw-bold" for="blockToggle" style="font-size: 12px; cursor: pointer;">
+                                        Block Account
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-control d-flex align-items-center gap-3 py-3">
+                                    <div class="form-check form-switch m-0">
+                                        <input asp-for="ReadyToCash" class="form-check-input" type="checkbox" id="readyToCashToggle" />
+                                    </div>
+                                    <label class="form-check-label fw-bold" for="readyToCashToggle" style="font-size: 12px; cursor: pointer;">
+                                        Ready to Cash
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-check-lg"></i>
+                            @(isEdit ? "Update Agent" : "Register Agent")
+                        </button>
+                        <a href="/Agent/Index" class="btn btn-outline px-4">Cancel</a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    @if (Model.IsSuperAdmin)
+    {
+        <script>
+            function loadBranches(bankId) {
+                const branchSelect = document.getElementById('branchSelect');
+                branchSelect.innerHTML = '<option value="">— Select Branch —</option>';
+                if (!bankId) return;
+
+                fetch('/Agent/GetBranches?bankId=' + bankId)
+                    .then(r => r.json())
+                    .then(branches => {
+                        branches.forEach(b => {
+                            const opt = document.createElement('option');
+                            opt.value = b.value;
+                            opt.textContent = b.text;
+                            branchSelect.appendChild(opt);
+                        });
+                    });
+            }
+        </script>
+    }
+}

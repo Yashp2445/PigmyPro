@@ -1,0 +1,153 @@
+@model PigmyPro.Web.ViewModels.Report.AgentSummaryReportVM
+
+@{
+    ViewData["Title"] = "Agent Summary Report";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Agent Summary Report</li>";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Agent Summary Report</h4>
+        <p class="page-subtitle">Comparative performance analysis and period-wise aggregation per field agent</p>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel">
+    <form asp-action="AgentSummary" method="post" id="filterForm" class="row g-3 align-items-end">
+        @if (Model.UserRole == "SuperAdmin")
+        {
+            <div class="col-md-3">
+                <label class="form-label">Bank Tenant</label>
+                <select asp-for="FilterBankID" asp-items="Model.Banks" class="form-select" id="bankDropdown">
+                    <option value="">-- All Banks --</option>
+                </select>
+            </div>
+        }
+        @if (Model.UserRole != "BranchAdmin")
+        {
+            <div class="col-md-3">
+                <label class="form-label">Branch Office</label>
+                <select asp-for="FilterBranchID" asp-items="Model.Branches" class="form-select" id="branchDropdown">
+                    <option value="">-- All Branches --</option>
+                </select>
+            </div>
+        }
+        <div class="col-md-2">
+            <label class="form-label">Period From</label>
+            <input asp-for="DateFrom" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Period To</label>
+            <input asp-for="DateTo" type="date" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary px-4 w-100">
+                <i class="bi bi-search"></i> Generate
+            </button>
+        </div>
+    </form>
+</div>
+
+@if (!Model.HasSearched)
+{
+    <div class="empty-state py-5">
+        <i class="bi bi-filter-circle empty-state-icon"></i>
+        <div class="empty-state-title">Specify parameters to view summaries</div>
+        <p class="empty-state-subtitle">Select date range and assignment criteria above</p>
+    </div>
+}
+else if (!Model.Rows.Any())
+{
+    <div class="empty-state py-5">
+        <i class="bi bi-exclamation-circle empty-state-icon text-danger" style="opacity: 0.5;"></i>
+        <div class="empty-state-title">No data available for selected criteria</div>
+        <p class="empty-state-subtitle">Try adjusting your filters or date range</p>
+        <a href="/Report/AgentSummary" class="btn btn-outline btn-sm mt-3">Reset Filters</a>
+    </div>
+}
+else
+{
+    <!-- Export Actions -->
+    <div class="d-flex justify-content-end gap-2 mb-4">
+        <form asp-action="AgentSummaryExcel" method="post" class="d-inline">
+            <input type="hidden" asp-for="DateFrom" />
+            <input type="hidden" asp-for="DateTo" />
+            <input type="hidden" asp-for="FilterBankID" />
+            <input type="hidden" asp-for="FilterBranchID" />
+            <input type="hidden" asp-for="FilterAgentCode" />
+            <button type="submit" class="btn btn-outline btn-sm text-success">
+                <i class="bi bi-file-earmark-excel"></i> Excel
+            </button>
+        </form>
+        <form asp-action="AgentSummaryText" method="post" class="d-inline">
+            <input type="hidden" asp-for="DateFrom" />
+            <input type="hidden" asp-for="DateTo" />
+            <input type="hidden" asp-for="FilterBankID" />
+            <input type="hidden" asp-for="FilterBranchID" />
+            <input type="hidden" asp-for="FilterAgentCode" />
+            <button type="submit" class="btn btn-outline btn-sm">
+                <i class="bi bi-file-earmark-text"></i> Text
+            </button>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Field Agent</th>
+                            <th>Branch Office</th>
+                            <th class="text-center">Accounts Handled</th>
+                            <th class="text-end">Aggregate Collection</th>
+                            <th class="text-end">Efficiency (Avg/Ac)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">@row.AgentName</div>
+                                    <div class="text-muted small mono-data">Code: @row.AgentCode</div>
+                                </td>
+                                <td>@row.BranchName</td>
+                                <td class="text-center mono-data fw-bold">@row.TotalAccounts</td>
+                                <td class="text-end fw-bold text-primary mono-data">₹@row.TotalAmount.ToString("N2")</td>
+                                <td class="text-end text-muted mono-data">₹@row.AverageAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot style="background: var(--color-bg-elevated); font-weight: 700;">
+                        <tr>
+                            <td colspan="2" style="padding: 14px 20px;">System Aggregate</td>
+                            <td class="text-center mono-data">@Model.GrandTotalAccounts</td>
+                            <td class="text-end text-primary mono-data" style="font-size: 16px;">₹@Model.GrandTotalAmount.ToString("N2")</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#bankDropdown').change(function() {
+                var bankId = $(this).val();
+                $('#branchDropdown').empty().append('<option value="">-- All Branches --</option>');
+                if (bankId) {
+                    $.getJSON('/Report/GetBranches', { bankId: bankId }, function(data) {
+                        $.each(data, function(i, item) {
+                            $('#branchDropdown').append('<option value="' + item.branchID + '">' + item.name + '</option>');
+                        });
+                    });
+                }
+            });
+        });
+    </script>
+}

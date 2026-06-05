@@ -1,0 +1,285 @@
+@model PigmyPro.Web.ViewModels.Dashboard.BranchAdminDashboardVM
+
+@{
+    ViewData["Title"] = "BranchAdmin Dashboard";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Branch Overview</li>";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Branch Overview</h4>
+        <p class="page-subtitle">Daily performance for your branch</p>
+    </div>
+    <div class="badge badge-info py-2 px-3">
+        <i class="bi bi-clock-history me-1"></i> Last updated: <span class="mono-data">@Model.LastUpdated.ToString("dd MMM yyyy, hh:mm:ss tt")</span>
+    </div>
+</div>
+
+<!-- Filter Panel -->
+<div class="filter-panel">
+    <form asp-action="BranchAdmin" method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Date From</label>
+            <input type="date" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date To</label>
+            <input type="date" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-funnel-fill"></i> Apply</button>
+            <a href="/Dashboard/BranchAdmin" class="btn btn-outline">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-xl col-md-4">
+        <div class="stat-card warning">
+            <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
+            <div class="stat-value">@Model.TotalAgents</div>
+            <div class="stat-label">Branch Agents</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
+            <div class="stat-value">@Model.TotalAccounts.ToString("N0")</div>
+            <div class="stat-label">Total Accounts</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-receipt-cutoff"></i></div>
+            <div class="stat-value">@Model.AccountsCollectedToday</div>
+            <div class="stat-label">Txns in Period</div>
+        </div>
+    </div>
+    <div class="col-xl-12">
+        <div class="stat-card brand" style="background:var(--color-brand-primary); border-color:var(--color-brand-primary);">
+            <div class="stat-icon" style="background:rgba(255,255,255,0.15); color:white;"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-value" style="color:white; font-size:30px;">₹@Model.TodayCollection.ToString("N2")</div>
+            <div class="stat-label" style="color:rgba(255,255,255,0.7);">Period Total Collection</div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Table + Pie Chart -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title">Agent Performance</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-wrapper">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Agent Name</th>
+                                <th class="text-end">Collection</th>
+                                <th class="text-center">Txns</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.AgentData.Any())
+                            {
+                                @foreach (var agent in Model.AgentData)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@agent.AgentName</td>
+                                        <td class="text-end fw-bold text-primary mono-data">
+                                            @if (agent.TodayAmount > 0)
+                                            {
+                                                <span>₹@agent.TodayAmount.ToString("N2")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted" style="opacity:0.6;">₹0.00</span>
+                                            }
+                                        </td>
+                                        <td class="text-center mono-data">@agent.AccountsCollected</td>
+                                        <td class="text-center">
+                                            @if (agent.IsBlocked)
+                                            {
+                                                <span class="badge badge-danger">BLOCKED</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge badge-success">ACTIVE</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="empty-state">
+                                            <i class="bi bi-person-exclamation empty-state-icon"></i>
+                                            <div class="empty-state-title">No agents found for this branch</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        @if (Model.AgentData.Any())
+                        {
+                            <tfoot style="background: var(--color-bg-elevated); font-weight: 700;">
+                                <tr>
+                                    <td style="padding: 14px 20px;">Branch Total</td>
+                                    <td class="text-end text-primary mono-data">₹@Model.AgentData.Sum(x => x.TodayAmount).ToString("N2")</td>
+                                    <td class="text-center mono-data">@Model.AgentData.Sum(x => x.AccountsCollected)</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        }
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="chart-card h-100">
+            <h5 class="chart-title">Collection Split</h5>
+            @{
+                var agentsWithCollection = Model.AgentData.Where(x => x.TodayAmount > 0).ToList();
+            }
+            @if (agentsWithCollection.Any())
+            {
+                <div style="position:relative; height:320px;">
+                    <canvas id="agentPieChart"></canvas>
+                </div>
+            }
+            else
+            {
+                <div class="empty-state h-100 d-flex flex-column align-items-center justify-content-center">
+                    <i class="bi bi-pie-chart empty-state-icon"></i>
+                    <p class="empty-state-subtitle">No transaction data recorded</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Agent Registry -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title">Agent Registry</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-wrapper">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Agent Name</th>
+                        <th>Mobile No</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-end">Collection</th>
+                        <th class="text-center">Accounts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.AgentOverview.Any())
+                    {
+                        @foreach (var agent in Model.AgentOverview)
+                        {
+                            <tr>
+                                <td class="mono-data fw-bold text-muted">#@agent.AgentCode</td>
+                                <td class="fw-bold">@agent.AgentName</td>
+                                <td class="mono-data">@agent.MobileNumber</td>
+                                <td class="text-center">
+                                    @if (agent.IsBlocked)
+                                    {
+                                        <span class="badge badge-danger">BLOCKED</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-success">ACTIVE</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
+                                <td class="text-center mono-data">@agent.AccountsCollected</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <div class="empty-state">
+                                    <i class="bi bi-people empty-state-icon"></i>
+                                    <div class="empty-state-title">No agents registered</div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var chartColors = ['#3b82f6', '#0ea5e9', '#16a34a', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#be185d'];
+            var tooltipBg = '#111827';
+
+            @{
+                var chartAgents = Model.AgentData.Where(x => x.TodayAmount > 0).ToList();
+            }
+
+            @if (chartAgents.Any())
+            {
+                <text>
+                var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(chartAgents.Select(x => x.AgentName)));
+                var data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(chartAgents.Select(x => x.TodayAmount)));
+
+                new Chart(document.getElementById('agentPieChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: chartColors,
+                            borderWidth: 0,
+                            hoverOffset: 12
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: { padding: 20, usePointStyle: true, font: { family: 'Inter', size: 11, weight: '500' }, color: '#4b5563' }
+                            },
+                            tooltip: {
+                                backgroundColor: tooltipBg, padding: 12,
+                                titleFont: { family: 'Inter', size: 13, weight: '700' },
+                                bodyFont: { family: 'JetBrains Mono', size: 12 },
+                                cornerRadius: 8, displayColors: false,
+                                callbacks: {
+                                    label: function (ctx) {
+                                        var total = ctx.dataset.data.reduce(function (a, b) { return a + b; }, 0);
+                                        var pct = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                                        return ctx.label + ': ₹' + ctx.parsed.toLocaleString('en-IN') + ' (' + pct + '%)';
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+                </text>
+            }
+        })();
+    </script>
+}

@@ -1,0 +1,163 @@
+@model IEnumerable<PigmyPro.Web.ViewModels.Branch.BranchListVM>
+
+@{
+    ViewData["Title"] = "Branches";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Branch Directory</li>";
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success d-flex align-items-center" role="alert">
+        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+        <div>@TempData["Success"]</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-octagon-fill me-2 fs-5"></i>
+        <div>@TempData["Error"]</div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Branch Directory</h4>
+        <p class="page-subtitle">
+            @(ViewBag.BankName != null
+                ? "Operating branches for " + ViewBag.BankName
+                : "Comprehensive list of all branch offices")
+        </p>
+    </div>
+
+    <a href="/Branch/Create" class="btn btn-primary">
+        <i class="bi bi-plus-lg"></i> New Branch
+    </a>
+</div>
+
+@if (ViewBag.IsSuperAdmin == true)
+{
+    <div class="filter-panel">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Select Bank Tenant</label>
+                <select name="bankId" class="form-select">
+                    <option value="">-- All Banks --</option>
+                    @foreach (var bank in ViewBag.BankList)
+                    {
+                        <option value="@bank.Value" selected="@(bank.Value == ViewBag.SelectedBankID?.ToString())">@bank.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+}
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="empty-state py-5">
+                <i class="bi bi-geo-alt empty-state-icon"></i>
+                <div class="empty-state-title">
+                    @if (ViewBag.IsSuperAdmin == true && (int)ViewBag.SelectedBankID == 0)
+                    {
+                        <span>Please select a bank to view its branches.</span>
+                    }
+                    else
+                    {
+                        <span>No branches found for the current selection.</span>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Branch Name</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@item.Name</td>
+                                <td>
+                                    @if (item.IsActive == "Active")
+                                    {
+                                        <span class="badge badge-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <a href="/Branch/Edit/@item.BranchID?bankId=@item.BankID" class="btn btn-outline btn-sm">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <button type="button" class="btn btn-outline btn-sm text-danger" onclick="confirmDelete(@item.BranchID, @item.BankID, '@item.Name')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4 text-danger">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 64px;"></i>
+                </div>
+                <h4 class="fw-bold mb-2" style="color: var(--color-text-primary);">Remove Branch?</h4>
+                <p id="deleteMsg" class="text-muted mb-4"></p>
+
+                <form id="deleteForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="deleteId" />
+                    <input type="hidden" name="bankId" id="deleteBankId" />
+
+                    <div class="d-flex gap-3 justify-content-center">
+                        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-danger px-4">Delete Branch</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id, bankId, name) {
+            document.getElementById('deleteMsg').textContent = 'Are you sure you want to permanently remove branch "' + name + '"?';
+            document.getElementById('deleteId').value = id;
+            document.getElementById('deleteBankId').value = bankId;
+            document.getElementById('deleteForm').action = '/Branch/Delete';
+            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+        }
+    </script>
+}
