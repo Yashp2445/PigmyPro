@@ -18,9 +18,6 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<MobileTransaction>> GetPendingByBankAsync(int bankId, decimal? agentCode = null, DateTime? date = null)
         {
-            // MobilePygTrn actual columns: Agent (decimal), Code2 (decimal), Date (datetime),
-            // Brnc_code (int), Amount (decimal), BankID (int), Code1 (int)
-            // Map to MobileTransaction entity property names via SQL aliases.
             var query = @"
                 SELECT 
                     m.BankID,
@@ -42,7 +39,6 @@ namespace PigmyPro.Data.Repositories
                     AND m.Code1 = c.CODE1
                 WHERE 1=1";
 
-            // Apply bank filter only for non-SuperAdmin (bankId > 0)
             if (bankId > 0)
                 query += " AND m.BankID = @BankID";
 

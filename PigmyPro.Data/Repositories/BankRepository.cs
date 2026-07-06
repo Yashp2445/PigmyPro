@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Dapper;
@@ -37,9 +37,9 @@ namespace PigmyPro.Data.Repositories
         public async Task<int> AddAsync(Bank bank)
         {
             var query = @"INSERT INTO Banks 
-            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode)
+            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode, hasCBS)
             VALUES 
-            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode)";
+            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode, @hasCBS)";
 
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, bank);
@@ -54,7 +54,8 @@ namespace PigmyPro.Data.Repositories
             ContactPerson = @ContactPerson,
             EmailID = @EmailID,
             ActiveYN = @ActiveYN,
-            CollectionGLCode = @CollectionGLCode
+            CollectionGLCode = @CollectionGLCode,
+            hasCBS = @hasCBS
             WHERE BankID = @BankID";
 
             using var connection = _context.CreateConnection();
