@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,5 +15,6 @@ namespace PigmyPro.Domain.Entities
         public bool ActiveYN { get; set; } = true;
         public DateTime EntryDateTime { get; set; }
         public long CollectionGLCode { get; set; }
+        public char hasCBS { get; set; } = 'N';
     }
 }

@@ -25,9 +25,6 @@ namespace PigmyPro.Web.Controllers
             _branchRepo = branchRepo;
         }
 
-        // ═══════════════════════════════════════
-        // EXPORT
-        // ═══════════════════════════════════════
 
         [HttpGet]
         public async Task<IActionResult> Export()
@@ -69,7 +66,7 @@ namespace PigmyPro.Web.Controllers
 
             if (agent.RadyToCash != "Y")
             {
-                vm.ErrorMessage = "Agent is not ready to cash. Please set Ready to Cash on the mobile app first.";
+                vm.ErrorMessage = "Agent is not ready to cash. Please set Ready to Cash on the mobile app first!!";
                 await PopulateExportDropdowns(vm);
                 vm.HasSearched = true;
                 return View(vm);
@@ -128,7 +125,6 @@ namespace PigmyPro.Web.Controllers
 
             var sb = new StringBuilder();
 
-            // Header line — matches WebForms WriteTxt() exactly
             string agentStr = agentCode.Value.ToString("0").PadLeft(3, '0');
             string branchStr = resolvedBranch.ToString("0").PadLeft(3, '0');
             string recordsStr = totalRecords.ToString().PadLeft(6, '0');
@@ -149,7 +145,6 @@ namespace PigmyPro.Web.Controllers
                 sb.AppendLine($"{code2Str},{rowAmtStr},{name},{balStr},{dateStr},{rowAmtStr}");
             }
 
-            // Log and update agent flag
             await _repo.LogExportAsync(bankId, resolvedBranch, agentCode.Value,
                 User.Identity?.Name ?? "", totalRecords, totalAmount);
             await _repo.SetAgentDownloadFlagAsync(bankId, resolvedBranch, agentCode.Value, "Y");
@@ -187,10 +182,6 @@ namespace PigmyPro.Web.Controllers
                     .ToList();
             }
         }
-
-        // ═══════════════════════════════════════
-        // UPLOAD
-        // ═══════════════════════════════════════
 
         [HttpGet]
         public IActionResult Upload()
@@ -301,14 +292,16 @@ namespace PigmyPro.Web.Controllers
                     long code2 = 0;
                     if (!long.TryParse(p[0].Trim(), out code2)) continue;
 
-                    decimal amt = decimal.TryParse(p[1].Trim(), out decimal a) ? a : 0;
-                    string nm = p[2].Trim();
-                    decimal bal = decimal.TryParse(p[3].Trim(), out decimal b) ? b : 0;
+                    // Index 1 is ignored exactly as it was in the original code
+
+                    string nm = p[2].Trim(); // Index 2: Customer Name
+                    decimal amt = decimal.TryParse(p[3].Trim(), out decimal a) ? a : 0; // Index 3: Amount
+
                     DateTime dt = vm.Date;
                     if (DateTime.TryParseExact(p[4].Trim(), "dd-MM-yy",
                         System.Globalization.CultureInfo.InvariantCulture,
                         System.Globalization.DateTimeStyles.None, out DateTime rowDate))
-                        dt = rowDate;
+                        dt = rowDate; // Index 4: Date
 
                     if (code2 > 0)
                     {

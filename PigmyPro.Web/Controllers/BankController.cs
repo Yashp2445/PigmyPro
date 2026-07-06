@@ -24,7 +24,8 @@ namespace PigmyPro.Web.Controllers
             {
                 BankID = x.BankID,
                 Name = x.Name,
-                ActiveYN = x.ActiveYN
+                ActiveYN = x.ActiveYN,
+                HasCBS = x.hasCBS == 'Y'
             }).ToList();
 
             return View(vm);
@@ -83,6 +84,7 @@ namespace PigmyPro.Web.Controllers
                 EmailID = vm.EmailID,
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
+                hasCBS = vm.HasCBS ? 'Y' : 'N',
                 EntryDateTime = DateTime.Now
             };
 
@@ -109,6 +111,7 @@ namespace PigmyPro.Web.Controllers
                 ContactPerson = data.ContactPerson,
                 EmailID = data.EmailID,
                 ActiveYN = data.ActiveYN,
+                HasCBS = data.hasCBS == 'Y',
 
                 IsPigmy = true,
                 IsLoan = code >= 2,
@@ -146,7 +149,8 @@ namespace PigmyPro.Web.Controllers
                 ContactPerson = vm.ContactPerson,
                 EmailID = vm.EmailID,
                 ActiveYN = vm.ActiveYN,
-                CollectionGLCode = code
+                CollectionGLCode = code,
+                hasCBS = vm.HasCBS ? 'Y' : 'N'
             };
 
             await _repo.UpdateAsync(entity);

@@ -24,6 +24,7 @@ namespace PigmyPro.Web.ViewModels.Bank
         public string? EmailID { get; set; }
 
         public bool ActiveYN { get; set; } = true;
+        public bool HasCBS { get; set; }
 
         public bool IsPigmy { get; set; } = true; 
         public bool IsLoan { get; set; }
@@ -37,5 +38,6 @@ namespace PigmyPro.Web.ViewModels.Bank
         public int BankID { get; set; }
         public string Name { get; set; } = string.Empty;
         public bool ActiveYN { get; set; }
+        public bool HasCBS { get; set; }
     }
 }
