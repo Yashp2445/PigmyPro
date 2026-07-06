@@ -122,11 +122,9 @@ namespace PigmyPro.Data.Repositories
                 new { FlagValue = flagValue, BankID = bankId, BranchCode = branchCode, AgentCode = agentCode });
         }
 
-        // ── Upload side ──────────────────────────────────────────────────────
 
         public async Task<bool> ValidateBranchAsync(int bankId, decimal branchCode)
         {
-            // brncmast PK is (BankID, BranchID) — BranchID is the numeric branch code
             var sql = @"SELECT COUNT(1) FROM brncmast 
                         WHERE BankID = @BankID 
                           AND CAST(BranchID AS DECIMAL(10,0)) = @BranchCode";
@@ -148,7 +146,6 @@ namespace PigmyPro.Data.Repositories
 
             try
             {
-                // 1. Delete existing acmaster records for this agent in this branch
                 await connection.ExecuteAsync(
                     @"DELETE FROM acmaster 
                       WHERE BankID = @BankID 
@@ -157,7 +154,6 @@ namespace PigmyPro.Data.Repositories
                     new { BankID = bankId, BranchCode = branchCode, AgentCode = agentCode },
                     transaction);
 
-                // 2. Log the import
                 await connection.ExecuteAsync(
                     @"INSERT INTO DataImportLog 
                         (BankID, Import_Date, Brnc_Code, Agent_Code, UserID, 
@@ -176,8 +172,7 @@ namespace PigmyPro.Data.Repositories
                         TotalRecords = totalRecords
                     },
                     transaction);
-
-                // 3. Reset agent flags
+             
                 await connection.ExecuteAsync(
                     @"UPDATE agntmast 
                       SET Down_Load_YN = 'N', RadyToCash = 'N' 
@@ -187,7 +182,6 @@ namespace PigmyPro.Data.Repositories
                     new { BankID = bankId, BranchCode = branchCode, AgentCode = agentCode },
                     transaction);
 
-                // 4. Delete pending mobile transactions for this agent
                 await connection.ExecuteAsync(
                     @"DELETE FROM MobilePygTrn 
                       WHERE BankID = @BankID 
@@ -196,7 +190,6 @@ namespace PigmyPro.Data.Repositories
                     new { BankID = bankId, BranchCode = branchCode, AgentCode = agentCode },
                     transaction);
 
-                // 5. Insert new account records — CODE1=48 as per original WebForms
                 foreach (var r in rows)
                 {
                     await connection.ExecuteAsync(
