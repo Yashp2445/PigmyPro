@@ -16,9 +16,7 @@
     {
         <div id="sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-logo-icon">
-                    <i class="bi bi-piggy-bank-fill"></i>
-                </div>
+                <img src="~/Three_Star_Logo-t.png" alt="Three Star Logo" style="height: 32px; width: auto; object-fit: contain;" />
                 <span class="logo-text">PigmyPro</span>
             </div>
 
@@ -77,6 +75,12 @@
                 </a>
                 <a href="/Report/AgentSummary" class="nav-link @(reportController == "Report" && reportAction == "AgentSummary" ? "active" : "")">
                     <i class="bi bi-person-lines-fill"></i> Agent Summary
+                </a>
+                @{
+                    var psController = ViewContext.RouteData.Values["controller"]?.ToString();
+                }
+                <a href="/PigmyStatement/Index" class="nav-link @(psController == "PigmyStatement" ? "active" : "")">
+                    <i class="bi bi-receipt"></i> Pigmy Statement
                 </a>
             </div>
         </div>

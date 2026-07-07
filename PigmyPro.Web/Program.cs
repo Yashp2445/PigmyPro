@@ -59,6 +59,7 @@ builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IMapRepository, MapRepository>();
 builder.Services.AddScoped<IMobileImportRepository, MobileImportRepository>();
+builder.Services.AddScoped<IPigmyStatementRepository, PigmyStatementRepository>();
 
 
 var app = builder.Build();
