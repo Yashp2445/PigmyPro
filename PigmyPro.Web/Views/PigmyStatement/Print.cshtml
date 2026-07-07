@@ -1,0 +1,282 @@
+@model PigmyPro.Web.ViewModels.Report.PigmyStatementReportVM
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pigmy Agent Collection Statement from @Model.DateFrom.ToString("dd-MMM-yyyy") To @Model.DateTo.ToString("dd-MMM-yyyy") — Print</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 11px;
+            color: #1a1a2e;
+            line-height: 1.5;
+            padding: 24px 32px;
+            background: #fff;
+        }
+
+        .print-header {
+            text-align: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #1a7a6e;
+        }
+
+        .print-header .bank-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a7a6e;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .print-header .report-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .print-meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .print-meta span {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+        }
+
+        thead th {
+            background: #1a7a6e;
+            color: #fff;
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 8px 10px;
+            text-align: left;
+            border: 1px solid #158274;
+        }
+
+        thead th.text-end {
+            text-align: right;
+        }
+
+        tbody td {
+            padding: 6px 10px;
+            border: 1px solid #e0e0e0;
+            font-size: 10.5px;
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8fafa;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        .fw-bold {
+            font-weight: 600;
+        }
+
+        tfoot td {
+            padding: 10px;
+            font-weight: 700;
+            font-size: 11px;
+            border: 1px solid #1a7a6e;
+            background: #f0f7f6;
+        }
+
+        .print-footer {
+            margin-top: 24px;
+            padding-top: 12px;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: #999;
+        }
+
+        .no-print {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .no-print button {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 32px;
+            background: #1a7a6e;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .no-print button:hover {
+            background: #158274;
+        }
+
+        @@media print {
+            body {
+                padding: 0;
+                font-size: 10px;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-header {
+                margin-bottom: 16px;
+                padding-bottom: 10px;
+            }
+
+            thead th {
+                background: #1a7a6e !important;
+                color: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            tbody tr:nth-child(even) {
+                background: #f8fafa !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            tfoot td {
+                background: #f0f7f6 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            thead {
+                display: table-header-group;
+            }
+
+            @@page {
+                size: landscape;
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">
+            🖨️ Print / Save as PDF
+        </button>
+    </div>
+
+    <div class="print-header">
+        <div class="bank-name">@Model.BankName</div>
+        <div class="report-title">Pigmy Agent Collection Statement from @Model.DateFrom.ToString("dd-MMM-yyyy") To @Model.DateTo.ToString("dd-MMM-yyyy")</div>
+    </div>
+
+    <div class="print-meta">
+        <div>
+            Period: <span>@Model.DateFrom.ToString("dd-MMM-yyyy")</span> to <span>@Model.DateTo.ToString("dd-MMM-yyyy")</span>
+        </div>
+        <div>
+            Generated: <span>@DateTime.Now.ToString("dd-MMM-yyyy hh:mm tt")</span>
+        </div>
+    </div>
+
+    @if (Model.Rows.Any())
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Branch</th>
+                    <th>Date</th>
+                    <th>Agent Code</th>
+                    <th>Agent Name</th>
+                    <th>Code1</th>
+                    <th>A/C Code</th>
+                    <th>Name</th>
+                    <th class="text-end">Amount</th>
+                    <th>Entry Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr>
+                        <td class="mono">@row.ID</td>
+                        <td>@row.BranchName</td>
+                        <td class="mono">@row.Date.ToString("dd-MMM-yyyy")</td>
+                        <td class="mono">@row.AgentCode</td>
+                        <td class="fw-bold">@row.AgentName</td>
+                        <td>@row.AccountType</td>
+                        <td class="mono">@row.Code2</td>
+                        <td>@row.Name</td>
+                        <td class="mono text-end">₹@row.Amount.ToString("N2")</td>
+                        <td class="mono">@row.EntryDate.ToString("dd-MMM-yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="8">Grand Total (@Model.TotalRecords records)</td>
+                    <td class="text-end mono">₹@Model.TotalAmount.ToString("N2")</td>
+                    <td colspan="1"></td>
+                </tr>
+            </tfoot>
+        </table>
+    }
+    else
+    {
+        <p style="text-align: center; padding: 40px; color: #999;">No records found for the selected criteria.</p>
+    }
+
+    <div class="print-footer">
+        <span>PigmyPro Banking Software</span>
+        <span>This is a computer-generated report</span>
+    </div>
+
+</body>
+</html>
