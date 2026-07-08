@@ -120,20 +120,29 @@ namespace PigmyPro.Web.Controllers
                 new Claim("DisplayName", displayName)
             };
 
-            var identity = new ClaimsIdentity(
-                claims,
-                CookieAuthenticationDefaults.AuthenticationScheme);
+            var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("PigmyProSuperSecretSecurityKeyForJwtAuthenticationMustBeAtLeast256BitsLong!"));
+            var creds = new Microsoft.IdentityModel.Tokens.SigningCredentials(key, Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256);
+            var expires = rememberMe ? DateTime.UtcNow.AddDays(7) : DateTime.UtcNow.AddMinutes(30);
 
-            var authProps = new AuthenticationProperties
+            var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+                issuer: "PigmyProIssuer",
+                audience: "PigmyProAudience",
+                claims: claims,
+                expires: expires,
+                signingCredentials: creds
+            );
+
+            var tokenString = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().WriteToken(token);
+
+            var cookieOptions = new CookieOptions
             {
-                IsPersistent = rememberMe,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+                Secure = Request.IsHttps,
+                Expires = expires
             };
 
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity),
-                authProps);
+            Response.Cookies.Append("PigmyPro.Token", tokenString, cookieOptions);
 
             
             HttpContext.Session.SetInt32("BankID", bankId);
@@ -151,7 +160,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            Response.Cookies.Delete("PigmyPro.Token");
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }

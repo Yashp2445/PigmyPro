@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace PigmyPro.Web.Controllers
 {
     [Authorize(Roles = "SuperAdmin")]
-    public class BankController : Controller
+    public class BankController : BaseController
     {
         private readonly IBankRepository _repo;
 
