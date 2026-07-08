@@ -3,6 +3,7 @@ using System.Security.Claims;
 
 namespace PigmyPro.Web.Controllers
 {
+    [ResponseCache(Location = ResponseCacheLocation.None, NoStore = true)]
     public class BaseController : Controller
     {
         protected int CurrentBankID

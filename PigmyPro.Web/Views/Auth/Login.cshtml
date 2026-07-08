@@ -158,7 +158,7 @@
         <h1 class="brand-title">PigmyPro</h1>
         <p class="brand-subtitle">Three Star Infotech Pvt. Ltd., Kolhapur</p>
 
-        <form asp-action="Login" method="post">
+        <form asp-action="Login" method="post" onsubmit="sessionStorage.setItem('pigmypro_tab_initialized', 'true');">
             @Html.AntiForgeryToken()
             @if (!ViewData.ModelState.IsValid)
             {
@@ -196,6 +196,11 @@
             &copy; 2026 PigmyPro • v2.0
         </div>
     </div>
+    
+    <script>
+        // Clear any strict single-tab enforcement flags when landing on the login page
+        sessionStorage.removeItem('pigmypro_tab_id');
+        sessionStorage.removeItem('pigmypro_tab_initialized');
+    </script>
 </body>
-</html>
 </html>

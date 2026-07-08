@@ -5,7 +5,7 @@
     ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Collection Geography</li>";
 }
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="~/css/leaflet.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -298,25 +298,33 @@
 </div>
 
 @section Scripts {
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-polylinedecorator/1.6.0/leaflet.polylineDecorator.min.js"></script>
+<script src="~/js/leaflet.js"></script>
+<script src="~/js/leaflet.polylineDecorator.js"></script>
 <script>
 $(document).ready(function () {
+    console.log("DEBUG: L exists:", typeof L !== 'undefined');
+    if (typeof L !== 'undefined') {
+        console.log("DEBUG: L.polylineDecorator exists:", typeof L.polylineDecorator !== 'undefined');
+        console.log("DEBUG: L.Symbol exists:", typeof L.Symbol !== 'undefined');
+        if (L.Symbol) {
+            console.log("DEBUG: L.Symbol.arrowHead exists:", typeof L.Symbol.arrowHead !== 'undefined');
+        }
+    }
 
     // ── Google Maps-style palette ─────────────────────
     var COLORS = ['#4285f4','#ea4335','#34a853','#fbbc04','#9334e6',
                   '#00897b','#e91e63','#ff6d00','#00acc1','#558b2f'];
 
-    // ── Init map (no initial view — fitBounds will handle it) ──
+    // ── Init map (default to Kolhapur local area) ──
     var map = L.map('map', {
         zoomControl: false,
         scrollWheelZoom: true,
         inertia: true,
         inertiaDeceleration: 2000,
         worldCopyJump: true,
-        minZoom: 4,
+        minZoom: 10,
         maxZoom: 19
-    }).setView([20.5937, 78.9629], 5);   // fallback centre (India)
+    }).setView([16.7050, 74.2433], 13);   // local centre (Kolhapur)
 
     // Google-Maps-style zoom control (top-right)
     L.control.zoom({ position: 'topright' }).addTo(map);
@@ -451,15 +459,17 @@ $(document).ready(function () {
                         var poly = L.polyline(path, {
                             color: color, weight: 3, opacity: 0.55, dashArray: '8 6'
                         }).addTo(routesLayer);
-                        L.polylineDecorator(poly, {
-                            patterns: [{
-                                offset: '50%', repeat: '50%',
-                                symbol: L.Symbol.arrowHead({
-                                    pixelSize: 10,
-                                    pathOptions: { fillOpacity: 1, weight: 0, color: color }
-                                })
-                            }]
-                        }).addTo(routesLayer);
+                        if (typeof L.Symbol !== 'undefined' && typeof L.Symbol.arrowHead === 'function') {
+                            L.polylineDecorator(poly, {
+                                patterns: [{
+                                    offset: '50%', repeat: '50%',
+                                    symbol: L.Symbol.arrowHead({
+                                        pixelSize: 10,
+                                        pathOptions: { fillOpacity: 1, weight: 0, color: color }
+                                    })
+                                }]
+                            }).addTo(routesLayer);
+                        }
                     }
                 });
 
@@ -471,12 +481,10 @@ $(document).ready(function () {
                 $('#stat-amount').text(`₹${Number(totalAmt).toLocaleString('en-IN')}`);
                 $('#stats-pill-container').css('display', 'flex');
 
-                var bounds = markersGroup.getBounds();
+                 var bounds = markersGroup.getBounds();
                 if (bounds.isValid()) {
+                    map.invalidateSize();
                     map.fitBounds(bounds, { padding: [70, 70], maxZoom: 16 });
-                    map.once('zoomend', function () {
-                        if (map.getZoom() > 15) map.setZoom(15);
-                    });
                 }
 
             })
