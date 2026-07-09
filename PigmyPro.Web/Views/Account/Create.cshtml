@@ -145,7 +145,14 @@
                         </div>
                         <div class="col-md-6">
                             <label asp-for="MobileNo" class="form-label">Contact Number</label>
-                            <input asp-for="MobileNo" class="form-control" placeholder="+91..." />
+                            <input asp-for="MobileNo" id="mobileNoInput" class="form-control"
+                                   type="tel"
+                                   inputmode="numeric"
+                                   maxlength="10"
+                                   placeholder="10-digit mobile number"
+                                   oninput="validateMobile(this)" />
+                            <span asp-validation-for="MobileNo" class="text-danger small"></span>
+                            <span class="text-danger small" id="customMobileError"></span>
                         </div>
                     </div>
 
@@ -248,6 +255,33 @@
                         document.getElementById('Code2Input').classList.remove('is-invalid');
                     }
                 });
+        }
+
+        function validateMobile(input) {
+            input.value = input.value.replace(/[^0-9]/g, '').slice(0, 10);
+            const errorSpan = document.getElementById('customMobileError');
+            const val = input.value;
+            let errorMsg = '';
+            
+            if (val.length > 0 && val.length < 10) {
+                errorMsg = 'Must be exactly 10 digits';
+            } else if (val.length === 10) {
+                if (val[0] < '6' || val[0] > '9') {
+                    errorMsg = 'Must start with 6-9';
+                } else if (/^([0-9])\1{9}$/.test(val)) {
+                    errorMsg = 'Cannot be all same digits';
+                } else if ("0123456789 9876543210".includes(val)) {
+                    errorMsg = 'Cannot be sequential numbers';
+                }
+            }
+            
+            input.setCustomValidity(errorMsg);
+            errorSpan.textContent = errorMsg;
+            
+            const unobtrusiveSpan = input.nextElementSibling;
+            if (errorMsg && unobtrusiveSpan && unobtrusiveSpan.tagName === 'SPAN') {
+                unobtrusiveSpan.style.display = 'none';
+            }
         }
     </script>
 }

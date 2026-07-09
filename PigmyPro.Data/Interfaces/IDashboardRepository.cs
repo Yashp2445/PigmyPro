@@ -79,6 +79,7 @@ namespace PigmyPro.Data.Interfaces
         public bool IsBlocked { get; set; }
         public decimal TodayAmount { get; set; }
         public int AccountsCollected { get; set; }
+        public int? DaysInactive { get; set; }
     }
 
     public interface IDashboardRepository

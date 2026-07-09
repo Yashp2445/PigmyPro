@@ -201,6 +201,18 @@
         // Clear any strict single-tab enforcement flags when landing on the login page
         sessionStorage.removeItem('pigmypro_tab_id');
         sessionStorage.removeItem('pigmypro_tab_initialized');
+
+        // Trap the browser history to prevent Back/Forward navigation away from this page
+        (function () {
+            // Push an initial state into the history stack
+            window.history.pushState(null, "", window.location.href);
+
+            // Listen for the popstate event (triggered by Back/Forward buttons)
+            window.addEventListener('popstate', function (event) {
+                // Immediately push a new state to overwrite the navigation attempt
+                window.history.pushState(null, "", window.location.href);
+            });
+        })();
     </script>
 </body>
 </html>

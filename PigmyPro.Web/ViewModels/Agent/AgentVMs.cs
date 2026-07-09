@@ -29,7 +29,7 @@ namespace PigmyPro.Web.ViewModels.Agent
 
         [Required(ErrorMessage = "Agent Code is required")]
         [Display(Name = "Agent ID/Code")]
-        public decimal Code { get; set; }
+        public decimal? Code { get; set; }
 
         [Required(ErrorMessage = "Agent Name is required")]
         [StringLength(100)]

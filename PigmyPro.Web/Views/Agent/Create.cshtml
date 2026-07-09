@@ -62,10 +62,9 @@
                         <div class="col-md-4">
                             <label asp-for="Code" class="form-label">Agent Code</label>
                             <input asp-for="Code" id="agentCodeInput" class="form-control"
-                                   style="background-color: var(--color-bg-elevated);"
-                                   readonly
-                                   placeholder="@(isEdit ? "" : "Select a branch...")" />
-                            <span asp-validation-for="Code" class="text-danger small"></span>
+                                   placeholder="@(isEdit ? "" : "Agent Code")" 
+                                   onblur="checkCodeExists()" />
+                            <span asp-validation-for="Code" class="text-danger small" id="agentCodeError"></span>
                         </div>
                         <div class="col-md-8">
                             <label asp-for="NAME" class="form-label">Full Name</label>
@@ -77,18 +76,19 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-7">
                             <label asp-for="MobileNo" class="form-label">Mobile Number</label>
-                            <input asp-for="MobileNo" class="form-control"
+                            <input asp-for="MobileNo" id="mobileNoInput" class="form-control"
                                    type="tel"
                                    inputmode="numeric"
                                    maxlength="10"
-                                   pattern="[6-9][0-9]{9}"
                                    placeholder="10-digit mobile number"
-                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" />
+                                   oninput="validateMobile(this)" />
                             <span asp-validation-for="MobileNo" class="text-danger small"></span>
+                            <span class="text-danger small" id="customMobileError"></span>
                         </div>
                         <div class="col-md-5">
                             <label asp-for="NoOfHolidays" class="form-label">Holidays/Month</label>
-                            <input asp-for="NoOfHolidays" type="number" min="0" class="form-control" placeholder="0" />
+                            <input asp-for="NoOfHolidays" id="noOfHolidaysInput" type="number" min="0" class="form-control" placeholder="0" oninput="validateHolidays(this)" />
+                            <span class="text-danger small" id="holidaysError"></span>
                         </div>
                     </div>
 
@@ -209,6 +209,37 @@
                             </text>
                 }
             }
+            
+            function checkCodeExists() {
+                const codeInput = document.getElementById('agentCodeInput').value;
+                const errorSpan = document.getElementById('agentCodeError');
+                
+                let bankId = null;
+                let branchCode = null;
+                
+                @if (Model.IsSuperAdmin) { <text>
+                    bankId = document.getElementById('bankSelect').value;
+                    branchCode = document.getElementById('branchSelect').value;
+                </text> } else if (Model.IsBankAdmin) { <text>
+                    bankId = document.getElementById('currentBankId').value;
+                    branchCode = document.getElementById('branchSelect').value;
+                </text> } else { <text>
+                    bankId = '@Model.SelectedBankID';
+                    branchCode = '@Model.BranchCode';
+                </text> }
+
+                if (!bankId || !branchCode || !codeInput) return;
+
+                fetch('/Agent/CheckCodeExists?bankId=' + bankId + '&branchCode=' + branchCode + '&code=' + codeInput)
+                    .then(r => r.json())
+                    .then(data => {
+                        if(data.exists) {
+                            errorSpan.textContent = 'This agent code is already in use for this branch.';
+                        } else {
+                            errorSpan.textContent = '';
+                        }
+                    });
+            }
 
             @if (Model.IsSuperAdmin)
             {
@@ -217,7 +248,7 @@
                                     const branchSelect = document.getElementById('branchSelect');
                                     branchSelect.innerHTML = '<option value="">— Select Branch —</option>';
                                     document.getElementById('agentCodeInput').value = '';
-                                    if (!bankId) return;
+                                    if (!bankId) { maxBankHolidays = 0; return; }
 
                                     fetch('/Agent/GetBranches?bankId=' + bankId)
                                         .then(r => r.json())
@@ -229,8 +260,64 @@
                                                 branchSelect.appendChild(opt);
                                             });
                                         });
+                                        
+                                    fetchBankHolidays(bankId);
                                 }
                         </text>
+            }
+
+            let maxBankHolidays = 0;
+
+            function fetchBankHolidays(bankId) {
+                if (!bankId) return;
+                fetch('/Agent/GetBankHolidays?bankId=' + bankId)
+                    .then(r => r.json())
+                    .then(data => { maxBankHolidays = data.holidays; validateHolidays(document.getElementById('noOfHolidaysInput')); });
+            }
+
+            @if (!Model.IsSuperAdmin) { <text>
+                // For Bank Admin or Branch User, fetch bank holidays on load
+                window.addEventListener('DOMContentLoaded', () => {
+                    let bankId = @if(Model.IsBankAdmin) { <text> document.getElementById('currentBankId').value </text> } else { <text> '@Model.SelectedBankID' </text> };
+                    if(bankId) fetchBankHolidays(bankId);
+                });
+            </text> }
+
+            function validateHolidays(input) {
+                const errorSpan = document.getElementById('holidaysError');
+                if (maxBankHolidays > 0 && input.value > maxBankHolidays) {
+                    errorSpan.textContent = 'Cannot exceed Bank limit of ' + maxBankHolidays;
+                } else {
+                    errorSpan.textContent = '';
+                }
+            }
+
+            function validateMobile(input) {
+                input.value = input.value.replace(/[^0-9]/g, '').slice(0, 10);
+                const errorSpan = document.getElementById('customMobileError');
+                const val = input.value;
+                let errorMsg = '';
+                
+                if (val.length > 0 && val.length < 10) {
+                    errorMsg = 'Must be exactly 10 digits';
+                } else if (val.length === 10) {
+                    if (val[0] < '6' || val[0] > '9') {
+                        errorMsg = 'Must start with 6-9';
+                    } else if (/^([0-9])\1{9}$/.test(val)) {
+                        errorMsg = 'Cannot be all same digits';
+                    } else if ("0123456789 9876543210".includes(val)) {
+                        errorMsg = 'Cannot be sequential numbers';
+                    }
+                }
+                
+                input.setCustomValidity(errorMsg);
+                errorSpan.textContent = errorMsg;
+                
+                // Hide the unobtrusive validation span if we have a custom error so they don't overlap
+                const unobtrusiveSpan = input.nextElementSibling;
+                if (errorMsg && unobtrusiveSpan && unobtrusiveSpan.tagName === 'SPAN') {
+                    unobtrusiveSpan.style.display = 'none';
+                }
             }
         </script>
     }

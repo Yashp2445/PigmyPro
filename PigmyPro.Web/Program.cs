@@ -98,6 +98,15 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// Prevent caching for dynamic requests (fixes back-button after logout and weird bfcache layouts)
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+    context.Response.Headers["Pragma"] = "no-cache";
+    context.Response.Headers["Expires"] = "-1";
+    await next();
+});
 // Diagnostic logging config
 var logLock = new object();
 var logPath = Path.Combine(AppContext.BaseDirectory, "diagnostic_log.txt");
