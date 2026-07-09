@@ -205,9 +205,9 @@ namespace PigmyPro.Web.Controllers
                 var lines = new List<string>();
                 using (var reader = new StreamReader(uploadedFile.OpenReadStream()))
                 {
-                    while (!reader.EndOfStream)
+                    string? line;
+                    while ((line = await reader.ReadLineAsync()) != null)
                     {
-                        var line = await reader.ReadLineAsync();
                         if (!string.IsNullOrWhiteSpace(line))
                             lines.Add(line.TrimEnd());
                     }

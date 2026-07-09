@@ -137,7 +137,7 @@ namespace PigmyPro.Web.Controllers
                 IsSuperAdmin = isSuperAdmin,
                 IsBankAdmin = isBankAdmin,
                 AccountTypeList = isSuperAdmin
-                    ? Enumerable.Empty<SelectListItem>() // loaded dynamically after bank select
+                    ? Enumerable.Empty<SelectListItem>() 
                     : await GetAccountTypeListForBank(CurrentBankID)
             };
 
@@ -175,12 +175,12 @@ namespace PigmyPro.Web.Controllers
             if ((isSuperAdmin || isBankAdmin) && branchCode == 0)
                 ModelState.AddModelError("SelectedBranchCode", "Branch selection is required.");
 
-            if (ModelState.IsValid && vm.Code1 > 0 && vm.Code2 > 0 && bankId > 0 && branchCode > 0)
+            if (ModelState.IsValid && vm.Code1 > 0 && vm.Code2.HasValue && vm.Code2.Value > 0 && bankId > 0 && branchCode > 0)
             {
-                var exists = await _accountRepo.ExistsAsync(bankId, vm.Code1, branchCode, vm.Code2);
+                var exists = await _accountRepo.ExistsAsync(bankId, vm.Code1, branchCode, vm.Code2.Value);
                 if (exists)
                     ModelState.AddModelError("Code2",
-                        $"Account number {vm.Code2} already exists for this account type and branch.");
+                        $"Account number {vm.Code2.Value} already exists for this account type and branch.");
             }
 
             if (!ModelState.IsValid)
@@ -203,7 +203,7 @@ namespace PigmyPro.Web.Controllers
                 BankID = bankId,
                 brnc_code = branchCode,
                 CODE1 = vm.Code1,
-                CODE2 = vm.Code2,
+                CODE2 = vm.Code2 ?? 0,
                 name = vm.Name,
                 ADDR = vm.Address,
                 BALANCE = vm.Balance,
@@ -309,7 +309,7 @@ namespace PigmyPro.Web.Controllers
                 BankID = bankId,
                 brnc_code = branchCode,
                 CODE1 = vm.Code1,
-                CODE2 = vm.Code2,
+                CODE2 = vm.Code2 ?? 0,
                 name = vm.Name,
                 ADDR = vm.Address,
                 BALANCE = vm.Balance,

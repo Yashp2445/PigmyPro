@@ -45,9 +45,9 @@ namespace PigmyPro.Web.ViewModels.Account
         [Display(Name = "Account Type")]
         public decimal Code1 { get; set; }
 
-        [Required(ErrorMessage = "Account Serial (Code2) is required")]
+        [Required(ErrorMessage = "Account Number is required")]
         [Display(Name = "Account Number")]
-        public decimal Code2 { get; set; }
+        public decimal? Code2 { get; set; }
 
         [Required(ErrorMessage = "Customer Name is required")]
         [StringLength(100)]

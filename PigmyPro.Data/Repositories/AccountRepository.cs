@@ -60,9 +60,10 @@ namespace PigmyPro.Data.Repositories
         public async Task<int> AddAsync(CustomerAccount account, string? changedBy = null, string? changeIp = null)
         {
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync("usp_InsertAccount",
+            return await connection.ExecuteAsync("sp_insertUpdateAccount",
                 new
                 {
+                    Flag = "I",
                     account.BankID,
                     account.CODE1,
                     account.brnc_code,
@@ -82,9 +83,10 @@ namespace PigmyPro.Data.Repositories
         public async Task<int> UpdateAsync(CustomerAccount account, string? changedBy = null, string? changeIp = null)
         {
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync("usp_UpdateAccount",
+            return await connection.ExecuteAsync("sp_insertUpdateAccount",
                 new
                 {
+                    Flag = "U",
                     account.BankID,
                     account.CODE1,
                     account.brnc_code,
@@ -104,8 +106,8 @@ namespace PigmyPro.Data.Repositories
         public async Task<int> DeleteAsync(int bankId, decimal code1, decimal branchCode, decimal code2)
         {
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync("usp_DeleteAccount",
-                new { BankID = bankId, CODE1 = code1, brnc_code = branchCode, CODE2 = code2 },
+            return await connection.ExecuteAsync("sp_insertUpdateAccount",
+                new { Flag = "D", BankID = bankId, CODE1 = code1, brnc_code = branchCode, CODE2 = code2 },
                 commandType: System.Data.CommandType.StoredProcedure);
         }
         public async Task<bool> ExistsAsync(int bankId, decimal code1, decimal branchCode, decimal code2)

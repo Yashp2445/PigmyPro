@@ -189,13 +189,16 @@ namespace PigmyPro.Web.Controllers
                 return View(vm);
             }
 
-            var nextCode = await _agentRepo.GetNextAgentCodeAsync(bankId, branchCode);
+            if (!vm.Code.HasValue)
+            {
+                vm.Code = await _agentRepo.GetNextAgentCodeAsync(bankId, branchCode);
+            }
 
             var agent = new Agent
             {
                 BankID = bankId,
                 brnc_code = branchCode,
-                code = nextCode,
+                code = vm.Code.Value,
                 NAME = vm.NAME,
                 MobileNo = vm.MobileNo,
                 Block = vm.Block,
@@ -272,7 +275,7 @@ namespace PigmyPro.Web.Controllers
             {
                 BankID = bankId,
                 brnc_code = branchCode,
-                code = vm.Code,
+                code = vm.Code ?? 0,
                 NAME = vm.NAME,
                 MobileNo = vm.MobileNo,
                 NoOfHolidays = vm.NoOfHolidays,
@@ -327,6 +330,20 @@ namespace PigmyPro.Web.Controllers
         {
             var next = await _agentRepo.GetNextAgentCodeAsync(bankId, branchCode);
             return Json(new { code = next });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetBankHolidays(int bankId)
+        {
+            var bank = await _bankRepo.GetByIdAsync(bankId);
+            return Json(new { holidays = bank?.No_of_Holidays ?? 0 });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckCodeExists(int bankId, decimal branchCode, decimal code)
+        {
+            var agent = await _agentRepo.GetByCodeAsync(bankId, branchCode, code);
+            return Json(new { exists = agent != null });
         }
 
         private async Task<IEnumerable<SelectListItem>> GetBankList(int? selectedBankId = null)

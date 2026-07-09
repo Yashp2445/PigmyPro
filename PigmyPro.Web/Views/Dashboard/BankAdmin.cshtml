@@ -234,6 +234,7 @@
                         <th class="text-center">Status</th>
                         <th class="text-end">Collection</th>
                         <th class="text-center">Accounts</th>
+                        <th class="text-center">Days Inactive</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -258,13 +259,14 @@
                                 </td>
                                 <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
                                 <td class="text-center mono-data">@agent.AccountsCollected</td>
+                                <td class="text-center mono-data text-danger fw-bold">@(agent.DaysInactive.HasValue ? agent.DaysInactive.Value.ToString() : "N/A")</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="7">
+                            <td colspan="8">
                                 <div class="empty-state">
                                     <i class="bi bi-people empty-state-icon"></i>
                                     <div class="empty-state-title">No agents found in this bank</div>
