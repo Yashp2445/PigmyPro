@@ -14,6 +14,66 @@
 <body>
     @if (User.Identity?.IsAuthenticated == true)
     {
+        <script>
+            (function() {
+                if (!sessionStorage.getItem('pigmypro_tab_initialized')) {
+                    window.location.replace('/Auth/Logout');
+                    return;
+                }
+
+                const authChannel = new BroadcastChannel('pigmypro_tab_auth');
+                
+                // 1. Check if this is a fresh tab (copy-paste) or a duplicate tab
+                if (!sessionStorage.getItem('pigmypro_tab_id')) {
+                    sessionStorage.setItem('pigmypro_tab_id', Math.random().toString());
+                    authChannel.postMessage('check_active_tab');
+                }
+                
+                let isMaster = false;
+                let masterTimer = setTimeout(() => { isMaster = true; }, 300);
+                
+                authChannel.postMessage('who_is_master');
+                
+                authChannel.onmessage = function(e) {
+                    if (e.data === 'check_active_tab' || e.data === 'who_is_master') {
+                        if (isMaster) authChannel.postMessage('i_am_master');
+                    } else if (e.data === 'i_am_master') {
+                        if (!isMaster) {
+                            // Another tab is active. Log this one out.
+                            navigator.sendBeacon('/Auth/Logout');
+                            window.location.replace('/Auth/Logout');
+                        }
+                    }
+                };
+
+                // 2. Track internal navigation to avoid logging out on normal clicks
+                let isInternalNavigation = false;
+                document.addEventListener('click', function(e) {
+                    const link = e.target.closest('a');
+                    if (link && link.href && !link.href.startsWith('javascript:') && link.target !== '_blank') {
+                        isInternalNavigation = true;
+                    }
+                });
+                
+                document.addEventListener('submit', function() {
+                    isInternalNavigation = true;
+                });
+
+                // Track F5, Ctrl+R, CMD+R reloads to avoid logging out
+                window.addEventListener('keydown', function(e) {
+                    if ((e.key === 'F5') || (e.ctrlKey && e.key === 'r') || (e.metaKey && e.key === 'r')) {
+                        isInternalNavigation = true;
+                    }
+                });
+
+                // 3. Close tab / Manual URL change logout
+                window.addEventListener('beforeunload', function() {
+                    if (!isInternalNavigation) {
+                        navigator.sendBeacon('/Auth/Logout');
+                    }
+                });
+            })();
+        </script>
         <div id="sidebar">
             <div class="sidebar-header">
                 <img src="~/Three_Star_Logo-t.png" alt="Three Star Logo" style="height: 32px; width: auto; object-fit: contain;" />
@@ -42,7 +102,7 @@
 
                 <div class="nav-section">Banking Masters</div>
                 <a href="/Agent/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Agent" ? "active" : "")">
-                    <i class="bi bi-person-badge-fill"></i> Field Agents
+                    <i class="bi bi-person-badge-fill"></i> Collection Agents
                 </a>
                 <a href="/Account/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Account" ? "active" : "")">
                     <i class="bi bi-wallet2"></i> Customer Accounts

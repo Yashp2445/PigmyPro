@@ -1,8 +1,8 @@
 @model PigmyPro.Web.ViewModels.Agent.AgentIndexVM
 
 @{
-    ViewData["Title"] = "Field Agents";
-    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Field Agent Management</li>";
+    ViewData["Title"] = "Collection Agents";
+    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Collection Agent Management</li>";
 }
 
 @if (TempData["Success"] != null)
@@ -16,7 +16,7 @@
 
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h4 class="page-title">Field Agent Management</h4>
+        <h4 class="page-title">Collection Agent Management</h4>
         <p class="page-subtitle">Register and manage agents collecting deposits on the field</p>
     </div>
     <a href="/Agent/Create" class="btn btn-primary">
@@ -33,7 +33,7 @@
             {
                 <div class="col-md-4">
                     <label class="form-label">Select Bank Tenant</label>
-                    <select name="filterBankID" class="form-select" id="filterBankSelect" onchange="this.form.submit()">
+                    <select name="filterBankID" class="form-select" id="filterBankSelect" onchange="this.form.requestSubmit()">
                         <option value="">— Choose Bank —</option>
                         @foreach (var b in Model.BankList!)
                         {
@@ -92,7 +92,7 @@
                     }
                     else
                     {
-                        <span>No field agents found for the current selection.</span>
+                        <span>No Collection agents found for the current selection.</span>
                     }
                 </div>
             </div>
@@ -203,7 +203,7 @@
 @section Scripts {
     <script>
         function confirmDelete(code, bankId, branchCode, name) {
-            document.getElementById('deleteMsg').textContent = 'Are you sure you want to permanently remove field agent "' + name + '"? This action cannot be undone.';
+            document.getElementById('deleteMsg').textContent = 'Are you sure you want to permanently remove Collection agent "' + name + '"? This action cannot be undone.';
             document.getElementById('deleteCode').value = code;
             document.getElementById('deleteBankId').value = bankId;
             document.getElementById('deleteBranchCode').value = branchCode;

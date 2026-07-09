@@ -13,6 +13,7 @@ namespace PigmyPro.Web.ViewModels.Account
         public decimal Code2 { get; set; }
         public string? TypeName { get; set; }
         public string? Name { get; set; }
+        public string? Address { get; set; }
         public decimal Balance { get; set; }
         public DateTime? OpenDate { get; set; }
         public decimal? AgnCode { get; set; }
@@ -44,13 +45,17 @@ namespace PigmyPro.Web.ViewModels.Account
         [Display(Name = "Account Type")]
         public decimal Code1 { get; set; }
 
-        [Required(ErrorMessage = "Account Serial (Code2) is required")]
+        [Required(ErrorMessage = "Account Number is required")]
         [Display(Name = "Account Number")]
-        public decimal Code2 { get; set; }
+        public decimal? Code2 { get; set; }
 
         [Required(ErrorMessage = "Customer Name is required")]
         [StringLength(100)]
         public string? Name { get; set; }
+
+        [Display(Name = "Address")]
+        [StringLength(200)]
+        public string? Address { get; set; }
 
         [Display(Name = "Current Balance")]
         public decimal Balance { get; set; }

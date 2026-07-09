@@ -74,6 +74,7 @@ namespace PigmyPro.Web.Controllers
                 BrncCode = a.brnc_code,
                 Code2 = a.CODE2,
                 Name = a.name ?? "N/A",
+                Address = a.ADDR,
                 Balance = a.BALANCE ?? 0,
                 OpenDate = a.OPN_DATE,
                 AgnCode = a.AgnCode,
@@ -136,7 +137,7 @@ namespace PigmyPro.Web.Controllers
                 IsSuperAdmin = isSuperAdmin,
                 IsBankAdmin = isBankAdmin,
                 AccountTypeList = isSuperAdmin
-                    ? Enumerable.Empty<SelectListItem>() // loaded dynamically after bank select
+                    ? Enumerable.Empty<SelectListItem>() 
                     : await GetAccountTypeListForBank(CurrentBankID)
             };
 
@@ -174,12 +175,12 @@ namespace PigmyPro.Web.Controllers
             if ((isSuperAdmin || isBankAdmin) && branchCode == 0)
                 ModelState.AddModelError("SelectedBranchCode", "Branch selection is required.");
 
-            if (ModelState.IsValid && vm.Code1 > 0 && vm.Code2 > 0 && bankId > 0 && branchCode > 0)
+            if (ModelState.IsValid && vm.Code1 > 0 && vm.Code2.HasValue && vm.Code2.Value > 0 && bankId > 0 && branchCode > 0)
             {
-                var exists = await _accountRepo.ExistsAsync(bankId, vm.Code1, branchCode, vm.Code2);
+                var exists = await _accountRepo.ExistsAsync(bankId, vm.Code1, branchCode, vm.Code2.Value);
                 if (exists)
                     ModelState.AddModelError("Code2",
-                        $"Account number {vm.Code2} already exists for this account type and branch.");
+                        $"Account number {vm.Code2.Value} already exists for this account type and branch.");
             }
 
             if (!ModelState.IsValid)
@@ -202,8 +203,9 @@ namespace PigmyPro.Web.Controllers
                 BankID = bankId,
                 brnc_code = branchCode,
                 CODE1 = vm.Code1,
-                CODE2 = vm.Code2,
+                CODE2 = vm.Code2 ?? 0,
                 name = vm.Name,
+                ADDR = vm.Address,
                 BALANCE = vm.Balance,
                 OPN_DATE = vm.OpenDate,
                 AgnCode = vm.AgnCode,
@@ -238,6 +240,7 @@ namespace PigmyPro.Web.Controllers
                 Code1 = account.CODE1,
                 Code2 = account.CODE2,
                 Name = account.name,
+                Address = account.ADDR,
                 Balance = account.BALANCE ?? 0,
                 OpenDate = account.OPN_DATE ?? DateTime.Today,
                 AgnCode = account.AgnCode,
@@ -306,8 +309,9 @@ namespace PigmyPro.Web.Controllers
                 BankID = bankId,
                 brnc_code = branchCode,
                 CODE1 = vm.Code1,
-                CODE2 = vm.Code2,
+                CODE2 = vm.Code2 ?? 0,
                 name = vm.Name,
+                ADDR = vm.Address,
                 BALANCE = vm.Balance,
                 OPN_DATE = vm.OpenDate,
                 AgnCode = vm.AgnCode,

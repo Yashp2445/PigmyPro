@@ -16,8 +16,6 @@ namespace PigmyPro.Data.Repositories
             _context = context;
         }
 
-        // ── Dropdown Helpers ────────────────────────────────────────────
-
         public async Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync()
         {
             var sql = "SELECT BankID, Name FROM Banks WHERE ActiveYN = 1 ORDER BY Name";
@@ -32,9 +30,7 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<BranchDropdownItem>(sql, new { BankID = bankId });
         }
 
-        // ── SuperAdmin ─────────────────────────────────────────────────
-
-        // Scope: System-wide (SuperAdmin only) — optionally filtered to a single bank
+     
         public async Task<SuperAdminSummary> GetSuperAdminSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null)
         {
             var bankFilter = filterBankId.HasValue ? " AND BankID = @FilterBankID" : "";
@@ -57,7 +53,6 @@ namespace PigmyPro.Data.Repositories
             });
         }
 
-        // Scope: System-wide (SuperAdmin only) — aggregates per bank, optionally filtered
         public async Task<IEnumerable<BankWiseSummary>> GetBankWiseSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null)
         {
             var bankWhere = filterBankId.HasValue ? " AND b.BankID = @FilterBankID" : "";
@@ -104,7 +99,6 @@ namespace PigmyPro.Data.Repositories
             });
         }
 
-        // Scope: System-wide (SuperAdmin only) — account type distribution across all banks
         public async Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionAsync()
         {
             var sql = @"
@@ -124,9 +118,6 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AccountTypeCount>(sql);
         }
 
-        // ── BankAdmin ───────────────────────────────────────────────────
-
-        // Scope: Single bank (BankAdmin only) — filtered by BankID parameter
         public async Task<BankAdminSummary> GetBankAdminSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo)
         {
             var sql = @"
@@ -140,7 +131,6 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryFirstAsync<BankAdminSummary>(sql, new { BankID = bankId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
         }
 
-        // Scope: Single bank (BankAdmin only) — branch-wise breakdown filtered by BankID, optionally by BranchID
         public async Task<IEnumerable<BranchWiseSummary>> GetBranchWiseSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
         {
             var branchFilter = filterBranchId.HasValue ? " AND br.BranchID = @FilterBranchID" : "";
@@ -182,7 +172,6 @@ namespace PigmyPro.Data.Repositories
             });
         }
 
-        // Scope: Single bank (BankAdmin only) — top N agents by collection filtered by BankID, optionally by BranchID
         public async Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
         {
             var branchFilter = filterBranchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
@@ -218,7 +207,7 @@ namespace PigmyPro.Data.Repositories
             });
         }
 
-        // Scope: Single bank (BankAdmin only) — account type distribution filtered by BankID
+   
         public async Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionByBankAsync(int bankId)
         {
             var sql = @"
@@ -239,9 +228,6 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AccountTypeCount>(sql, new { BankID = bankId });
         }
 
-        // ── BranchAdmin ─────────────────────────────────────────────────
-
-        // Scope: Single branch (BranchAdmin only) — filtered by BankID + BranchID
         public async Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo)
         {
             var sql = @"
@@ -292,7 +278,8 @@ namespace PigmyPro.Data.Repositories
                     ISNULL(a.MobileNo, '') AS MobileNumber,
                     CAST(a.Block AS BIT) AS IsBlocked,
                     ISNULL(tc.TodayAmount, 0) AS TodayAmount,
-                    ISNULL(tc.AccountsCollected, 0) AS AccountsCollected
+                    ISNULL(tc.AccountsCollected, 0) AS AccountsCollected,
+                    DATEDIFF(day, max_dt.MaxDate, GETDATE()) AS DaysInactive
                 FROM agntmast a
                 LEFT JOIN brncmast br ON br.BankID = a.BankID AND br.BranchID = a.brnc_code
                 LEFT JOIN (
@@ -305,8 +292,16 @@ namespace PigmyPro.Data.Repositories
                 ) tc ON tc.BankID = a.BankID 
                     AND CAST(tc.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
                     AND CAST(tc.Brnc_code AS NUMERIC(18,0)) = CAST(a.brnc_code AS NUMERIC(18,0))
+                LEFT JOIN (
+                    SELECT BankID, Agent, Brnc_code, MAX(Date) AS MaxDate
+                    FROM MobilePygTrn
+                    WHERE BankID = @BankID{branchFilterTrn}
+                    GROUP BY BankID, Agent, Brnc_code
+                ) max_dt ON max_dt.BankID = a.BankID 
+                    AND CAST(max_dt.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
+                    AND CAST(max_dt.Brnc_code AS NUMERIC(18,0)) = CAST(a.brnc_code AS NUMERIC(18,0))
                 WHERE a.BankID = @BankID{branchFilter}
-                ORDER BY tc.TodayAmount DESC, a.NAME";
+                ORDER BY ISNULL(DATEDIFF(day, max_dt.MaxDate, GETDATE()), 999999) DESC, a.NAME";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<AgentOverviewRow>(sql, new
