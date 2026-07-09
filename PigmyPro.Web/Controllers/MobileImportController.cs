@@ -10,10 +10,11 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Web.ViewModels.MobileImport;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
-    [Authorize(Roles = "BankAdmin,BranchAdmin")]
+    [Authorize(Roles = AppRoles.BankAdmin + "," + AppRoles.BranchAdmin)]
     public class MobileImportController : BaseController
     {
         private readonly IMobileImportRepository _repo;
@@ -38,7 +39,7 @@ namespace PigmyPro.Web.Controllers
         public async Task<IActionResult> Export(ExportVM vm)
         {
             int bankId = CurrentBankID;
-            decimal branchCode = CurrentUserRole == "BranchAdmin"
+            decimal branchCode = CurrentUserRole == AppRoles.BranchAdmin
                 ? (decimal)CurrentBranchID
                 : (vm.BranchCode.HasValue ? (decimal)vm.BranchCode.Value : 0);
 
@@ -105,7 +106,7 @@ namespace PigmyPro.Web.Controllers
         public async Task<IActionResult> DownloadExport(int? branchCode, decimal? agentCode)
         {
             int bankId = CurrentBankID;
-            decimal resolvedBranch = CurrentUserRole == "BranchAdmin"
+            decimal resolvedBranch = CurrentUserRole == AppRoles.BranchAdmin
                 ? (decimal)CurrentBranchID
                 : (branchCode.HasValue ? (decimal)branchCode.Value : 0);
 
@@ -162,7 +163,7 @@ namespace PigmyPro.Web.Controllers
 
         private async Task PopulateExportDropdowns(ExportVM vm)
         {
-            if (CurrentUserRole == "BankAdmin")
+            if (CurrentUserRole == AppRoles.BankAdmin)
             {
                 var branches = await _branchRepo.GetAllByBankIdAsync(CurrentBankID);
                 vm.Branches = branches
@@ -170,7 +171,7 @@ namespace PigmyPro.Web.Controllers
                     .ToList();
             }
 
-            decimal branchCode = CurrentUserRole == "BranchAdmin"
+            decimal branchCode = CurrentUserRole == AppRoles.BranchAdmin
                 ? (decimal)CurrentBranchID
                 : (vm.BranchCode.HasValue ? (decimal)vm.BranchCode.Value : 0);
 

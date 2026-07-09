@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
 using PigmyPro.Web.ViewModels.Agent;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
@@ -24,8 +25,8 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
             IEnumerable<Agent> agents;
 
@@ -119,8 +120,8 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Create()
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
             var vm = new AgentCreateEditVM
             {
@@ -150,8 +151,8 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AgentCreateEditVM vm)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             vm.IsSuperAdmin = isSuperAdmin;
             vm.IsBankAdmin = isBankAdmin;
 
@@ -213,8 +214,8 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Edit(decimal code, int bankId, decimal branchCode)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
             int resolvedBankId = isSuperAdmin ? bankId : CurrentBankID;
             decimal resolvedBranchCode = (isSuperAdmin || isBankAdmin) ? branchCode : (decimal)CurrentBranchID;
@@ -235,8 +236,6 @@ namespace PigmyPro.Web.Controllers
                 Block = agent.Block ?? false,
                 NoOfHolidays = agent.NoOfHolidays ?? 0,
                 ReadyToCash = agent.RadyToCash == "Y"
-                // ResetAgent intentionally left false — it's an action
-                // checkbox, not a reflection of stored state.
             };
 
             if (isSuperAdmin)
@@ -256,8 +255,8 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AgentCreateEditVM vm)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             vm.IsSuperAdmin = isSuperAdmin;
             vm.IsBankAdmin = isBankAdmin;
 
@@ -302,10 +301,10 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(decimal code, int bankId, decimal branchCode)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
 
             int resolvedBankId = isSuperAdmin ? bankId : CurrentBankID;
-            decimal resolvedBranchCode = (isSuperAdmin || CurrentUserRole == "BankAdmin") ? branchCode : (decimal)CurrentBranchID;
+            decimal resolvedBranchCode = (isSuperAdmin || CurrentUserRole == AppRoles.BankAdmin) ? branchCode : (decimal)CurrentBranchID;
 
             await _agentRepo.DeleteAsync(
                 resolvedBankId,

@@ -121,15 +121,21 @@
         }
         else
         {
+            <div class="d-flex justify-content-end p-3 border-bottom bg-light">
+                <div class="input-group" style="max-width: 300px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="accountSearch" class="form-control border-start-0" placeholder="Search accounts..." />
+                </div>
+            </div>
             <div class="table-wrapper">
-                <table class="table">
+                <table class="table" id="accountTable">
                     <thead>
                         <tr>
-                            <th>Type &amp; Account No</th>
-                            <th>Customer Identity</th>
-                            <th>Open Date</th>
-                            <th>Agent</th>
-                            <th class="text-end">Current Balance</th>
+                            <th class="sortable">Type &amp; Account No</th>
+                            <th class="sortable">Customer Identity</th>
+                            <th class="sortable">Open Date</th>
+                            <th class="sortable">Agent</th>
+                            <th class="text-end sortable">Current Balance</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -232,5 +238,9 @@
             document.getElementById('deleteForm').action      = '/Account/Delete';
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTableSortAndSearch('accountTable', 'accountSearch');
+        });
     </script>
 }

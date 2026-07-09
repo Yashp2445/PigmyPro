@@ -1,0 +1,98 @@
+@model PigmyPro.Web.ViewModels.Audit.AuditIndexVM
+
+@{
+    ViewData["Title"] = "Audit Log";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Audit Log</h4>
+        <p class="page-subtitle">Recent activity and changes</p>
+    </div>
+</div>
+
+<div class="filter-panel mb-4">
+    <form asp-action="Index" method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Date From</label>
+            <input type="date" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date To</label>
+            <input type="date" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a asp-action="Index" class="btn btn-outline">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title">Activity History</h5>
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="auditSearch" class="form-control form-control-sm" placeholder="Search logs...">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-wrapper">
+            <table class="table" id="auditTable">
+                <thead>
+                    <tr>
+                        <th class="sortable">Date/Time</th>
+                        <th class="sortable">Entity Type</th>
+                        <th class="sortable">Entity ID/Name</th>
+                        <th class="sortable">Action</th>
+                        <th class="sortable">Changed By</th>
+                        <th class="sortable">IP Address</th>
+                        <th class="sortable">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Logs.Any())
+                    {
+                        foreach (var log in Model.Logs)
+                        {
+                            <tr>
+                                <td class="mono-data">@(log.ChangeDate?.ToString("dd MMM yyyy HH:mm") ?? "-")</td>
+                                <td><span class="badge badge-info">@log.EntityType</span></td>
+                                <td>
+                                    <span class="fw-bold">@log.EntityID</span><br />
+                                    <small class="text-muted">@log.EntityName</small>
+                                </td>
+                                <td><span class="badge badge-warning">@log.Action</span></td>
+                                <td class="mono-data fw-bold">@(log.ChangedBy ?? "-")</td>
+                                <td class="mono-data">@(log.ChangeIP ?? "-")</td>
+                                <td><small class="text-muted">@log.Remarks</small></td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <i class="bi bi-journal-x empty-state-icon"></i>
+                                    <div class="empty-state-title">No activity found</div>
+                                    <p class="empty-state-subtitle">Adjust your date filter to see more results</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof setupTableSortAndSearch === 'function') {
+                setupTableSortAndSearch('auditTable', 'auditSearch');
+            }
+        });
+    </script>
+}

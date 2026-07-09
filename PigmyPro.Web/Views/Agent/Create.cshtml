@@ -26,7 +26,7 @@
                     @if (Model.IsSuperAdmin)
                     {
                         <div class="mb-3">
-                            <label class="form-label">Bank</label>
+                            <label class="form-label">Bank <span id="bankLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                             <select asp-for="SelectedBankID" asp-items="Model.BankList"
                                     class="form-select" id="bankSelect"
                                     onchange="loadBranches(this.value)">
@@ -39,7 +39,7 @@
                     @if (Model.IsSuperAdmin || Model.IsBankAdmin)
                     {
                         <div class="mb-3">
-                            <label class="form-label">Assigned Branch</label>
+                            <label class="form-label">Assigned Branch <span id="branchLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                             <select asp-for="BranchCode" asp-items="Model.BranchList"
                                     class="form-select" id="branchSelect"
                                     onchange="onBranchChanged(this.value)">
@@ -188,9 +188,15 @@
                     codeInput.value = '';
                     return;
                 }
+                const loading = document.getElementById('branchLoading');
+                if (loading) loading.classList.remove('d-none');
                 fetch('/Agent/GetNextCode?bankId=' + bankId + '&branchCode=' + branchCode)
                     .then(r => r.json())
-                    .then(data => { codeInput.value = data.code; });
+                    .then(data => { 
+                        codeInput.value = data.code; 
+                        if (loading) loading.classList.add('d-none');
+                    })
+                    .catch(() => { if (loading) loading.classList.add('d-none'); });
             }
 
             function onBranchChanged(branchCode) {
@@ -250,6 +256,9 @@
                                     document.getElementById('agentCodeInput').value = '';
                                     if (!bankId) { maxBankHolidays = 0; return; }
 
+                                    const loading = document.getElementById('bankLoading');
+                                    if (loading) loading.classList.remove('d-none');
+
                                     fetch('/Agent/GetBranches?bankId=' + bankId)
                                         .then(r => r.json())
                                         .then(branches => {
@@ -259,7 +268,9 @@
                                                 opt.textContent = b.text;
                                                 branchSelect.appendChild(opt);
                                             });
-                                        });
+                                            if (loading) loading.classList.add('d-none');
+                                        })
+                                        .catch(() => { if (loading) loading.classList.add('d-none'); });
                                         
                                     fetchBankHolidays(bankId);
                                 }

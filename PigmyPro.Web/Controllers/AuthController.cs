@@ -5,16 +5,21 @@ using Microsoft.AspNetCore.Mvc;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Web.ViewModels.Auth;
 using Microsoft.AspNetCore.Authorization;
+using System.Collections.Concurrent;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
     public class AuthController : Controller
     {
         private readonly IUserRepository _userRepo;
+        private readonly IConfiguration _configuration;
+        private static readonly ConcurrentDictionary<string, (int Count, DateTime LastAttempt)> _loginAttempts = new();
 
-        public AuthController(IUserRepository userRepo)
+        public AuthController(IUserRepository userRepo, IConfiguration configuration)
         {
             _userRepo = userRepo;
+            _configuration = configuration;
         }
 
         public IActionResult Login()
@@ -32,6 +37,16 @@ namespace PigmyPro.Web.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
+            var usernameKey = vm.Username.ToLowerInvariant();
+            if (_loginAttempts.TryGetValue(usernameKey, out var attempt))
+            {
+                if (attempt.Count >= 5 && (DateTime.UtcNow - attempt.LastAttempt).TotalMinutes < 15)
+                {
+                    ModelState.AddModelError("", "Account temporarily locked due to too many failed attempts. Please try again later.");
+                    return View(vm);
+                }
+            }
+
             
             var admin = await _userRepo.GetAdminCredentialsAsync(vm.Username);
 
@@ -47,9 +62,10 @@ namespace PigmyPro.Web.Controllers
 
                 if (isValid)
                 {
+                    _loginAttempts.TryRemove(usernameKey, out _);
                     return await SignInUser(
                         username: admin.Value.Username,
-                        role: "SuperAdmin",
+                        role: AppRoles.SuperAdmin,
                         displayName: "Super Admin",
                         userId: 0,
                         bankId: 0,
@@ -74,6 +90,7 @@ namespace PigmyPro.Web.Controllers
 
                 if (!isPasswordValid)
                 {
+                    HandleFailedLogin(usernameKey);
                     ModelState.AddModelError("", "Invalid Username or Password.");
                     return View(vm);
                 }
@@ -84,6 +101,7 @@ namespace PigmyPro.Web.Controllers
                     return View(vm);
                 }
 
+                _loginAttempts.TryRemove(usernameKey, out _);
                 return await SignInUser(
                     username: user.Username,
                     role: user.Role,
@@ -95,9 +113,16 @@ namespace PigmyPro.Web.Controllers
                 );
             }
 
-            
+            HandleFailedLogin(usernameKey);
             ModelState.AddModelError("", "Invalid Username or Password.");
             return View(vm);
+        }
+
+        private void HandleFailedLogin(string usernameKey)
+        {
+            _loginAttempts.AddOrUpdate(usernameKey, 
+                _ => (1, DateTime.UtcNow), 
+                (_, current) => (current.Count >= 5 && (DateTime.UtcNow - current.LastAttempt).TotalMinutes >= 15 ? 1 : current.Count + 1, DateTime.UtcNow));
         }
 
         
@@ -120,13 +145,14 @@ namespace PigmyPro.Web.Controllers
                 new Claim("DisplayName", displayName)
             };
 
-            var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes("PigmyProSuperSecretSecurityKeyForJwtAuthenticationMustBeAtLeast256BitsLong!"));
+            var keyString = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing from config");
+            var key = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(keyString));
             var creds = new Microsoft.IdentityModel.Tokens.SigningCredentials(key, Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256);
             var expires = rememberMe ? DateTime.UtcNow.AddDays(7) : DateTime.UtcNow.AddMinutes(30);
 
             var token = new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
-                issuer: "PigmyProIssuer",
-                audience: "PigmyProAudience",
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
                 claims: claims,
                 expires: expires,
                 signingCredentials: creds
@@ -151,9 +177,9 @@ namespace PigmyPro.Web.Controllers
 
             return role switch
             {
-                "SuperAdmin" => RedirectToAction("Index", "Dashboard"),
-                "BankAdmin" => RedirectToAction("Index", "Dashboard"),
-                "BranchAdmin" => RedirectToAction("Index", "Dashboard"),
+                AppRoles.SuperAdmin => RedirectToAction("Index", "Dashboard"),
+                AppRoles.BankAdmin => RedirectToAction("Index", "Dashboard"),
+                AppRoles.BranchAdmin => RedirectToAction("Index", "Dashboard"),
                 _ => RedirectToAction("Index", "Dashboard")
             };
         }

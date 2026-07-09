@@ -429,6 +429,16 @@ a {
   box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
 }
 
+/* --- TOASTS --- */
+.toast-container {
+    z-index: 1055;
+}
+.toast {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: var(--radius-md);
+    opacity: 0.95;
+}
+
 .stat-card.info .stat-icon {
   background: var(--color-info-bg);
   color: var(--color-info);

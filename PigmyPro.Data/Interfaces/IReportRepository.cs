@@ -53,14 +53,9 @@ namespace PigmyPro.Data.Interfaces
         public string Name { get; set; } = string.Empty;
     }
 
-    public interface IReportRepository
+    public interface IReportRepository : IDropdownService
     {
-        // Dropdown population
-        Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync();
-        Task<IEnumerable<BranchDropdownItem>> GetBranchDropdownAsync(int bankId);
-        Task<IEnumerable<AgentDropdownItem>> GetAgentDropdownAsync(int bankId, int branchId);
-
-        // Daily Collection Report
+        // ── Daily Collection Report ─────────────────────────────────
         Task<IEnumerable<DailyCollectionRow>> GetDailyCollectionAsync(
             DateTime dateFrom, DateTime dateTo,
             int? bankId, int? branchId, long? agentCode, int? code1);
@@ -70,9 +65,19 @@ namespace PigmyPro.Data.Interfaces
             DateTime dateFrom, DateTime dateTo,
             int? bankId, int? branchId, long? agentCode);
 
+        Task<IEnumerable<ReconciliationRow>> GetReconciliationReportAsync(
+            DateTime dateFrom, DateTime dateTo,
+            int? bankId, int? branchId);
+    }
 
-
-        // Helper: get bank name for export headers
-        Task<string> GetBankNameAsync(int bankId);
+    public class ReconciliationRow
+    {
+        public DateTime Date { get; set; }
+        public string BranchName { get; set; } = string.Empty;
+        public string AgentName { get; set; } = string.Empty;
+        public decimal MobileAmount { get; set; }
+        public decimal SystemAmount { get; set; }
+        public decimal Difference => MobileAmount - SystemAmount;
+        public string Status => Difference == 0 ? "Matched" : "Discrepancy";
     }
 }

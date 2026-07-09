@@ -136,11 +136,17 @@
                 <a href="/Report/AgentSummary" class="nav-link @(reportController == "Report" && reportAction == "AgentSummary" ? "active" : "")">
                     <i class="bi bi-person-lines-fill"></i> Agent Summary
                 </a>
+                <a href="/Report/Reconciliation" class="nav-link @(reportController == "Report" && reportAction == "Reconciliation" ? "active" : "")">
+                    <i class="bi bi-arrow-left-right"></i> Reconciliation
+                </a>
                 @{
                     var psController = ViewContext.RouteData.Values["controller"]?.ToString();
                 }
                 <a href="/PigmyStatement/Index" class="nav-link @(psController == "PigmyStatement" ? "active" : "")">
                     <i class="bi bi-receipt"></i> Pigmy Statement
+                </a>
+                <a href="/Audit/Index" class="nav-link @(reportController == "Audit" ? "active" : "")">
+                    <i class="bi bi-clock-history"></i> Audit Log
                 </a>
             </div>
         </div>
@@ -183,6 +189,14 @@
             </header>
 
             <div class="page-body">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="toast-data" data-type="success" data-message="@TempData["Success"]"></div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="toast-data" data-type="error" data-message="@TempData["Error"]"></div>
+                }
                 @RenderBody()
             </div>
         </div>
@@ -195,6 +209,17 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <div id="toast-container" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toastDatas = document.querySelectorAll('.toast-data');
+            toastDatas.forEach(data => {
+                showToast(data.dataset.message, data.dataset.type);
+            });
+        });
+    </script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 
     @if (User.Identity?.IsAuthenticated == true)

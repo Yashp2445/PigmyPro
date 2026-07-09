@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Web.ViewModels.Dashboard;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
@@ -20,16 +21,16 @@ namespace PigmyPro.Web.Controllers
         {
             return CurrentUserRole switch
             {
-                "SuperAdmin" => RedirectToAction(nameof(SuperAdmin)),
-                "BankAdmin" => RedirectToAction(nameof(BankAdmin)),
-                "BranchAdmin" => RedirectToAction(nameof(BranchAdmin)),
+                AppRoles.SuperAdmin => RedirectToAction(nameof(SuperAdmin)),
+                AppRoles.BankAdmin => RedirectToAction(nameof(BankAdmin)),
+                AppRoles.BranchAdmin => RedirectToAction(nameof(BranchAdmin)),
                 _ => RedirectToAction("Login", "Auth")
             };
         }
 
         public async Task<IActionResult> SuperAdmin(DateTime? dateFrom, DateTime? dateTo, int? bankId)
         {
-            if (CurrentUserRole != "SuperAdmin")
+            if (CurrentUserRole != AppRoles.SuperAdmin)
                 return RedirectToAction(nameof(Index));
 
             ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Dashboard</li>";
@@ -40,6 +41,7 @@ namespace PigmyPro.Web.Controllers
             var summary = await _repo.GetSuperAdminSummaryAsync(from, to, bankId);
             var bankWise = await _repo.GetBankWiseSummaryAsync(from, to, bankId);
             var accountTypes = await _repo.GetAccountTypeDistributionAsync();
+            var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId);
 
             // Populate bank dropdown
             var banks = await _repo.GetBankDropdownAsync();
@@ -53,6 +55,7 @@ namespace PigmyPro.Web.Controllers
                 TodayCollection = summary.TodayCollection,
                 BankWiseData = bankWise.ToList(),
                 AccountTypeData = accountTypes.ToList(),
+                DailyTrendData = trendData.ToList(),
                 LastUpdated = DateTime.Now,
                 DateFrom = from,
                 DateTo = to,
@@ -65,7 +68,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> BankAdmin(DateTime? dateFrom, DateTime? dateTo, int? branchId)
         {
-            if (CurrentUserRole != "BankAdmin")
+            if (CurrentUserRole != AppRoles.BankAdmin)
                 return RedirectToAction(nameof(Index));
 
             ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Dashboard</li>";
@@ -79,6 +82,8 @@ namespace PigmyPro.Web.Controllers
             var topAgents = await _repo.GetTopAgentCollectionsAsync(bankId, 10, from, to, branchId);
             var accountTypes = await _repo.GetAccountTypeDistributionByBankAsync(bankId);
             var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
+            var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
+            var atRiskAgents = agentOverview.Where(a => a.DaysInactive > 7 && !a.IsBlocked).OrderByDescending(a => a.DaysInactive).Take(5).ToList();
 
             // Populate branch dropdown
             var branches = await _repo.GetBranchDropdownAsync(bankId);
@@ -93,6 +98,8 @@ namespace PigmyPro.Web.Controllers
                 TopAgents = topAgents.ToList(),
                 AccountTypeData = accountTypes.ToList(),
                 AgentOverview = agentOverview.ToList(),
+                DailyTrendData = trendData.ToList(),
+                AtRiskAgents = atRiskAgents,
                 LastUpdated = DateTime.Now,
                 DateFrom = from,
                 DateTo = to,
@@ -105,7 +112,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> BranchAdmin(DateTime? dateFrom, DateTime? dateTo)
         {
-            if (CurrentUserRole != "BranchAdmin")
+            if (CurrentUserRole != AppRoles.BranchAdmin)
                 return RedirectToAction(nameof(Index));
 
             ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Dashboard</li>";
@@ -118,6 +125,8 @@ namespace PigmyPro.Web.Controllers
             var summary = await _repo.GetBranchAdminSummaryAsync(bankId, branchId, from, to);
             var agents = await _repo.GetAgentCollectionsByBranchAsync(bankId, branchId, from, to);
             var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
+            var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
+            var atRiskAgents = agentOverview.Where(a => a.DaysInactive > 7 && !a.IsBlocked).OrderByDescending(a => a.DaysInactive).Take(5).ToList();
 
             var vm = new BranchAdminDashboardVM
             {
@@ -127,6 +136,8 @@ namespace PigmyPro.Web.Controllers
                 AccountsCollectedToday = summary.AccountsCollectedToday,
                 AgentData = agents.ToList(),
                 AgentOverview = agentOverview.ToList(),
+                DailyTrendData = trendData.ToList(),
+                AtRiskAgents = atRiskAgents,
                 LastUpdated = DateTime.Now,
                 DateFrom = from,
                 DateTo = to
