@@ -12,6 +12,8 @@ namespace PigmyPro.Web.Controllers
         {
             get
             {
+                var claimValue = User.FindFirst("BankID")?.Value;
+                if (int.TryParse(claimValue, out int b)) return b;
                 return HttpContext.Session.GetInt32("BankID") ?? 0;
             }
         }
@@ -20,6 +22,8 @@ namespace PigmyPro.Web.Controllers
         {
             get
             {
+                var claimValue = User.FindFirst("BranchID")?.Value;
+                if (int.TryParse(claimValue, out int b)) return b;
                 return HttpContext.Session.GetInt32("BranchID") ?? 0;
             }
         }
@@ -28,15 +32,9 @@ namespace PigmyPro.Web.Controllers
         {
             get
             {
+                var claimValue = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (!string.IsNullOrEmpty(claimValue)) return claimValue;
                 return HttpContext.Session.GetString("UserRole") ?? "";
-            }
-        }
-
-        protected string CurrentUserRoleFromClaims
-        {
-            get
-            {
-                return User.FindFirst(ClaimTypes.Role)?.Value ?? "";
             }
         }
     }

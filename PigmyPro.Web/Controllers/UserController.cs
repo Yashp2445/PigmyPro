@@ -3,10 +3,11 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
 using PigmyPro.Web.ViewModels.User;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin,BankAdmin")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = AppRoles.SuperAdmin + "," + AppRoles.BankAdmin)]
     public class UserController : BaseController
     {
         private readonly IUserRepository _userRepo;
@@ -22,7 +23,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Index(int? bankId)
         {
-            bool isSuperAdmin = User.IsInRole("SuperAdmin");
+            bool isSuperAdmin = User.IsInRole(AppRoles.SuperAdmin);
 
             IEnumerable<User> users;
 
@@ -81,7 +82,7 @@ namespace PigmyPro.Web.Controllers
         // ================= CREATE GET =================
         public async Task<IActionResult> Create()
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
 
             var vm = new UserCreateEditVM
             {
@@ -110,7 +111,7 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UserCreateEditVM vm)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             vm.IsSuperAdmin = isSuperAdmin;
 
             int bankId;
@@ -134,7 +135,7 @@ namespace PigmyPro.Web.Controllers
                 bankId = CurrentBankID;
             }
 
-            if (vm.Role != "SuperAdmin" && !vm.BranchID.HasValue)
+            if (vm.Role != AppRoles.SuperAdmin && !vm.BranchID.HasValue)
                 ModelState.AddModelError("BranchID", "Branch is required.");
 
             if (!ModelState.IsValid)
@@ -146,7 +147,7 @@ namespace PigmyPro.Web.Controllers
             var user = new User
             {
                 BankID = bankId,
-                BranchID = vm.Role == "SuperAdmin" ? null : vm.BranchID,
+                BranchID = vm.Role == AppRoles.SuperAdmin ? null : vm.BranchID,
                 Username = vm.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.Password ?? ""),
                 Role = vm.Role,
@@ -165,7 +166,7 @@ namespace PigmyPro.Web.Controllers
         public async Task<IActionResult> Edit(int id)
         {
             User? user;
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
 
             if (isSuperAdmin)
                 user = await _userRepo.GetByIdAsync(id);
@@ -205,11 +206,11 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(UserCreateEditVM vm)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             vm.IsSuperAdmin = isSuperAdmin;
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
 
-            if (vm.Role != "SuperAdmin" && !vm.BranchID.HasValue)
+            if (vm.Role != AppRoles.SuperAdmin && !vm.BranchID.HasValue)
                 ModelState.AddModelError("BranchID", "Branch is required.");
 
             if (!ModelState.IsValid)
@@ -232,7 +233,7 @@ namespace PigmyPro.Web.Controllers
             user.Code = vm.Code;
             user.Name = vm.Name;
             user.IsActive = vm.IsActive;
-            user.BranchID = vm.Role == "SuperAdmin" ? null : vm.BranchID;
+            user.BranchID = vm.Role == AppRoles.SuperAdmin ? null : vm.BranchID;
 
             if (!string.IsNullOrEmpty(vm.Password))
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.Password);
@@ -247,7 +248,7 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             var user = await _userRepo.GetByIdAsync(id);
             if (user == null) return NotFound();
 

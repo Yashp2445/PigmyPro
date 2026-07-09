@@ -1,0 +1,115 @@
+@model PigmyPro.Web.ViewModels.Report.ReconciliationVM
+
+@{
+    ViewData["Title"] = "Reconciliation Report";
+}
+
+<div class="page-header d-flex align-items-center justify-content-between">
+    <div>
+        <h4 class="page-title">Reconciliation Report</h4>
+        <p class="page-subtitle">Compare mobile reported collections against system archived records</p>
+    </div>
+</div>
+
+<div class="filter-panel mb-4">
+    <form asp-action="Reconciliation" method="get" class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label">Date From</label>
+            <input type="date" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Date To</label>
+            <input type="date" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" />
+        </div>
+        @if (Model.Branches.Any())
+        {
+            <div class="col-md-3">
+                <label class="form-label">Branch</label>
+                <select name="branchId" class="form-select" asp-for="FilterBranchID" asp-items="Model.Branches">
+                    <option value="">-- All Branches --</option>
+                </select>
+            </div>
+        }
+        <div class="col-md-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4"><i class="bi bi-funnel-fill"></i> Filter</button>
+            <a asp-action="Reconciliation" class="btn btn-outline">Clear</a>
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title">Reconciliation Results</h5>
+        <div class="search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="reconSearch" class="form-control form-control-sm" placeholder="Search results...">
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-wrapper">
+            <table class="table" id="reconTable">
+                <thead>
+                    <tr>
+                        <th class="sortable">Date</th>
+                        <th class="sortable">Branch</th>
+                        <th class="sortable">Agent Name</th>
+                        <th class="sortable text-end">Mobile Pending (₹)</th>
+                        <th class="sortable text-end">System Archived (₹)</th>
+                        <th class="sortable text-end">Difference (₹)</th>
+                        <th class="sortable text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Results.Any())
+                    {
+                        foreach (var row in Model.Results)
+                        {
+                            <tr>
+                                <td class="mono-data">@row.Date.ToString("dd MMM yyyy")</td>
+                                <td>@row.BranchName</td>
+                                <td class="fw-bold">@row.AgentName</td>
+                                <td class="text-end mono-data">@row.MobileAmount.ToString("N2")</td>
+                                <td class="text-end mono-data">@row.SystemAmount.ToString("N2")</td>
+                                <td class="text-end mono-data @(row.Difference != 0 ? "text-danger fw-bold" : "text-success")">
+                                    @row.Difference.ToString("N2")
+                                </td>
+                                <td class="text-center">
+                                    @if (row.Difference == 0)
+                                    {
+                                        <span class="badge badge-success"><i class="bi bi-check-circle-fill"></i> Matched</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-danger"><i class="bi bi-exclamation-triangle-fill"></i> Discrepancy</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7">
+                                <div class="empty-state">
+                                    <i class="bi bi-shield-check empty-state-icon text-success"></i>
+                                    <div class="empty-state-title">No records to reconcile</div>
+                                    <p class="empty-state-subtitle">Adjust your filters to see more results</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof setupTableSortAndSearch === 'function') {
+                setupTableSortAndSearch('reconTable', 'reconSearch');
+            }
+        });
+    </script>
+}

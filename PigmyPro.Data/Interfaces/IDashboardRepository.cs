@@ -82,6 +82,12 @@ namespace PigmyPro.Data.Interfaces
         public int? DaysInactive { get; set; }
     }
 
+    public class DailyTrendPoint
+    {
+        public DateTime Date { get; set; }
+        public decimal Amount { get; set; }
+    }
+
     public interface IDashboardRepository
     {
         // SuperAdmin
@@ -99,6 +105,9 @@ namespace PigmyPro.Data.Interfaces
         // BranchAdmin
         Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo);
         Task<IEnumerable<AgentCollectionRow>> GetAgentCollectionsByBranchAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo);
+
+        // Trend
+        Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null);
 
         // Dropdown helpers for dashboard filters
         Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync();

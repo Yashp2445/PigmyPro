@@ -14,5 +14,6 @@ namespace PigmyPro.Data.Interfaces
         Task<int> UpdateAsync(CustomerAccount account, string? changedBy = null, string? changeIp = null);
         Task<int> DeleteAsync(int bankId, decimal code1, decimal branchCode, decimal code2);
         Task<bool> ExistsAsync(int bankId, decimal code1, decimal branchCode, decimal code2);
+        Task<int> GetCollectionGLCodeAsync(int bankId);
     }
 }

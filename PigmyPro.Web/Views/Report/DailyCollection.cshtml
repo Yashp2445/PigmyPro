@@ -27,7 +27,7 @@
         @if (Model.UserRole == "SuperAdmin")
         {
             <div class="col-md-2">
-                <label class="form-label">Bank</label>
+                <label class="form-label">Bank <span id="bankLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                 <select asp-for="FilterBankID" asp-items="Model.Banks" class="form-select" id="ddlBank">
                     <option value="">All Banks</option>
                 </select>
@@ -37,7 +37,7 @@
         @if (Model.UserRole != "BranchAdmin")
         {
             <div class="col-md-2">
-                <label class="form-label">Branch Office</label>
+                <label class="form-label">Branch Office <span id="branchLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                 <select asp-for="FilterBranchID" asp-items="Model.Branches" class="form-select" id="ddlBranch">
                     <option value="">All Branches</option>
                 </select>
@@ -122,22 +122,28 @@ else
     </div>
 
     <div class="card">
+        <div class="d-flex justify-content-end p-3 border-bottom bg-light">
+            <div class="input-group" style="max-width: 300px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="reportSearch" class="form-control border-start-0" placeholder="Search records..." />
+            </div>
+        </div>
         <div class="card-body p-0">
             <div class="table-wrapper">
-                <table class="table">
+                <table class="table" id="reportTable">
                     <thead>
                         <tr>
                             @if (Model.UserRole == "SuperAdmin")
                             {
-                                <th>Bank</th>
+                                <th class="sortable">Bank</th>
                             }
-                            <th>Date</th>
-                            <th>Branch</th>
-                            <th>Agent</th>
-                            <th>A/C No</th>
-                            <th>Customer Name</th>
-                            <th>Type</th>
-                            <th class="text-end">Amount</th>
+                            <th class="sortable">Date</th>
+                            <th class="sortable">Branch</th>
+                            <th class="sortable">Agent</th>
+                            <th class="sortable">A/C No</th>
+                            <th class="sortable">Customer Name</th>
+                            <th class="sortable">Type</th>
+                            <th class="text-end sortable">Amount</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -197,10 +203,13 @@ else
                     $agent.html('<option value="">All Agents</option>');
 
                     if (bankId) {
+                        $('#bankLoading').removeClass('d-none');
                         $.getJSON('/Report/GetBranches?bankId=' + bankId, function (data) {
                             $.each(data, function (i, item) {
                                 $branch.append('<option value="' + item.branchID + '">' + item.name + '</option>');
                             });
+                        }).always(function () {
+                            $('#bankLoading').addClass('d-none');
                         });
                     }
                 });
@@ -222,13 +231,18 @@ else
                 }
 
                 if (bankId && branchId) {
+                    $('#branchLoading').removeClass('d-none');
                     $.getJSON('/Report/GetAgents?bankId=' + bankId + '&branchId=' + branchId, function (data) {
                         $.each(data, function (i, item) {
                             $agent.append('<option value="' + item.code + '">' + item.name + '</option>');
                         });
+                    }).always(function () {
+                        $('#branchLoading').addClass('d-none');
                     });
                 }
             });
+
+            setupTableSortAndSearch('reportTable', 'reportSearch');
         });
     </script>
 }

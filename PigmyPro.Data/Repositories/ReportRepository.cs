@@ -7,43 +7,13 @@ using PigmyPro.Data.Interfaces;
 
 namespace PigmyPro.Data.Repositories
 {
-    public class ReportRepository : IReportRepository
+    public class ReportRepository : DropdownService, IReportRepository
     {
         private readonly DapperContext _context;
 
-        public ReportRepository(DapperContext context)
+        public ReportRepository(DapperContext context) : base(context)
         {
             _context = context;
-        }
-
-        // ── Dropdown helpers ────────────────────────────────────────
-
-        public async Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync()
-        {
-            var sql = "SELECT BankID, Name FROM Banks WHERE ActiveYN = 1 ORDER BY Name";
-            using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<BankDropdownItem>(sql);
-        }
-
-        public async Task<IEnumerable<BranchDropdownItem>> GetBranchDropdownAsync(int bankId)
-        {
-            var sql = "SELECT BranchID, name AS Name FROM brncmast WHERE BankID = @BankID AND active = 'Y' ORDER BY name";
-            using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<BranchDropdownItem>(sql, new { BankID = bankId });
-        }
-
-        public async Task<IEnumerable<AgentDropdownItem>> GetAgentDropdownAsync(int bankId, int branchId)
-        {
-            var sql = "SELECT code AS Code, NAME AS Name FROM agntmast WHERE BankID = @BankID AND brnc_code = @BranchID AND Block = 0 ORDER BY NAME";
-            using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<AgentDropdownItem>(sql, new { BankID = bankId, BranchID = branchId });
-        }
-
-        public async Task<string> GetBankNameAsync(int bankId)
-        {
-            var sql = "SELECT Name FROM Banks WHERE BankID = @BankID";
-            using var connection = _context.CreateConnection();
-            return await connection.QueryFirstOrDefaultAsync<string>(sql, new { BankID = bankId }) ?? "";
         }
 
         // ── Daily Collection Report ─────────────────────────────────
@@ -62,6 +32,7 @@ namespace PigmyPro.Data.Repositories
                     ISNULL(ac.name, '') AS CustomerName,
                     t.Code1,
                     CASE t.Code1
+                        -- See PigmyPro.Domain.Enums.AccountType
                         WHEN 1 THEN 'Pigmy'
                         WHEN 2 THEN 'Loan'
                         WHEN 3 THEN 'Recurring'
@@ -153,5 +124,54 @@ namespace PigmyPro.Data.Repositories
         }
 
 
+        // ── Reconciliation Report ───────────────────────────────────
+
+        public async Task<IEnumerable<ReconciliationRow>> GetReconciliationReportAsync(
+            DateTime dateFrom, DateTime dateTo,
+            int? bankId, int? branchId)
+        {
+            var sql = @"
+                WITH MobileData AS (
+                    SELECT BankID, Brnc_code, Agent, CAST(Date AS DATE) as Date, SUM(Amount) as MobileAmount
+                    FROM MobilePygTrn
+                    WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    GROUP BY BankID, Brnc_code, Agent, CAST(Date AS DATE)
+                ),
+                SystemData AS (
+                    SELECT BankID, Brnc_code, Agent, CAST(Date AS DATE) as Date, SUM(Amount) as SystemAmount
+                    FROM MobilePygTrn_ALL
+                    WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    GROUP BY BankID, Brnc_code, Agent, CAST(Date AS DATE)
+                )
+                SELECT 
+                    ISNULL(m.Date, s.Date) AS Date,
+                    ISNULL(br.name, '') AS BranchName,
+                    ISNULL(ag.NAME, '') AS AgentName,
+                    ISNULL(m.MobileAmount, 0) AS MobileAmount,
+                    ISNULL(s.SystemAmount, 0) AS SystemAmount
+                FROM MobileData m
+                FULL OUTER JOIN SystemData s 
+                    ON m.BankID = s.BankID AND m.Brnc_code = s.Brnc_code 
+                    AND m.Agent = s.Agent AND m.Date = s.Date
+                LEFT JOIN brncmast br 
+                    ON br.BankID = ISNULL(m.BankID, s.BankID) 
+                    AND CAST(br.BranchID AS DECIMAL(10,0)) = CAST(ISNULL(m.Brnc_code, s.Brnc_code) AS DECIMAL(10,0))
+                LEFT JOIN agntmast ag 
+                    ON ag.BankID = ISNULL(m.BankID, s.BankID) 
+                    AND ag.brnc_code = ISNULL(m.Brnc_code, s.Brnc_code)
+                    AND ag.code = CAST(ISNULL(m.Agent, s.Agent) AS DECIMAL(5,0))
+                WHERE (@BankID IS NULL OR ISNULL(m.BankID, s.BankID) = @BankID)
+                  AND (@BranchID IS NULL OR CAST(ISNULL(m.Brnc_code, s.Brnc_code) AS DECIMAL(10,0)) = @BranchID)
+                ORDER BY ISNULL(m.Date, s.Date) DESC, br.name, ag.NAME";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<ReconciliationRow>(sql, new
+            {
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                BankID = bankId,
+                BranchID = branchId
+            });
+        }
     }
 }

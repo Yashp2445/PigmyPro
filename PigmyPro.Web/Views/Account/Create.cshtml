@@ -31,7 +31,7 @@
                             @if (Model.IsSuperAdmin)
                             {
                                 <div class="col-md-6">
-                                    <label asp-for="SelectedBankID" class="form-label">Select Bank</label>
+                                    <label asp-for="SelectedBankID" class="form-label">Select Bank <span id="bankLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                                     <select asp-for="SelectedBankID" asp-items="Model.BankList"
                                             class="form-select" id="SelectedBankID"
                                             onchange="onBankChange(this.value)">
@@ -48,7 +48,7 @@
                             @if (Model.IsSuperAdmin || Model.IsBankAdmin)
                             {
                                 <div class="col-md-6">
-                                    <label asp-for="SelectedBranchCode" class="form-label">Select Branch</label>
+                                    <label asp-for="SelectedBranchCode" class="form-label">Select Branch <span id="branchLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                                     <select asp-for="SelectedBranchCode" asp-items="Model.BranchList"
                                             class="form-select" id="SelectedBranchCode"
                                             onchange="loadAgents(this.value)">
@@ -193,25 +193,28 @@
 
             if (!bankId) return;
 
-            fetch('/Account/GetBranches?bankId=' + bankId)
-                .then(r => r.json())
-                .then(data => {
-                    if (branchSelect) {
-                        data.forEach(b => {
-                            branchSelect.innerHTML += `<option value="${b.value}">${b.text}</option>`;
-                        });
-                    }
-                });
+            const loading = document.getElementById('bankLoading');
+            if (loading) loading.classList.remove('d-none');
 
-            if (code1Select) {
-                fetch('/Account/GetAccountTypes?bankId=' + bankId)
-                    .then(r => r.json())
-                    .then(data => {
-                        data.forEach(t => {
-                            code1Select.innerHTML += `<option value="${t.value}">${t.text}</option>`;
-                        });
+            Promise.all([
+                fetch('/Account/GetBranches?bankId=' + bankId).then(r => r.json()),
+                code1Select ? fetch('/Account/GetAccountTypes?bankId=' + bankId).then(r => r.json()) : Promise.resolve(null)
+            ])
+            .then(([branches, accountTypes]) => {
+                if (branchSelect) {
+                    branches.forEach(b => {
+                        branchSelect.innerHTML += `<option value="${b.value}">${b.text}</option>`;
                     });
-            }
+                }
+                if (code1Select && accountTypes) {
+                    accountTypes.forEach(t => {
+                        code1Select.innerHTML += `<option value="${t.value}">${t.text}</option>`;
+                    });
+                }
+            })
+            .finally(() => {
+                if (loading) loading.classList.add('d-none');
+            });
         }
 
         function loadAgents(branchCode) {
@@ -224,12 +227,18 @@
             const bankIdEl = document.getElementById('SelectedBankID');
             const bankId   = bankIdEl ? bankIdEl.value : '@(Model.SelectedBankID ?? 0)';
 
+            const loading = document.getElementById('branchLoading');
+            if (loading) loading.classList.remove('d-none');
+
             fetch(`/Account/GetAgents?bankId=${bankId}&branchCode=${branchCode}`)
                 .then(r => r.json())
                 .then(data => {
                     data.forEach(a => {
                         agentSelect.innerHTML += `<option value="${a.value}">${a.text}</option>`;
                     });
+                })
+                .finally(() => {
+                    if (loading) loading.classList.add('d-none');
                 });
         }
 

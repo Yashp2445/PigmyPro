@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Web.ViewModels.Map;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
@@ -26,7 +27,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-            if (CurrentUserRole == "SuperAdmin")
+            if (CurrentUserRole == AppRoles.SuperAdmin)
                 return RedirectToAction("Index", "Dashboard");
 
             ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Collection Map</li>";
@@ -53,10 +54,10 @@ namespace PigmyPro.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPins(DateTime date, int? branchCode, long? agentCode)
         {
-            if (CurrentUserRole == "SuperAdmin") return Unauthorized();
+            if (CurrentUserRole == AppRoles.SuperAdmin) return Unauthorized();
 
             int bankId = CurrentBankID;
-            int? searchBranchId = CurrentUserRole == "BranchAdmin" ? CurrentBranchID : branchCode;
+            int? searchBranchId = CurrentUserRole == AppRoles.BranchAdmin ? CurrentBranchID : branchCode;
 
             var rows = await _repo.GetMapTransactionsAsync(bankId, date, searchBranchId, agentCode);
 
@@ -73,8 +74,8 @@ namespace PigmyPro.Web.Controllers
                     AgentCode = g.Key.AgentCode,
                     AgentName = g.First().Row.AgentName,
                     BranchName = g.First().Row.BranchName,
-                    Latitude = g.Key.LatParsed.Value,
-                    Longitude = g.Key.LngParsed.Value,
+                    Latitude = g.Key.LatParsed.GetValueOrDefault(),
+                    Longitude = g.Key.LngParsed.GetValueOrDefault(),
                     TotalAmount = g.Sum(x => x.Row.Amount),
                     TransactionCount = g.Count(),
                     SequenceNo = g.First().Row.SequenceNo,
