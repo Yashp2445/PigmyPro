@@ -85,6 +85,7 @@ namespace PigmyPro.Web.Controllers
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
+                No_of_Holidays = vm.No_of_Holidays,
                 EntryDateTime = DateTime.Now
             };
 
@@ -112,6 +113,7 @@ namespace PigmyPro.Web.Controllers
                 EmailID = data.EmailID,
                 ActiveYN = data.ActiveYN,
                 HasCBS = data.hasCBS == 'Y',
+                No_of_Holidays = data.No_of_Holidays,
 
                 IsPigmy = true,
                 IsLoan = code >= 2,
@@ -150,7 +152,8 @@ namespace PigmyPro.Web.Controllers
                 EmailID = vm.EmailID,
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
-                hasCBS = vm.HasCBS ? 'Y' : 'N'
+                hasCBS = vm.HasCBS ? 'Y' : 'N',
+                No_of_Holidays = vm.No_of_Holidays
             };
 
             await _repo.UpdateAsync(entity);

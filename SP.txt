@@ -1,0 +1,262 @@
+Text                                                                                                                                                                                                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+                                                                                                                                                                                                                                                             
+CREATE   PROCEDURE [dbo].[SP_InsertUpdateAgentMast]
+                                                                                                                                                                                                          
+    @Op           CHAR(1),
+                                                                                                                                                                                                                                   
+    @BankID       INT,
+                                                                                                                                                                                                                                       
+    @brnc_code    NUMERIC(10,0),
+                                                                                                                                                                                                                             
+    @code         NUMERIC(5,0),
+                                                                                                                                                                                                                              
+    @NAME         NVARCHAR(80)  = NULL,
+                                                                                                                                                                                                                      
+    @MobileNo     NVARCHAR(50)  = NULL,
+                                                                                                                                                                                                                      
+    @NoOfHolidays NUMERIC(18,0) = NULL,
+                                                                                                                                                                                                                      
+    @RadyToCash   NVARCHAR(1)   = NULL,
+                                                                                                                                                                                                                      
+    @OpnBy        NVARCHAR(50)  = NULL,
+                                                                                                                                                                                                                      
+    @OpnIP        NVARCHAR(50)  = NULL,
+                                                                                                                                                                                                                      
+    @ChangeBy     NVARCHAR(50)  = NULL,
+                                                                                                                                                                                                                      
+    @ChangeIP     NVARCHAR(50)  = NULL,
+                                                                                                                                                                                                                      
+    @Reset        NVARCHAR(1)   = NULL,  
+                                                                                                                                                                                                                    
+    @ResetRemark  NVARCHAR(150) = NULL,
+                                                                                                                                                                                                                      
+    @BlockFlag    NVARCHAR(1)   = NULL,  
+                                                                                                                                                                                                                    
+    @BlockRemark  NVARCHAR(150) = NULL,
+                                                                                                                                                                                                                      
+
+                                                                                                                                                                                                                                                             
+    @Msg          NVARCHAR(80) OUTPUT
+                                                                                                                                                                                                                        
+AS
+                                                                                                                                                                                                                                                           
+BEGIN
+                                                                                                                                                                                                                                                        
+    SET NOCOUNT ON;
+                                                                                                                                                                                                                                          
+    SET @Msg = '1';
+                                                                                                                                                                                                                                          
+
+                                                                                                                                                                                                                                                             
+    BEGIN TRY
+                                                                                                                                                                                                                                                
+
+                                                                                                                                                                                                                                                             
+        IF @Op = 'I'
+                                                                                                                                                                                                                                         
+        BEGIN
+                                                                                                                                                                                                                                                
+            INSERT INTO agntmast
+                                                                                                                                                                                                                             
+                (BankID, brnc_code, code, NAME, MobileNo, Block, NoOfHolidays,
+                                                                                                                                                                               
+                 RadyToCash, OpnBy, OpnIP, EntryDate)
+                                                                                                                                                                                                        
+            VALUES
+                                                                                                                                                                                                                                           
+                (@BankID, @brnc_code, @code, @NAME, @MobileNo,
+                                                                                                                                                                                               
+                 CASE WHEN @BlockFlag = 'Y' THEN 1 ELSE 0 END,
+                                                                                                                                                                                               
+                 @NoOfHolidays, @RadyToCash, @OpnBy, @OpnIP, GETDATE());
+                                                                                                                                                                                     
+        END
+                                                                                                                                                                                                                                                  
+
+                                                                                                                                                                                                                                                             
+        ELSE IF @Op = 'U'
+                                                                                                                                                                                                                                    
+        BEGIN
+                                                                                                                                                                                                                                                
+            BEGIN TRANSACTION tUpd;
+                                                                                                                                                                                                                          
+
+                                                                                                                                                                                                                                                             
+            INSERT INTO agntmastLog
+                                                                                                                                                                                                                          
+                (BankID, brnc_code, code, NAME, code1, lockflag, MobileNo, RadyToCash,
+                                                                                                                                                                       
+                 NoOfHolidays, PASSWORD, Down_Load_YN, Block, BlockRemark, BlockDate,
+                                                                                                                                                                        
+                 ResetRemark, ResetDate, ReceiptNoPerAc, ChangeBy, ChangeIP, EntryDate)
+                                                                                                                                                                      
+            SELECT
+                                                                                                                                                                                                                                           
+                 BankID, brnc_code, code, NAME, code1, lockflag, MobileNo, RadyToCash,
+                                                                                                                                                                       
+                 NoOfHolidays, PASSWORD, Down_Load_YN, Block, BlockRemark, BlockDate,
+                                                                                                                                                                        
+                 ResetRemark, ResetDate, ReceiptNoPerAc, ChangeBy, ChangeIP, EntryDate
+                                                                                                                                                                       
+            FROM agntmast
+                                                                                                                                                                                                                                    
+            WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                              
+
+                                                                                                                                                                                                                                                             
+            UPDATE agntmast SET
+                                                                                                                                                                                                                              
+                NAME         = @NAME,
+                                                                                                                                                                                                                        
+                MobileNo     = @MobileNo,
+                                                                                                                                                                                                                    
+                NoOfHolidays = @NoOfHolidays,
+                                                                                                                                                                                                                
+                RadyToCash   = @RadyToCash,
+                                                                                                                                                                                                                  
+                ChangeBy     = @ChangeBy,
+                                                                                                                                                                                                                    
+                ChangeIP     = @ChangeIP
+                                                                                                                                                                                                                     
+            WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                              
+
+                                                                                                                                                                                                                                                             
+            IF (@Reset = 'Y')
+                                                                                                                                                                                                                                
+            BEGIN
+                                                                                                                                                                                                                                            
+                UPDATE agntmast SET
+                                                                                                                                                                                                                          
+                    MobileNo     = NULL,
+                                                                                                                                                                                                                     
+                    PASSWORD     = 123,
+                                                                                                                                                                                                                      
+                    ResetRemark  = @ResetRemark,
+                                                                                                                                                                                                             
+                    ResetDate    = GETDATE(),
+                                                                                                                                                                                                                
+                    ChangeBy     = @ChangeBy,
+                                                                                                                                                                                                                
+                    ChangeIP     = @ChangeIP
+                                                                                                                                                                                                                 
+                WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                          
+            END
+                                                                                                                                                                                                                                              
+           
+                                                                                                                                                                                                                                                  
+            IF (@BlockFlag = 'Y')
+                                                                                                                                                                                                                            
+            BEGIN
+                                                                                                                                                                                                                                            
+                UPDATE agntmast SET
+                                                                                                                                                                                                                          
+                    Block        = 1,
+                                                                                                                                                                                                                        
+                    BlockRemark  = @BlockRemark,
+                                                                                                                                                                                                             
+                    BlockDate    = GETDATE(),
+                                                                                                                                                                                                                
+                    ChangeBy     = @ChangeBy,
+                                                                                                                                                                                                                
+                    ChangeIP     = @ChangeIP
+                                                                                                                                                                                                                 
+                WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                          
+            END
+                                                                                                                                                                                                                                              
+            ELSE IF (@BlockFlag = 'N' OR @BlockFlag = 'O')
+                                                                                                                                                                                                   
+            BEGIN
+                                                                                                                                                                                                                                            
+                UPDATE agntmast SET
+                                                                                                                                                                                                                          
+                    Block        = 0,
+                                                                                                                                                                                                                        
+                    BlockRemark  = @BlockRemark,
+                                                                                                                                                                                                             
+                    BlockDate    = GETDATE(),
+                                                                                                                                                                                                                
+                    ChangeBy     = @ChangeBy,
+                                                                                                                                                                                                                
+                    ChangeIP     = @ChangeIP
+                                                                                                                                                                                                                 
+                WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                          
+            END
+                                                                                                                                                                                                                                              
+
+                                                                                                                                                                                                                                                             
+            COMMIT TRANSACTION tUpd;
+                                                                                                                                                                                                                         
+        END
+                                                                                                                                                                                                                                                  
+
+                                                                                                                                                                                                                                                             
+        ELSE IF @Op = 'D'
+                                                                                                                                                                                                                                    
+        BEGIN
+                                                                                                                                                                                                                                                
+            BEGIN TRANSACTION tDel;
+                                                                                                                                                                                                                          
+
+                                                                                                                                                                                                                                                             
+            INSERT INTO agntmastLog
+                                                                                                                                                                                                                          
+                (BankID, brnc_code, code, NAME, code1, lockflag, MobileNo, RadyToCash,
+                                                                                                                                                                       
+                 NoOfHolidays, PASSWORD, Down_Load_YN, Block, BlockRemark, BlockDate,
+                                                                                                                                                                        
+                 ResetRemark, ResetDate, ReceiptNoPerAc, ChangeBy, ChangeIP, EntryDate)
+                                                                                                                                                                      
+            SELECT
+                                                                                                                                                                                                                                           
+                 BankID, brnc_code, code, NAME, code1, lockflag, MobileNo, RadyToCash,
+                                                                                                                                                                       
+                 NoOfHolidays, PASSWORD, Down_Load_YN, Block, BlockRemark, BlockDate,
+                                                                                                                                                                        
+                 ResetRemark, ResetDate, ReceiptNoPerAc, @ChangeBy, @ChangeIP, EntryDate
+                                                                                                                                                                     
+            FROM agntmast
+                                                                                                                                                                                                                                    
+            WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                              
+
+                                                                                                                                                                                                                                                             
+            DELETE FROM agntmast
+                                                                                                                                                                                                                             
+            WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code;
+                                                                                                                                                                              
+
+                                                                                                                                                                                                                                                             
+            COMMIT TRANSACTION tDel;
+                                                                                                                                                                                                                         
+        END
+                                                                                                                                                                                                                                                  
+
+                                                                                                                                                                                                                                                             
+        ELSE
+                                                                                                                                                                                                                                                 
+        BEGIN
+                                                                                                                                                                                                                                                
+            SET @Msg = 'Invalid operation flag';
+                                                                                                                                                                                                             
+        END
+                                                                                                                                                                                                                                                  
+
+                                                                                                                                                                                                                                                             
+    END TRY
+                                                                                                                                                                                                                                                  
+    BEGIN CATCH
+                                                                                                                                                                                                                                              
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+                                                                                                                                                                                                             
+        SET @Msg = ERROR_MESSAGE();
+                                                                                                                                                                                                                          
+    END CATCH
+                                                                                                                                                                                                                                                
+END
+                                                                                                                                                                                                                                                          
