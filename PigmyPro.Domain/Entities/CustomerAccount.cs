@@ -11,6 +11,7 @@ namespace PigmyPro.Domain.Entities
         public decimal brnc_code { get; set; } // Branch ID (NUMERIC 10,0)
         public decimal CODE2 { get; set; } // Account Number (NUMERIC 18,0)
         public string? name { get; set; }
+        public string? ADDR { get; set; }
         public decimal? BALANCE { get; set; }
         public DateTime? OPN_DATE { get; set; }
         public decimal? AgnCode { get; set; } // Agent Association (NUMERIC 5,0)

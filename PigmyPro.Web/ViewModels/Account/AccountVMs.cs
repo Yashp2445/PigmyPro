@@ -13,6 +13,7 @@ namespace PigmyPro.Web.ViewModels.Account
         public decimal Code2 { get; set; }
         public string? TypeName { get; set; }
         public string? Name { get; set; }
+        public string? Address { get; set; }
         public decimal Balance { get; set; }
         public DateTime? OpenDate { get; set; }
         public decimal? AgnCode { get; set; }
@@ -51,6 +52,10 @@ namespace PigmyPro.Web.ViewModels.Account
         [Required(ErrorMessage = "Customer Name is required")]
         [StringLength(100)]
         public string? Name { get; set; }
+
+        [Display(Name = "Address")]
+        [StringLength(200)]
+        public string? Address { get; set; }
 
         [Display(Name = "Current Balance")]
         public decimal Balance { get; set; }

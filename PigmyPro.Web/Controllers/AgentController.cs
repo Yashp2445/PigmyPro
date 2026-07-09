@@ -22,9 +22,6 @@ namespace PigmyPro.Web.Controllers
             _bankRepo = bankRepo;
         }
 
-        // ═══════════════════════════════════════════════
-        // INDEX
-        // ═══════════════════════════════════════════════
         public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode)
         {
             bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
@@ -34,7 +31,6 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                // Show nothing until at least a bank is chosen
                 if (filterBankID.HasValue && filterBranchCode.HasValue)
                     agents = await _agentRepo.GetAllByBankAndBranchAsync(filterBankID.Value, filterBranchCode.Value);
                 else if (filterBankID.HasValue)
@@ -44,18 +40,15 @@ namespace PigmyPro.Web.Controllers
             }
             else if (isBankAdmin)
             {
-                // Always show all agents of this bank; optionally filter by branch
                 agents = filterBranchCode.HasValue
                     ? await _agentRepo.GetAllByBankAndBranchAsync(CurrentBankID, filterBranchCode.Value)
                     : await _agentRepo.GetAllByBankAsync(CurrentBankID);
             }
             else
             {
-                // BranchAdmin — own branch only, no filter needed
                 agents = await _agentRepo.GetAllByBankAndBranchAsync(CurrentBankID, CurrentBranchID);
             }
 
-            // ── Branch lookup scoped correctly to avoid cross-bank name collisions ──
             IEnumerable<PigmyPro.Domain.Entities.Branch> scopedBranches;
             if (isSuperAdmin && filterBankID.HasValue)
                 scopedBranches = await _branchRepo.GetAllByBankIdAsync(filterBankID.Value);
@@ -124,9 +117,6 @@ namespace PigmyPro.Web.Controllers
             return View(vm);
         }
 
-        // ═══════════════════════════════════════════════
-        // CREATE GET
-        // ═══════════════════════════════════════════════
         public async Task<IActionResult> Create()
         {
             bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
@@ -139,16 +129,23 @@ namespace PigmyPro.Web.Controllers
             };
 
             if (isSuperAdmin)
+            {
                 vm.BankList = await GetBankList();
+            }
             else if (isBankAdmin)
+            {
+                vm.SelectedBankID = CurrentBankID;
                 vm.BranchList = await GetBranchList(CurrentBankID);
+            }
+            else
+            {
+                vm.BranchCode = (decimal)CurrentBranchID;
+                vm.Code = await _agentRepo.GetNextAgentCodeAsync(CurrentBankID, (decimal)CurrentBranchID);
+            }
 
             return View(vm);
         }
 
-        // ═══════════════════════════════════════════════
-        // CREATE POST
-        // ═══════════════════════════════════════════════
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AgentCreateEditVM vm)
@@ -192,11 +189,13 @@ namespace PigmyPro.Web.Controllers
                 return View(vm);
             }
 
+            var nextCode = await _agentRepo.GetNextAgentCodeAsync(bankId, branchCode);
+
             var agent = new Agent
             {
                 BankID = bankId,
                 brnc_code = branchCode,
-                code = vm.Code,
+                code = nextCode,
                 NAME = vm.NAME,
                 MobileNo = vm.MobileNo,
                 Block = vm.Block,
@@ -209,15 +208,11 @@ namespace PigmyPro.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ═══════════════════════════════════════════════
-        // EDIT GET  ← ROOT FIX: pass bankId + branchCode from query string
-        // ═══════════════════════════════════════════════
         public async Task<IActionResult> Edit(decimal code, int bankId, decimal branchCode)
         {
             bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
             bool isBankAdmin = CurrentUserRole == "BankAdmin";
 
-            // Resolve the correct bankId/branchCode based on role
             int resolvedBankId = isSuperAdmin ? bankId : CurrentBankID;
             decimal resolvedBranchCode = (isSuperAdmin || isBankAdmin) ? branchCode : (decimal)CurrentBranchID;
 
@@ -237,6 +232,8 @@ namespace PigmyPro.Web.Controllers
                 Block = agent.Block ?? false,
                 NoOfHolidays = agent.NoOfHolidays ?? 0,
                 ReadyToCash = agent.RadyToCash == "Y"
+                // ResetAgent intentionally left false — it's an action
+                // checkbox, not a reflection of stored state.
             };
 
             if (isSuperAdmin)
@@ -252,9 +249,6 @@ namespace PigmyPro.Web.Controllers
             return View("Create", vm);
         }
 
-        // ═══════════════════════════════════════════════
-        // EDIT POST
-        // ═══════════════════════════════════════════════
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AgentCreateEditVM vm)
@@ -281,19 +275,26 @@ namespace PigmyPro.Web.Controllers
                 code = vm.Code,
                 NAME = vm.NAME,
                 MobileNo = vm.MobileNo,
-                Block = vm.Block,
                 NoOfHolidays = vm.NoOfHolidays,
                 RadyToCash = vm.ReadyToCash ? "Y" : "N"
+                // Block is intentionally NOT set here — Block/Unblock is
+                // driven by vm.Block via the dedicated flag below, applied
+                // by the SP's Block branch, not the base-field update.
             };
 
-            await _agentRepo.UpdateAsync(agent, User.Identity?.Name, HttpContext.Connection.RemoteIpAddress?.ToString());
+            await _agentRepo.UpdateAsync(
+                agent,
+                resetAgent: vm.ResetAgent,
+                resetRemark: vm.ResetRemark,
+                blockChecked: vm.Block,
+                blockRemark: vm.BlockRemark,
+                changedBy: User.Identity?.Name,
+                changeIp: HttpContext.Connection.RemoteIpAddress?.ToString());
+
             TempData["Success"] = "Agent profile updated.";
             return RedirectToAction(nameof(Index));
         }
 
-        // ═══════════════════════════════════════════════
-        // DELETE
-        // ═══════════════════════════════════════════════
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(decimal code, int bankId, decimal branchCode)
@@ -303,14 +304,17 @@ namespace PigmyPro.Web.Controllers
             int resolvedBankId = isSuperAdmin ? bankId : CurrentBankID;
             decimal resolvedBranchCode = (isSuperAdmin || CurrentUserRole == "BankAdmin") ? branchCode : (decimal)CurrentBranchID;
 
-            await _agentRepo.DeleteAsync(resolvedBankId, resolvedBranchCode, code);
+            await _agentRepo.DeleteAsync(
+                resolvedBankId,
+                resolvedBranchCode,
+                code,
+                User.Identity?.Name,
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+
             TempData["Success"] = "Agent deleted successfully.";
             return RedirectToAction(nameof(Index));
         }
 
-        // ═══════════════════════════════════════════════
-        // AJAX — branch list for SuperAdmin bank change
-        // ═══════════════════════════════════════════════
         [HttpGet]
         public async Task<IActionResult> GetBranches(int bankId)
         {
@@ -318,9 +322,13 @@ namespace PigmyPro.Web.Controllers
             return Json(branches.Select(b => new { value = b.BranchID.ToString(), text = b.Name }));
         }
 
-        // ═══════════════════════════════════════════════
-        // HELPERS
-        // ═══════════════════════════════════════════════
+        [HttpGet]
+        public async Task<IActionResult> GetNextCode(int bankId, decimal branchCode)
+        {
+            var next = await _agentRepo.GetNextAgentCodeAsync(bankId, branchCode);
+            return Json(new { code = next });
+        }
+
         private async Task<IEnumerable<SelectListItem>> GetBankList(int? selectedBankId = null)
         {
             var banks = await _bankRepo.GetAllAsync();

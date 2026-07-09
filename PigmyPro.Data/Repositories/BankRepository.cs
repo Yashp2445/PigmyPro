@@ -37,9 +37,9 @@ namespace PigmyPro.Data.Repositories
         public async Task<int> AddAsync(Bank bank)
         {
             var query = @"INSERT INTO Banks 
-            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode, hasCBS)
+            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode, hasCBS, No_of_Holidays)
             VALUES 
-            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode, @hasCBS)";
+            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode, @hasCBS, @No_of_Holidays)";
 
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, bank);
@@ -55,7 +55,8 @@ namespace PigmyPro.Data.Repositories
             EmailID = @EmailID,
             ActiveYN = @ActiveYN,
             CollectionGLCode = @CollectionGLCode,
-            hasCBS = @hasCBS
+            hasCBS = @hasCBS,
+            No_of_Holidays = @No_of_Holidays
             WHERE BankID = @BankID";
 
             using var connection = _context.CreateConnection();

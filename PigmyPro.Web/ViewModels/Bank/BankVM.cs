@@ -26,6 +26,9 @@ namespace PigmyPro.Web.ViewModels.Bank
         public bool ActiveYN { get; set; } = true;
         public bool HasCBS { get; set; }
 
+        [Display(Name = "No of Holidays")]
+        public int? No_of_Holidays { get; set; }
+
         public bool IsPigmy { get; set; } = true; 
         public bool IsLoan { get; set; }
         public bool IsRecurring { get; set; }

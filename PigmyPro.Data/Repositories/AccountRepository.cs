@@ -18,7 +18,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<CustomerAccount>> GetAllAsync()
         {
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, BALANCE, 
+            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
                           FROM acmaster ORDER BY CODE2 DESC";
             using var connection = _context.CreateConnection();
@@ -27,7 +27,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<CustomerAccount>> GetAllByBankAsync(int bankId)
         {
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, BALANCE, 
+            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
                           FROM acmaster WHERE BankID = @BankID ORDER BY CODE2 DESC";
             using var connection = _context.CreateConnection();
@@ -36,7 +36,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<CustomerAccount>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode)
         {
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, BALANCE, 
+            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
                           FROM acmaster 
                           WHERE BankID = @BankID AND brnc_code = @brnc_code 
@@ -47,7 +47,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<CustomerAccount?> GetByFullCodeAsync(int bankId, decimal code1, decimal branchCode, decimal code2)
         {
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, BALANCE, 
+            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
                           FROM acmaster 
                           WHERE BankID = @BankID AND CODE1 = @CODE1 
@@ -68,6 +68,7 @@ namespace PigmyPro.Data.Repositories
                     account.brnc_code,
                     account.CODE2,
                     account.name,
+                    account.ADDR,
                     BALANCE = account.BALANCE ?? 0,
                     OPN_DATE = account.OPN_DATE,
                     AgnCode = account.AgnCode ?? 0,
@@ -89,6 +90,7 @@ namespace PigmyPro.Data.Repositories
                     account.brnc_code,
                     account.CODE2,
                     account.name,
+                    account.ADDR,
                     BALANCE = account.BALANCE ?? 0,
                     OPN_DATE = account.OPN_DATE,
                     AgnCode = account.AgnCode ?? 0,

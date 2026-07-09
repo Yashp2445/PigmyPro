@@ -109,6 +109,13 @@
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
+                    @* ── Address ── *@
+                    <div class="mb-4">
+                        <label asp-for="Address" class="form-label">Address</label>
+                        <textarea asp-for="Address" class="form-control" rows="2" placeholder="Enter customer address"></textarea>
+                        <span asp-validation-for="Address" class="text-danger small"></span>
+                    </div>
+
                     @* ── Opening Date + Agent ── *@
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">

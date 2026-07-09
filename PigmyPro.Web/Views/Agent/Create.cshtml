@@ -3,7 +3,7 @@
 @{
     var isEdit = Model.IsEdit;
     ViewData["Title"] = isEdit ? "Update Agent" : "Register Agent";
-    ViewData["Breadcrumb"] = $"<li class='breadcrumb-item'><a href='/Agent/Index'>Field Agents</a></li><li class='breadcrumb-item active'>{(isEdit ? "Update" : "Register")}</li>";
+    ViewData["Breadcrumb"] = $"<li class='breadcrumb-item'><a href='/Agent/Index'>Collection Agents</a></li><li class='breadcrumb-item active'>{(isEdit ? "Update" : "Register")}</li>";
 }
 
 <div class="row justify-content-center">
@@ -12,7 +12,7 @@
             <div class="card-header">
                 <h5 class="card-title">
                     <i class="bi bi-person-badge text-primary me-2"></i>
-                    @(isEdit ? "Edit Agent Details" : "Field Agent Registration")
+                    @(isEdit ? "Edit Agent Details" : "Collection Agent Registration")
                 </h5>
             </div>
 
@@ -41,7 +41,8 @@
                         <div class="mb-3">
                             <label class="form-label">Assigned Branch</label>
                             <select asp-for="BranchCode" asp-items="Model.BranchList"
-                                    class="form-select" id="branchSelect">
+                                    class="form-select" id="branchSelect"
+                                    onchange="onBranchChanged(this.value)">
                                 <option value="">— Select Branch —</option>
                             </select>
                             <span asp-validation-for="BranchCode" class="text-danger small"></span>
@@ -52,17 +53,18 @@
                         <input type="hidden" asp-for="BranchCode" />
                     }
 
+                    @if (Model.IsBankAdmin)
+                    {
+                        <input type="hidden" id="currentBankId" value="@Model.SelectedBankID" />
+                    }
+
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <label asp-for="Code" class="form-label">Agent Code</label>
-                            @if (isEdit)
-                            {
-                                <input asp-for="Code" class="form-control" style="background-color: var(--color-bg-elevated);" readonly />
-                            }
-                            else
-                            {
-                                <input asp-for="Code" class="form-control" placeholder="e.g. 101" />
-                            }
+                            <input asp-for="Code" id="agentCodeInput" class="form-control"
+                                   style="background-color: var(--color-bg-elevated);"
+                                   readonly
+                                   placeholder="@(isEdit ? "" : "Select a branch...")" />
                             <span asp-validation-for="Code" class="text-danger small"></span>
                         </div>
                         <div class="col-md-8">
@@ -75,7 +77,14 @@
                     <div class="row g-3 mb-4">
                         <div class="col-md-7">
                             <label asp-for="MobileNo" class="form-label">Mobile Number</label>
-                            <input asp-for="MobileNo" class="form-control" placeholder="+91..." />
+                            <input asp-for="MobileNo" class="form-control"
+                                   type="tel"
+                                   inputmode="numeric"
+                                   maxlength="10"
+                                   pattern="[6-9][0-9]{9}"
+                                   placeholder="10-digit mobile number"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" />
+                            <span asp-validation-for="MobileNo" class="text-danger small"></span>
                         </div>
                         <div class="col-md-5">
                             <label asp-for="NoOfHolidays" class="form-label">Holidays/Month</label>
@@ -107,6 +116,31 @@
                                 </div>
                             </div>
                         </div>
+
+                        @* Block remark — shown whenever the Block toggle is on, whether blocking or unblocking *@
+                        <div class="mt-3" id="blockRemarkWrapper" style="display: @(Model.Block ? "block" : "none");">
+                            <label asp-for="BlockRemark" class="form-label">Block / Unblock Remark</label>
+                            <input asp-for="BlockRemark" class="form-control" maxlength="150" placeholder="Reason for block status change" />
+                        </div>
+
+                        @* Reset is Edit-only — there's no existing row to reset on Create *@
+                        @if (isEdit)
+                        {
+                            <div class="mt-3 pt-3 border-top">
+                                <div class="form-control d-flex align-items-center gap-3 py-3">
+                                    <div class="form-check form-switch m-0">
+                                        <input asp-for="ResetAgent" class="form-check-input" type="checkbox" id="resetToggle" />
+                                    </div>
+                                    <label class="form-check-label fw-bold" for="resetToggle" style="font-size: 12px; cursor: pointer;">
+                                        Reset Agent (clears mobile number &amp; resets password)
+                                    </label>
+                                </div>
+                                <div class="mt-2" id="resetRemarkWrapper" style="display: none;">
+                                    <label asp-for="ResetRemark" class="form-label">Reset Remark</label>
+                                    <input asp-for="ResetRemark" class="form-control" maxlength="150" placeholder="Reason for reset" />
+                                </div>
+                            </div>
+                        }
                     </div>
 
                     <div class="d-flex gap-2">
@@ -128,24 +162,75 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
 
-    @if (Model.IsSuperAdmin)
+    <script>
+        // Show/hide the Block remark box based on the Block toggle
+        document.getElementById('blockToggle').addEventListener('change', function () {
+            document.getElementById('blockRemarkWrapper').style.display = this.checked ? 'block' : 'none';
+        });
+
+        @if (isEdit)
+        {
+                <text>
+                    // Show/hide the Reset remark box based on the Reset toggle
+                    document.getElementById('resetToggle').addEventListener('change', function () {
+                        document.getElementById('resetRemarkWrapper').style.display = this.checked ? 'block' : 'none';
+                    });
+                </text>
+        }
+    </script>
+
+    @if (!isEdit)
     {
         <script>
-            function loadBranches(bankId) {
-                const branchSelect = document.getElementById('branchSelect');
-                branchSelect.innerHTML = '<option value="">— Select Branch —</option>';
-                if (!bankId) return;
-
-                fetch('/Agent/GetBranches?bankId=' + bankId)
+            function fetchNextCode(bankId, branchCode) {
+                const codeInput = document.getElementById('agentCodeInput');
+                if (!bankId || !branchCode) {
+                    codeInput.value = '';
+                    return;
+                }
+                fetch('/Agent/GetNextCode?bankId=' + bankId + '&branchCode=' + branchCode)
                     .then(r => r.json())
-                    .then(branches => {
-                        branches.forEach(b => {
-                            const opt = document.createElement('option');
-                            opt.value = b.value;
-                            opt.textContent = b.text;
-                            branchSelect.appendChild(opt);
-                        });
-                    });
+                    .then(data => { codeInput.value = data.code; });
+            }
+
+            function onBranchChanged(branchCode) {
+                @if (Model.IsSuperAdmin)
+                {
+                            <text>
+                                    const bankId = document.getElementById('bankSelect').value;
+                                    fetchNextCode(bankId, branchCode);
+                            </text>
+                }
+                else if (Model.IsBankAdmin)
+                {
+                            <text>
+                                    const bankId = document.getElementById('currentBankId').value;
+                                    fetchNextCode(bankId, branchCode);
+                            </text>
+                }
+            }
+
+            @if (Model.IsSuperAdmin)
+            {
+                        <text>
+                                function loadBranches(bankId) {
+                                    const branchSelect = document.getElementById('branchSelect');
+                                    branchSelect.innerHTML = '<option value="">— Select Branch —</option>';
+                                    document.getElementById('agentCodeInput').value = '';
+                                    if (!bankId) return;
+
+                                    fetch('/Agent/GetBranches?bankId=' + bankId)
+                                        .then(r => r.json())
+                                        .then(branches => {
+                                            branches.forEach(b => {
+                                                const opt = document.createElement('option');
+                                                opt.value = b.value;
+                                                opt.textContent = b.text;
+                                                branchSelect.appendChild(opt);
+                                            });
+                                        });
+                                }
+                        </text>
             }
         </script>
     }
