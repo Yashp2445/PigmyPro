@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace PigmyPro.Web.ViewModels.Bank
 {
@@ -34,6 +35,13 @@ namespace PigmyPro.Web.ViewModels.Bank
         public bool IsRecurring { get; set; }
 
         public long SelectedCollectionGLCode { get; set; } = 1;
+
+        [Display(Name = "Bank Logo")]
+        public IFormFile? LogoFile { get; set; }
+
+        public string? ExistingLogoFileName { get; set; }
+
+        public bool RemoveLogo { get; set; }
     }
 
     public class BankListVM
@@ -42,5 +50,6 @@ namespace PigmyPro.Web.ViewModels.Bank
         public string Name { get; set; } = string.Empty;
         public bool ActiveYN { get; set; }
         public bool HasCBS { get; set; }
+        public string? LogoFileName { get; set; }
     }
 }

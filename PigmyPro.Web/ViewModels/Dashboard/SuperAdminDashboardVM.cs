@@ -14,7 +14,7 @@ namespace PigmyPro.Web.ViewModels.Dashboard
         public decimal TodayCollection { get; set; }
 
         public List<BankWiseSummary> BankWiseData { get; set; } = new();
-        public List<AccountTypeCount> AccountTypeData { get; set; } = new();
+        public AcMasterSummary? AcMasterData { get; set; }
         public List<DailyTrendPoint> DailyTrendData { get; set; } = new();
         public List<AgentOverviewRow> AtRiskAgents { get; set; } = new();
 

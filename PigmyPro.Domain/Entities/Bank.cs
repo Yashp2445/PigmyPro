@@ -17,5 +17,6 @@ namespace PigmyPro.Domain.Entities
         public long CollectionGLCode { get; set; }
         public char hasCBS { get; set; } = 'N';
         public int? No_of_Holidays { get; set; }
+        public string? LogoFileName { get; set; }
     }
 }
