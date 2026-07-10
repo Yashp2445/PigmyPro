@@ -104,6 +104,7 @@ namespace PigmyPro.Data.Repositories
             var sql = @"
                 SELECT 
                     CASE CODE1 
+                        -- See PigmyPro.Domain.Enums.AccountType
                         WHEN 1 THEN 'Pigmy' 
                         WHEN 2 THEN 'Loan' 
                         WHEN 3 THEN 'Recurring' 
@@ -213,6 +214,7 @@ namespace PigmyPro.Data.Repositories
             var sql = @"
                 SELECT 
                     CASE CODE1 
+                        -- See PigmyPro.Domain.Enums.AccountType
                         WHEN 1 THEN 'Pigmy' 
                         WHEN 2 THEN 'Loan' 
                         WHEN 3 THEN 'Recurring' 
@@ -310,6 +312,31 @@ namespace PigmyPro.Data.Repositories
                 DateFrom = dateFrom.Date,
                 DateTo = dateTo.Date,
                 FilterBranchID = filterBranchId
+            });
+        }
+        public async Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null)
+        {
+            var bankFilter = bankId.HasValue ? " AND BankID = @BankID" : "";
+            var branchFilter = branchId.HasValue ? " AND Brnc_code = @BranchID" : "";
+
+            var sql = $@"
+                SELECT 
+                    CAST(Date AS DATE) AS Date,
+                    SUM(Amount) AS Amount
+                FROM MobilePygTrn
+                WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    {bankFilter}
+                    {branchFilter}
+                GROUP BY CAST(Date AS DATE)
+                ORDER BY CAST(Date AS DATE)";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<DailyTrendPoint>(sql, new
+            {
+                BankID = bankId,
+                BranchID = branchId,
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date
             });
         }
     }

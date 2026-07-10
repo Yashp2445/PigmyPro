@@ -3,10 +3,11 @@ using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
 using PigmyPro.Web.ViewModels.Bank;
 using Microsoft.AspNetCore.Authorization;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize(Roles = AppRoles.SuperAdmin)]
     public class BankController : BaseController
     {
         private readonly IBankRepository _repo;

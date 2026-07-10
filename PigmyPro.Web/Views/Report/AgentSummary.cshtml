@@ -18,7 +18,7 @@
         @if (Model.UserRole == "SuperAdmin")
         {
             <div class="col-md-3">
-                <label class="form-label">Bank Tenant</label>
+                <label class="form-label">Bank Tenant <span id="bankLoading" class="spinner-border spinner-border-sm text-primary ms-2 d-none" role="status"></span></label>
                 <select asp-for="FilterBankID" asp-items="Model.Banks" class="form-select" id="bankDropdown">
                     <option value="">-- All Banks --</option>
                 </select>
@@ -93,16 +93,22 @@ else
     </div>
 
     <div class="card">
+        <div class="d-flex justify-content-end p-3 border-bottom bg-light">
+            <div class="input-group" style="max-width: 300px;">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="summarySearch" class="form-control border-start-0" placeholder="Search agents..." />
+            </div>
+        </div>
         <div class="card-body p-0">
             <div class="table-wrapper">
-                <table class="table">
+                <table class="table" id="summaryTable">
                     <thead>
                         <tr>
-                            <th>Field Agent</th>
-                            <th>Branch Office</th>
-                            <th class="text-center">Accounts Handled</th>
-                            <th class="text-end">Aggregate Collection</th>
-                            <th class="text-end">Efficiency (Avg/Ac)</th>
+                            <th class="sortable">Field Agent</th>
+                            <th class="sortable">Branch Office</th>
+                            <th class="text-center sortable">Accounts Handled</th>
+                            <th class="text-end sortable">Aggregate Collection</th>
+                            <th class="text-end sortable">Efficiency (Avg/Ac)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -141,13 +147,18 @@ else
                 var bankId = $(this).val();
                 $('#branchDropdown').empty().append('<option value="">-- All Branches --</option>');
                 if (bankId) {
+                    $('#bankLoading').removeClass('d-none');
                     $.getJSON('/Report/GetBranches', { bankId: bankId }, function(data) {
                         $.each(data, function(i, item) {
                             $('#branchDropdown').append('<option value="' + item.branchID + '">' + item.name + '</option>');
                         });
+                    }).always(function () {
+                        $('#bankLoading').addClass('d-none');
                     });
                 }
             });
+
+            setupTableSortAndSearch('summaryTable', 'summarySearch');
         });
     </script>
 }

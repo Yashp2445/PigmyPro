@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Web.ViewModels.Report;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
@@ -43,8 +44,8 @@ namespace PigmyPro.Web.Controllers
             vm.UserRole = CurrentUserRole;
 
             // Enforce role scoping — never trust posted values
-            int? bankId = CurrentUserRole == "SuperAdmin" ? vm.FilterBankID : CurrentBankID;
-            int? branchId = CurrentUserRole == "BranchAdmin" ? CurrentBranchID : vm.FilterBranchID;
+            int? bankId = CurrentUserRole == AppRoles.SuperAdmin ? vm.FilterBankID : CurrentBankID;
+            int? branchId = CurrentUserRole == AppRoles.BranchAdmin ? CurrentBranchID : vm.FilterBranchID;
 
             var rows = await _repo.GetPigmyStatementAsync(
                 vm.DateFrom, vm.DateTo,
@@ -68,8 +69,8 @@ namespace PigmyPro.Web.Controllers
             vm.UserRole = CurrentUserRole;
 
             // Enforce role scoping
-            int? bankId = CurrentUserRole == "SuperAdmin" ? vm.FilterBankID : CurrentBankID;
-            int? branchId = CurrentUserRole == "BranchAdmin" ? CurrentBranchID : vm.FilterBranchID;
+            int? bankId = CurrentUserRole == AppRoles.SuperAdmin ? vm.FilterBankID : CurrentBankID;
+            int? branchId = CurrentUserRole == AppRoles.BranchAdmin ? CurrentBranchID : vm.FilterBranchID;
 
             var rows = await _repo.GetPigmyStatementAsync(
                 vm.DateFrom, vm.DateTo,
@@ -104,7 +105,7 @@ namespace PigmyPro.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAgents(int bankId, int branchId)
         {
-            int safeBankId = CurrentUserRole == "SuperAdmin" ? bankId : CurrentBankID;
+            int safeBankId = CurrentUserRole == AppRoles.SuperAdmin ? bankId : CurrentBankID;
             var agents = await _repo.GetAgentDropdownAsync(safeBankId, branchId);
             return Json(agents);
         }
@@ -115,15 +116,15 @@ namespace PigmyPro.Web.Controllers
 
         private async Task PopulateDropdowns(PigmyStatementReportVM vm)
         {
-            if (CurrentUserRole == "SuperAdmin")
+            if (CurrentUserRole == AppRoles.SuperAdmin)
             {
                 var banks = await _repo.GetBankDropdownAsync();
                 vm.Banks = banks.Select(b => new SelectListItem(b.Name, b.BankID.ToString())).ToList();
             }
 
-            if (CurrentUserRole != "BranchAdmin")
+            if (CurrentUserRole != AppRoles.BranchAdmin)
             {
-                int bId = (CurrentUserRole == "SuperAdmin") ? (vm.FilterBankID ?? 0) : CurrentBankID;
+                int bId = (CurrentUserRole == AppRoles.SuperAdmin) ? (vm.FilterBankID ?? 0) : CurrentBankID;
                 if (bId > 0)
                 {
                     var branches = await _repo.GetBranchDropdownAsync(bId);
@@ -131,8 +132,8 @@ namespace PigmyPro.Web.Controllers
                 }
             }
 
-            int abId = (CurrentUserRole == "SuperAdmin") ? (vm.FilterBankID ?? 0) : CurrentBankID;
-            int abrId = (CurrentUserRole == "BranchAdmin") ? CurrentBranchID : (vm.FilterBranchID ?? 0);
+            int abId = (CurrentUserRole == AppRoles.SuperAdmin) ? (vm.FilterBankID ?? 0) : CurrentBankID;
+            int abrId = (CurrentUserRole == AppRoles.BranchAdmin) ? CurrentBranchID : (vm.FilterBranchID ?? 0);
             if (abId > 0 && abrId > 0)
             {
                 var agents = await _repo.GetAgentDropdownAsync(abId, abrId);

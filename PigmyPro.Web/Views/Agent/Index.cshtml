@@ -99,18 +99,24 @@
         }
         else
         {
+            <div class="d-flex justify-content-end p-3 border-bottom bg-light">
+                <div class="input-group" style="max-width: 300px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="agentSearch" class="form-control border-start-0" placeholder="Search agents..." />
+                </div>
+            </div>
             <div class="table-wrapper">
-                <table class="table">
+                <table class="table" id="agentTable">
                     <thead>
                         <tr>
-                            <th>Agent Details</th>
+                            <th class="sortable">Agent Details</th>
                             @if (Model.IsSuperAdmin)
                             {
-                                <th>Bank</th>
+                                <th class="sortable">Bank</th>
                             }
-                            <th>Branch</th>
-                            <th>Configuration</th>
-                            <th class="text-center">Status</th>
+                            <th class="sortable">Branch</th>
+                            <th class="sortable">Configuration</th>
+                            <th class="text-center sortable">Status</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -210,5 +216,9 @@
             document.getElementById('deleteForm').action = '/Agent/Delete';
             new bootstrap.Modal(document.getElementById('deleteModal')).show();
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTableSortAndSearch('agentTable', 'agentSearch');
+        });
     </script>
 }

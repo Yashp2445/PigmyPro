@@ -9,35 +9,41 @@ using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
 using PigmyPro.Web.ViewModels.Account;
 using Dapper;
+using Microsoft.AspNetCore.Authorization;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
+    [Authorize(Roles = AppRoles.SuperAdmin + "," + AppRoles.BankAdmin + "," + AppRoles.BranchAdmin)]
     public class AccountController : BaseController
     {
         private readonly IAccountRepository _accountRepo;
-        private readonly IAgentRepository _agentRepo;
-        private readonly IBranchRepository _branchRepo;
         private readonly IBankRepository _bankRepo;
-        private readonly DapperContext _context;
+        private readonly IBranchRepository _branchRepo;
+        private readonly IAgentRepository _agentRepo;
 
         public AccountController(
             IAccountRepository accountRepo,
-            IAgentRepository agentRepo,
-            IBranchRepository branchRepo,
             IBankRepository bankRepo,
-            DapperContext context)
+            IBranchRepository branchRepo,
+            IAgentRepository agentRepo)
         {
             _accountRepo = accountRepo;
-            _agentRepo = agentRepo;
-            _branchRepo = branchRepo;
             _bankRepo = bankRepo;
-            _context = context;
+            _branchRepo = branchRepo;
+            _agentRepo = agentRepo;
         }
 
         public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode, decimal? filterCode1)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
             IEnumerable<CustomerAccount> data;
 
@@ -79,7 +85,7 @@ namespace PigmyPro.Web.Controllers
                 OpenDate = a.OPN_DATE,
                 AgnCode = a.AgnCode,
                 MobileNo = a.Mobile_No ?? "N/A",
-                TypeName = GetTypeName((int)a.CODE1)
+                TypeName = GetTypeName(a.CODE1)
             }).ToList();
 
             var vm = new AccountIndexVM
@@ -129,8 +135,14 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Create()
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
             var vm = new AccountCreateEditVM
             {
@@ -165,8 +177,14 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AccountCreateEditVM vm)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
             decimal branchCode = (isSuperAdmin || isBankAdmin) ? (vm.SelectedBranchCode ?? 0) : (decimal)CurrentBranchID;
 
@@ -222,8 +240,14 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Edit(decimal code1, decimal branchCode, decimal code2, int bankId)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int targetBankId = isSuperAdmin ? bankId : CurrentBankID;
             decimal targetBranchCode = (isSuperAdmin || isBankAdmin) ? branchCode : (decimal)CurrentBranchID;
 
@@ -284,8 +308,14 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AccountCreateEditVM vm)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
             decimal branchCode = (isSuperAdmin || isBankAdmin) ? (vm.SelectedBranchCode ?? 0) : (decimal)CurrentBranchID;
 
@@ -331,8 +361,14 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(decimal code1, decimal branchCode, decimal code2, int bankId)
         {
-            bool isSuperAdmin = CurrentUserRole == "SuperAdmin";
-            bool isBankAdmin = CurrentUserRole == "BankAdmin";
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int targetBankId = isSuperAdmin ? bankId : CurrentBankID;
             decimal targetBranchCode = (isSuperAdmin || isBankAdmin) ? branchCode : (decimal)CurrentBranchID;
 
@@ -381,27 +417,22 @@ namespace PigmyPro.Web.Controllers
             if (!bankId.HasValue || bankId.Value <= 0)
                 return Enumerable.Empty<SelectListItem>();
 
-            var query = "SELECT CollectionGLCode FROM Banks WHERE BankID = @BankID";
-            using var connection = _context.CreateConnection();
-            var glCode = await connection.QueryFirstOrDefaultAsync<int>(query, new { BankID = bankId });
+            var glCode = await _accountRepo.GetCollectionGLCodeAsync(bankId.Value);
 
             var all = new[]
             {
-                new SelectListItem { Value = "1", Text = "Pigmy" },
-                new SelectListItem { Value = "2", Text = "Loan" },
-                new SelectListItem { Value = "3", Text = "Recurring" }
+                new SelectListItem { Value = ((int)PigmyPro.Domain.Enums.AccountType.Pigmy).ToString(), Text = PigmyPro.Domain.Enums.AccountTypeExtensions.GetDisplayName((int)PigmyPro.Domain.Enums.AccountType.Pigmy) },
+                new SelectListItem { Value = ((int)PigmyPro.Domain.Enums.AccountType.Loan).ToString(), Text = PigmyPro.Domain.Enums.AccountTypeExtensions.GetDisplayName((int)PigmyPro.Domain.Enums.AccountType.Loan) },
+                new SelectListItem { Value = ((int)PigmyPro.Domain.Enums.AccountType.Recurring).ToString(), Text = PigmyPro.Domain.Enums.AccountTypeExtensions.GetDisplayName((int)PigmyPro.Domain.Enums.AccountType.Recurring) }
             };
 
             return all.Where(t => int.Parse(t.Value) <= glCode);
         }
 
-        private static string GetTypeName(int code1) => code1 switch
+        private string GetTypeName(decimal code1)
         {
-            1 => "Pigmy",
-            2 => "Loan",
-            3 => "Recurring",
-            _ => "Unknown"
-        };
+            return PigmyPro.Domain.Enums.AccountTypeExtensions.GetDisplayName((int)code1);
+        }
 
         [HttpGet]
         public async Task<IActionResult> CheckDuplicate(int bankId, decimal code1, decimal branchCode, decimal code2)

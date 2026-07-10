@@ -4,8 +4,16 @@ using PigmyPro.Data.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration)
+                 .MinimumLevel.Information()
+                 .WriteTo.File("logs/pigmypro-.txt",
+                     rollingInterval: RollingInterval.Day,
+                     retainedFileCountLimit: 30));
 
 builder.Services.AddControllersWithViews();
 
@@ -16,15 +24,15 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    var key = "PigmyProSuperSecretSecurityKeyForJwtAuthenticationMustBeAtLeast256BitsLong!";
+    var key = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is missing from config");
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = "PigmyProIssuer",
-        ValidAudience = "PigmyProAudience",
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
     };
 
@@ -74,18 +82,19 @@ builder.Services.AddSession(options =>
 builder.Services.AddSingleton<DapperContext>();
 
 
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IBankRepository, BankRepository>();
 builder.Services.AddScoped<IBranchRepository, BranchRepository>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
-builder.Services.AddScoped<IMobileDataRepository, MobileDataRepository>();
-builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
-builder.Services.AddScoped<IReportRepository, ReportRepository>();
-builder.Services.AddScoped<IMapRepository, MapRepository>();
-builder.Services.AddScoped<IMobileImportRepository, MobileImportRepository>();
+builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IPigmyStatementRepository, PigmyStatementRepository>();
-
+builder.Services.AddScoped<IMobileImportRepository, MobileImportRepository>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IAuditRepository, AuditRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IMapRepository, MapRepository>();
+builder.Services.AddScoped<IDropdownService, DropdownService>();
+builder.Services.AddScoped<PigmyPro.Web.Services.IReportExportService, PigmyPro.Web.Services.ReportExportService>();
 
 var app = builder.Build();
 
@@ -98,6 +107,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseSerilogRequestLogging();
 
 // Prevent caching for dynamic requests (fixes back-button after logout and weird bfcache layouts)
 app.Use(async (context, next) =>
@@ -107,35 +117,8 @@ app.Use(async (context, next) =>
     context.Response.Headers["Expires"] = "-1";
     await next();
 });
-// Diagnostic logging config
-var logLock = new object();
-var logPath = Path.Combine(AppContext.BaseDirectory, "diagnostic_log.txt");
 
 app.UseRouting();
-
-// 1. Pre-Authentication Logging Middleware
-app.Use(async (context, next) =>
-{
-    var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-    var path = context.Request.Path;
-    var hasCookieHeader = context.Request.Headers.ContainsKey("Cookie");
-    var hasIdentityCookie = hasCookieHeader && context.Request.Headers["Cookie"].ToString().Contains("PigmyPro.Identity");
-    
-    try
-    {
-        lock (logLock)
-        {
-            System.IO.File.AppendAllText(logPath, $"[{timestamp}] Pre-Auth | Path: {path} | HasCookieHeader: {hasCookieHeader} | HasIdentityCookie: {hasIdentityCookie}{Environment.NewLine}");
-        }
-    }
-    catch (Exception ex)
-    {
-        System.Diagnostics.Debug.WriteLine($"Diagnostic logging failed: {ex.Message}");
-    }
-    
-    await next();
-});
-
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -172,29 +155,6 @@ app.Use(async (context, next) =>
     }
     await next();
 });
-
-// 2. Post-Authentication/Authorization Logging Middleware
-app.Use(async (context, next) =>
-{
-    var timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
-    var isAuthenticated = context.User.Identity?.IsAuthenticated == true;
-    var username = context.User.Identity?.Name ?? "N/A";
-    
-    try
-    {
-        lock (logLock)
-        {
-            System.IO.File.AppendAllText(logPath, $"[{timestamp}] Post-Auth | IsAuthenticated: {isAuthenticated} | Username: {username}{Environment.NewLine}");
-        }
-    }
-    catch (Exception ex)
-    {
-        System.Diagnostics.Debug.WriteLine($"Diagnostic logging failed: {ex.Message}");
-    }
-
-    await next();
-});
-
 
 app.MapControllerRoute(
     name: "default",

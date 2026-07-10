@@ -21,19 +21,11 @@ namespace PigmyPro.Data.Interfaces
         public DateTime EntryDate { get; set; }
     }
 
-    public interface IPigmyStatementRepository
+    public interface IPigmyStatementRepository : IDropdownService
     {
         // Main report query
         Task<IEnumerable<PigmyStatementRow>> GetPigmyStatementAsync(
             DateTime dateFrom, DateTime dateTo,
             int? bankId, int? branchId, long? agentCode, int? code1);
-
-        // Dropdown population
-        Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync();
-        Task<IEnumerable<BranchDropdownItem>> GetBranchDropdownAsync(int bankId);
-        Task<IEnumerable<AgentDropdownItem>> GetAgentDropdownAsync(int bankId, int branchId);
-
-        // Bank name for print header
-        Task<string> GetBankNameAsync(int bankId);
     }
 }

@@ -3,9 +3,12 @@ using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
 using PigmyPro.Web.ViewModels.Branch;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authorization;
+using PigmyPro.Domain;
 
 namespace PigmyPro.Web.Controllers
 {
+    [Authorize(Roles = AppRoles.SuperAdmin + "," + AppRoles.BankAdmin)]
     public class BranchController : BaseController
     {
         private readonly IBranchRepository _repo;
@@ -19,7 +22,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Index(int? bankId)
         {
-            bool isSuperAdmin = User.IsInRole("SuperAdmin");
+            bool isSuperAdmin = User.IsInRole(AppRoles.SuperAdmin);
 
             IEnumerable<Branch> data;
 
@@ -68,7 +71,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Create()
         {
-            bool isSuperAdmin = User.IsInRole("SuperAdmin");
+            bool isSuperAdmin = User.IsInRole(AppRoles.SuperAdmin);
             var vm = new BranchCreateEditVM
             {
                 Active = "Y",
@@ -96,14 +99,14 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(BranchCreateEditVM vm)
         {
-            if (!User.IsInRole("SuperAdmin"))
+            if (!User.IsInRole(AppRoles.SuperAdmin))
             {
                 vm.BankID = CurrentBankID;
             }
 
             if (!ModelState.IsValid)
             {
-                if (User.IsInRole("SuperAdmin"))
+                if (User.IsInRole(AppRoles.SuperAdmin))
                 {
                     var banks = await _bankRepo.GetAllAsync();
                     vm.BankList = banks.Select(b => new SelectListItem
@@ -129,7 +132,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Edit(int id, int bankId)
         {
-            bool isSuperAdmin = User.IsInRole("SuperAdmin");
+            bool isSuperAdmin = User.IsInRole(AppRoles.SuperAdmin);
 
             int targetBankId = isSuperAdmin ? bankId : CurrentBankID;
 
@@ -163,14 +166,14 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(BranchCreateEditVM vm)
         {
-            if (!User.IsInRole("SuperAdmin"))
+            if (!User.IsInRole(AppRoles.SuperAdmin))
             {
                 vm.BankID = CurrentBankID;
             }
 
             if (!ModelState.IsValid)
             {
-                if (User.IsInRole("SuperAdmin"))
+                if (User.IsInRole(AppRoles.SuperAdmin))
                 {
                     var banks = await _bankRepo.GetAllAsync();
                     vm.BankList = banks.Select(b => new SelectListItem
@@ -199,7 +202,7 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id, int bankId)
         {
-            int targetBankId = User.IsInRole("SuperAdmin") ? bankId : CurrentBankID;
+            int targetBankId = User.IsInRole(AppRoles.SuperAdmin) ? bankId : CurrentBankID;
 
             await _repo.DeleteAsync(id, targetBankId);
             TempData["Success"] = "Branch deleted.";

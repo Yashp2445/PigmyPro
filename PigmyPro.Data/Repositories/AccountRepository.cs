@@ -121,6 +121,11 @@ namespace PigmyPro.Data.Repositories
             return count > 0;
         }
 
-       
+        public async Task<int> GetCollectionGLCodeAsync(int bankId)
+        {
+            var query = "SELECT CollectionGLCode FROM Banks WHERE BankID = @BankID";
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstOrDefaultAsync<int>(query, new { BankID = bankId });
+        }
     }
 }
