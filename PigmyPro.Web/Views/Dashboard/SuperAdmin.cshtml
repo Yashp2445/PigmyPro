@@ -177,10 +177,34 @@
     </div>
 
     <div class="col-lg-4">
-        <div class="chart-card h-100">
-            <h5 class="chart-title">Portfolio Mix</h5>
-            <div style="position:relative; height:320px;">
-                <canvas id="accountTypePieChart"></canvas>
+        <div class="chart-card h-100 p-4">
+            <h5 class="chart-title mb-4">Portfolio Summary</h5>
+            
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-people-fill me-1"></i>TOTAL ACCOUNTS</div>
+                        <h4 class="mb-0 fw-bold mono-data">@Model.AcMasterData?.TotalAccounts.ToString("N0")</h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-person-plus-fill me-1 text-success"></i>NEW IN PERIOD</div>
+                        <h4 class="mb-0 fw-bold text-success mono-data">@Model.AcMasterData?.NewAccountsInPeriod.ToString("N0")</h4>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-wallet-fill me-1 text-primary"></i>TOTAL BALANCE</div>
+                        <h3 class="mb-0 fw-bold text-primary mono-data">₹@Model.AcMasterData?.TotalBalance.ToString("N2")</h3>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-graph-up me-1 text-info"></i>AVG ACCOUNT BALANCE</div>
+                        <h4 class="mb-0 fw-bold text-info mono-data">₹@Model.AcMasterData?.AvgBalance.ToString("N2")</h4>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -190,49 +214,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
         (function () {
-            var labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AccountTypeData.Select(x => x.AccountType)));
-            var data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AccountTypeData.Select(x => x.Count)));
-
-            var colors = ['#3b82f6', '#0ea5e9', '#16a34a', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#be185d'];
-
-            var ctx = document.getElementById('accountTypePieChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 0,
-                        hoverOffset: 12
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true,
-                                pointStyleWidth: 10,
-                                font: { family: 'Inter', size: 11, weight: '500' },
-                                color: '#4b5563'
-                            }
-                        },
-                        tooltip: {
-                            backgroundColor: '#111827',
-                            titleFont: { family: 'Inter', size: 13, weight: '700' },
-                            bodyFont: { family: 'JetBrains Mono', size: 12 },
-                            padding: 12,
-                            cornerRadius: 8,
-                            displayColors: false
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
 
             // Trend Chart
             var trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailyTrendData.Select(x => x.Date.ToString("dd MMM"))));
