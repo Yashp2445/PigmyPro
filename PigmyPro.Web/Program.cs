@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration)
-                 .WriteTo.File("diagnostic_log.txt", rollingInterval: RollingInterval.Day));
+                 .MinimumLevel.Information()
+                 .WriteTo.File("logs/pigmypro-.txt",
+                     rollingInterval: RollingInterval.Day,
+                     retainedFileCountLimit: 30));
 
 builder.Services.AddControllersWithViews();
 

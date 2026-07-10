@@ -13,12 +13,14 @@ namespace PigmyPro.Web.Controllers
     public class AuthController : Controller
     {
         private readonly IUserRepository _userRepo;
+        private readonly IBankRepository _bankRepo;
         private readonly IConfiguration _configuration;
         private static readonly ConcurrentDictionary<string, (int Count, DateTime LastAttempt)> _loginAttempts = new();
 
-        public AuthController(IUserRepository userRepo, IConfiguration configuration)
+        public AuthController(IUserRepository userRepo, IBankRepository bankRepo, IConfiguration configuration)
         {
             _userRepo = userRepo;
+            _bankRepo = bankRepo;
             _configuration = configuration;
         }
 
@@ -70,6 +72,7 @@ namespace PigmyPro.Web.Controllers
                         userId: 0,
                         bankId: 0,
                         branchId: 0,
+                        hasCBS: 'N',
                         rememberMe: vm.RememberMe
                     );
                 }
@@ -102,6 +105,16 @@ namespace PigmyPro.Web.Controllers
                 }
 
                 _loginAttempts.TryRemove(usernameKey, out _);
+                char hasCBS = 'N';
+                if (user.BankID > 0)
+                {
+                    var bank = await _bankRepo.GetByIdAsync(user.BankID);
+                    if (bank != null)
+                    {
+                        hasCBS = bank.hasCBS;
+                    }
+                }
+
                 return await SignInUser(
                     username: user.Username,
                     role: user.Role,
@@ -109,6 +122,7 @@ namespace PigmyPro.Web.Controllers
                     userId: user.UserID,
                     bankId: user.BankID,
                     branchId: user.BranchID ?? 0,
+                    hasCBS: hasCBS,
                     rememberMe: vm.RememberMe
                 );
             }
@@ -133,6 +147,7 @@ namespace PigmyPro.Web.Controllers
             int userId,
             int bankId,
             int branchId,
+            char hasCBS,
             bool rememberMe)
         {
             var claims = new List<Claim>
@@ -141,6 +156,7 @@ namespace PigmyPro.Web.Controllers
                 new Claim("UserID", userId.ToString()),
                 new Claim("BankID", bankId.ToString()),
                 new Claim("BranchID", branchId.ToString()),
+                new Claim("HasCBS", hasCBS.ToString()),
                 new Claim(ClaimTypes.Role, role),
                 new Claim("DisplayName", displayName)
             };
@@ -174,6 +190,7 @@ namespace PigmyPro.Web.Controllers
             HttpContext.Session.SetInt32("BankID", bankId);
             HttpContext.Session.SetInt32("BranchID", branchId);
             HttpContext.Session.SetString("UserRole", role);
+            HttpContext.Session.SetString("HasCBS", hasCBS.ToString());
 
             return role switch
             {
