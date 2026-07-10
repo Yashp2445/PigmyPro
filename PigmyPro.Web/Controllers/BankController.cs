@@ -4,6 +4,8 @@ using PigmyPro.Domain.Entities;
 using PigmyPro.Web.ViewModels.Bank;
 using Microsoft.AspNetCore.Authorization;
 using PigmyPro.Domain;
+using Microsoft.AspNetCore.Hosting;
+using System.IO;
 
 namespace PigmyPro.Web.Controllers
 {
@@ -11,10 +13,12 @@ namespace PigmyPro.Web.Controllers
     public class BankController : BaseController
     {
         private readonly IBankRepository _repo;
+        private readonly IWebHostEnvironment _env;
 
-        public BankController(IBankRepository repo)
+        public BankController(IBankRepository repo, IWebHostEnvironment env)
         {
             _repo = repo;
+            _env = env;
         }
 
         public async Task<IActionResult> Index()
@@ -26,7 +30,8 @@ namespace PigmyPro.Web.Controllers
                 BankID = x.BankID,
                 Name = x.Name,
                 ActiveYN = x.ActiveYN,
-                HasCBS = x.hasCBS == 'Y'
+                HasCBS = x.hasCBS == 'Y',
+                LogoFileName = x.LogoFileName
             }).ToList();
 
             return View(vm);
@@ -58,6 +63,59 @@ namespace PigmyPro.Web.Controllers
             throw new Exception("Invalid selection.");
         }
 
+        private async Task<string?> HandleLogoUploadAsync(BankCreateEditVM vm, string? currentLogoFileName)
+        {
+            if (vm.RemoveLogo)
+            {
+                if (!string.IsNullOrEmpty(currentLogoFileName))
+                {
+                    var oldPath = Path.Combine(_env.WebRootPath, "uploads", "bank-logos", currentLogoFileName);
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+                return null;
+            }
+
+            if (vm.LogoFile != null && vm.LogoFile.Length > 0)
+            {
+                var allowedExtensions = new[] { ".jpg", ".jpeg", ".png" };
+                var extension = Path.GetExtension(vm.LogoFile.FileName).ToLowerInvariant();
+
+                if (!allowedExtensions.Contains(extension))
+                {
+                    throw new Exception("Only JPG, JPEG, and PNG images are allowed.");
+                }
+
+                if (vm.LogoFile.Length > 2 * 1024 * 1024)
+                {
+                    throw new Exception("File size must not exceed 2MB.");
+                }
+
+                if (!string.IsNullOrEmpty(currentLogoFileName))
+                {
+                    var oldPath = Path.Combine(_env.WebRootPath, "uploads", "bank-logos", currentLogoFileName);
+                    if (System.IO.File.Exists(oldPath))
+                        System.IO.File.Delete(oldPath);
+                }
+
+                var uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "bank-logos");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(vm.LogoFile.FileName);
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await vm.LogoFile.CopyToAsync(stream);
+                }
+
+                return uniqueFileName;
+            }
+
+            return currentLogoFileName;
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(BankCreateEditVM vm)
@@ -66,9 +124,11 @@ namespace PigmyPro.Web.Controllers
                 return View(vm);
 
             long code;
+            string? logoFileName = null;
             try
             {
                 code = GetCollectionGLCode(vm);
+                logoFileName = await HandleLogoUploadAsync(vm, null);
             }
             catch (Exception ex)
             {
@@ -87,6 +147,7 @@ namespace PigmyPro.Web.Controllers
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
                 No_of_Holidays = vm.No_of_Holidays,
+                LogoFileName = logoFileName,
                 EntryDateTime = DateTime.Now
             };
 
@@ -115,6 +176,7 @@ namespace PigmyPro.Web.Controllers
                 ActiveYN = data.ActiveYN,
                 HasCBS = data.hasCBS == 'Y',
                 No_of_Holidays = data.No_of_Holidays,
+                ExistingLogoFileName = data.LogoFileName,
 
                 IsPigmy = true,
                 IsLoan = code >= 2,
@@ -133,9 +195,14 @@ namespace PigmyPro.Web.Controllers
                 return View("Create", vm);
 
             long code;
+            string? logoFileName = null;
             try
             {
+                var existingBank = await _repo.GetByIdAsync(vm.BankID);
+                if (existingBank == null) return NotFound();
+
                 code = GetCollectionGLCode(vm);
+                logoFileName = await HandleLogoUploadAsync(vm, existingBank.LogoFileName);
             }
             catch (Exception ex)
             {
@@ -154,7 +221,8 @@ namespace PigmyPro.Web.Controllers
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
-                No_of_Holidays = vm.No_of_Holidays
+                No_of_Holidays = vm.No_of_Holidays,
+                LogoFileName = logoFileName
             };
 
             await _repo.UpdateAsync(entity);
@@ -167,6 +235,14 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
+            var data = await _repo.GetByIdAsync(id);
+            if (data != null && !string.IsNullOrEmpty(data.LogoFileName))
+            {
+                var oldPath = Path.Combine(_env.WebRootPath, "uploads", "bank-logos", data.LogoFileName);
+                if (System.IO.File.Exists(oldPath))
+                    System.IO.File.Delete(oldPath);
+            }
+
             await _repo.DeleteAsync(id);
 
             TempData["Success"] = "Bank deleted.";

@@ -40,7 +40,7 @@ namespace PigmyPro.Web.Controllers
 
             var summary = await _repo.GetSuperAdminSummaryAsync(from, to, bankId);
             var bankWise = await _repo.GetBankWiseSummaryAsync(from, to, bankId);
-            var accountTypes = await _repo.GetAccountTypeDistributionAsync();
+            var acMasterData = await _repo.GetAcMasterSummaryAsync(from, to, bankId);
             var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId);
 
             // Populate bank dropdown
@@ -54,7 +54,7 @@ namespace PigmyPro.Web.Controllers
                 TotalAccounts = summary.TotalAccounts,
                 TodayCollection = summary.TodayCollection,
                 BankWiseData = bankWise.ToList(),
-                AccountTypeData = accountTypes.ToList(),
+                AcMasterData = acMasterData,
                 DailyTrendData = trendData.ToList(),
                 LastUpdated = DateTime.Now,
                 DateFrom = from,
@@ -80,7 +80,7 @@ namespace PigmyPro.Web.Controllers
             var summary = await _repo.GetBankAdminSummaryAsync(bankId, from, to);
             var branchWise = await _repo.GetBranchWiseSummaryAsync(bankId, from, to, branchId);
             var topAgents = await _repo.GetTopAgentCollectionsAsync(bankId, 10, from, to, branchId);
-            var accountTypes = await _repo.GetAccountTypeDistributionByBankAsync(bankId);
+            var acMasterData = await _repo.GetAcMasterSummaryAsync(from, to, bankId, branchId);
             var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
             var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
             var atRiskAgents = agentOverview.Where(a => a.DaysInactive > 7 && !a.IsBlocked).OrderByDescending(a => a.DaysInactive).Take(5).ToList();
@@ -96,7 +96,7 @@ namespace PigmyPro.Web.Controllers
                 TodayCollection = summary.TodayCollection,
                 BranchWiseData = branchWise.ToList(),
                 TopAgents = topAgents.ToList(),
-                AccountTypeData = accountTypes.ToList(),
+                AcMasterData = acMasterData,
                 AgentOverview = agentOverview.ToList(),
                 DailyTrendData = trendData.ToList(),
                 AtRiskAgents = atRiskAgents,

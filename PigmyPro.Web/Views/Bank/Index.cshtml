@@ -22,6 +22,7 @@
                 <thead>
                     <tr>
                         <th>ID</th>
+                        <th>Logo</th>
                         <th>Bank Name</th>
                         <th>Status</th>
                         <th>Has CBS</th>
@@ -33,6 +34,16 @@
                     {
                         <tr>
                             <td class="mono-data fw-bold text-muted">#@bank.BankID</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(bank.LogoFileName))
+                                {
+                                    <img src="/uploads/bank-logos/@bank.LogoFileName" alt="Logo" style="max-height: 30px;" class="border rounded" />
+                                }
+                                else
+                                {
+                                    <i class="bi bi-bank text-muted fs-4"></i>
+                                }
+                            </td>
                             <td class="fw-bold">@bank.Name</td>
                             <td>
                                 @if (bank.ActiveYN)

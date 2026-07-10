@@ -29,6 +29,14 @@ namespace PigmyPro.Data.Interfaces
         public int Count { get; set; }
     }
 
+    public class AcMasterSummary
+    {
+        public int TotalAccounts { get; set; }
+        public decimal TotalBalance { get; set; }
+        public decimal AvgBalance { get; set; }
+        public int NewAccountsInPeriod { get; set; }
+    }
+
     public class BankAdminSummary
     {
         public int TotalBranches { get; set; }
@@ -108,6 +116,9 @@ namespace PigmyPro.Data.Interfaces
 
         // Trend
         Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null);
+
+        // AcMaster Summary
+        Task<AcMasterSummary> GetAcMasterSummaryAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null);
 
         // Dropdown helpers for dashboard filters
         Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync();

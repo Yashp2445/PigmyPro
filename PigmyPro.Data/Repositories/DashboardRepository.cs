@@ -339,5 +339,29 @@ namespace PigmyPro.Data.Repositories
                 DateTo = dateTo.Date
             });
         }
+
+        public async Task<AcMasterSummary> GetAcMasterSummaryAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null)
+        {
+            var bankFilter = bankId.HasValue ? " AND BankID = @BankID" : "";
+            var branchFilter = branchId.HasValue ? " AND brnc_code = @BranchID" : "";
+
+            var sql = $@"
+                SELECT 
+                    COUNT(*) AS TotalAccounts,
+                    ISNULL(SUM(BALANCE), 0) AS TotalBalance,
+                    ISNULL(AVG(BALANCE), 0) AS AvgBalance,
+                    (SELECT COUNT(*) FROM acmaster WHERE CAST(OPN_DATE AS DATE) >= @DateFrom AND CAST(OPN_DATE AS DATE) <= @DateTo {bankFilter} {branchFilter}) AS NewAccountsInPeriod
+                FROM acmaster 
+                WHERE 1=1 {bankFilter} {branchFilter}";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstAsync<AcMasterSummary>(sql, new
+            {
+                BankID = bankId,
+                BranchID = branchId,
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date
+            });
+        }
     }
 }

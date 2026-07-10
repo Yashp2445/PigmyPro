@@ -213,7 +213,7 @@
     <div class="col-lg-7">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title">Top Field Agents</h5>
+                <h5 class="card-title">Top Collection Agents</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
@@ -262,10 +262,34 @@
     </div>
 
     <div class="col-lg-5">
-        <div class="chart-card h-100">
-            <h5 class="chart-title">Bank Portfolio</h5>
-            <div style="position:relative; height:320px;">
-                <canvas id="accountTypePieChart"></canvas>
+        <div class="chart-card h-100 p-4">
+            <h5 class="chart-title mb-4">Portfolio Summary</h5>
+            
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-people-fill me-1"></i>TOTAL ACCOUNTS</div>
+                        <h4 class="mb-0 fw-bold mono-data">@Model.AcMasterData?.TotalAccounts.ToString("N0")</h4>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-person-plus-fill me-1 text-success"></i>NEW IN PERIOD</div>
+                        <h4 class="mb-0 fw-bold text-success mono-data">@Model.AcMasterData?.NewAccountsInPeriod.ToString("N0")</h4>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-wallet-fill me-1 text-primary"></i>TOTAL BALANCE</div>
+                        <h3 class="mb-0 fw-bold text-primary mono-data">₹@Model.AcMasterData?.TotalBalance.ToString("N2")</h3>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-graph-up me-1 text-info"></i>AVG ACCOUNT BALANCE</div>
+                        <h4 class="mb-0 fw-bold text-info mono-data">₹@Model.AcMasterData?.AvgBalance.ToString("N2")</h4>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -342,40 +366,6 @@
             var chartColors = ['#3b82f6', '#0ea5e9', '#16a34a', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#be185d'];
             var tooltipBg = '#111827';
             var mutedText = '#9ca3af';
-
-            // Pie Chart
-            var pieLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AccountTypeData.Select(x => x.AccountType)));
-            var pieData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AccountTypeData.Select(x => x.Count)));
-
-            new Chart(document.getElementById('accountTypePieChart').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: pieLabels,
-                    datasets: [{
-                        data: pieData,
-                        backgroundColor: chartColors,
-                        borderWidth: 0,
-                        hoverOffset: 12
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: { padding: 20, usePointStyle: true, font: { family: 'Inter', size: 11, weight: '500' }, color: '#4b5563' }
-                        },
-                        tooltip: {
-                            backgroundColor: tooltipBg, padding: 12,
-                            titleFont: { family: 'Inter', size: 13, weight: '700' },
-                            bodyFont: { family: 'JetBrains Mono', size: 12 },
-                            cornerRadius: 8, displayColors: false
-                        }
-                    },
-                    cutout: '70%'
-                }
-            });
 
             // Bar Chart
             var barLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.BranchWiseData.Select(x => x.BranchName)));
