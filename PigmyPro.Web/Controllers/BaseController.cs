@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace PigmyPro.Web.Controllers
 {
@@ -35,6 +36,27 @@ namespace PigmyPro.Web.Controllers
                 var claimValue = User.FindFirst(ClaimTypes.Role)?.Value;
                 if (!string.IsNullOrEmpty(claimValue)) return claimValue;
                 return HttpContext.Session.GetString("UserRole") ?? "";
+            }
+        }
+
+        protected char CurrentBankHasCBS
+        {
+            get
+            {
+                var claimValue = User.FindFirst("HasCBS")?.Value;
+                if (!string.IsNullOrEmpty(claimValue) && claimValue.Length > 0) return claimValue[0];
+                var sessionValue = HttpContext.Session.GetString("HasCBS");
+                if (!string.IsNullOrEmpty(sessionValue) && sessionValue.Length > 0) return sessionValue[0];
+                return 'N';
+            }
+        }
+
+        public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            base.OnActionExecuting(context);
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                ViewBag.HasCBS = CurrentBankHasCBS;
             }
         }
     }

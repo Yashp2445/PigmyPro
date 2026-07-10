@@ -36,6 +36,12 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode, decimal? filterCode1)
         {
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
@@ -129,6 +135,12 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Create()
         {
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
@@ -165,6 +177,12 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AccountCreateEditVM vm)
         {
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
@@ -222,6 +240,12 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Edit(decimal code1, decimal branchCode, decimal code2, int bankId)
         {
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int targetBankId = isSuperAdmin ? bankId : CurrentBankID;
@@ -284,6 +308,12 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AccountCreateEditVM vm)
         {
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
@@ -331,6 +361,12 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(decimal code1, decimal branchCode, decimal code2, int bankId)
         {
+            if (CurrentBankHasCBS == 'Y')
+            {
+                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
             int targetBankId = isSuperAdmin ? bankId : CurrentBankID;
