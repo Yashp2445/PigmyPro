@@ -17,36 +17,69 @@ namespace PigmyPro.Data.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<Agent>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode)
+        public async Task<PagedResult<Agent>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode, int pageNumber, int pageSize)
         {
+            var countQuery = "SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND brnc_code = @brnc_code";
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
                          NoOfHolidays, RadyToCash, EntryDate 
                   FROM agntmast 
                   WHERE BankID = @BankID AND brnc_code = @brnc_code 
-                  ORDER BY code DESC";
+                  ORDER BY code DESC
+                  OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<Agent>(query, new { BankID = bankId, brnc_code = branchCode });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId, brnc_code = branchCode });
+            var items = await connection.QueryAsync<Agent>(query, new { BankID = bankId, brnc_code = branchCode, PageNumber = pageNumber, PageSize = pageSize });
+            
+            return new PagedResult<Agent>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
-        public async Task<IEnumerable<Agent>> GetAllByBankAsync(int bankId)
+        public async Task<PagedResult<Agent>> GetAllByBankAsync(int bankId, int pageNumber, int pageSize)
         {
+            var countQuery = "SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID";
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
                          NoOfHolidays, RadyToCash, EntryDate 
                   FROM agntmast 
                   WHERE BankID = @BankID 
-                  ORDER BY code DESC";
+                  ORDER BY code DESC
+                  OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<Agent>(query, new { BankID = bankId });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId });
+            var items = await connection.QueryAsync<Agent>(query, new { BankID = bankId, PageNumber = pageNumber, PageSize = pageSize });
+            
+            return new PagedResult<Agent>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
-        public async Task<IEnumerable<Agent>> GetAllAsync()
+        public async Task<PagedResult<Agent>> GetAllAsync(int pageNumber, int pageSize)
         {
+            var countQuery = "SELECT COUNT(*) FROM agntmast";
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
                          NoOfHolidays, RadyToCash, EntryDate 
                   FROM agntmast 
-                  ORDER BY BankID, brnc_code, code DESC";
+                  ORDER BY BankID, brnc_code, code DESC
+                  OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<Agent>(query);
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery);
+            var items = await connection.QueryAsync<Agent>(query, new { PageNumber = pageNumber, PageSize = pageSize });
+            
+            return new PagedResult<Agent>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
         public async Task<Agent?> GetByCodeAsync(int bankId, decimal branchCode, decimal agentCode)

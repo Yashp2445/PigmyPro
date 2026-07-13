@@ -314,6 +314,59 @@ namespace PigmyPro.Data.Repositories
                 FilterBranchID = filterBranchId
             });
         }
+
+        public async Task<IEnumerable<AgentOverviewRow>> GetAtRiskAgentsAsync(int bankId, DateTime dateFrom, DateTime dateTo, int top, int? branchId = null)
+        {
+            var branchFilter = branchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
+            var branchFilterTrn = branchId.HasValue ? " AND Brnc_code = @FilterBranchID" : "";
+
+            var sql = $@"
+                SELECT TOP (@Top)
+                    a.code AS AgentCode,
+                    a.NAME AS AgentName,
+                    ISNULL(br.name, '') AS BranchName,
+                    ISNULL(a.MobileNo, '') AS MobileNumber,
+                    CAST(a.Block AS BIT) AS IsBlocked,
+                    ISNULL(tc.TodayAmount, 0) AS TodayAmount,
+                    ISNULL(tc.AccountsCollected, 0) AS AccountsCollected,
+                    DATEDIFF(day, max_dt.MaxDate, GETDATE()) AS DaysInactive
+                FROM agntmast a
+                LEFT JOIN brncmast br ON br.BankID = a.BankID AND br.BranchID = a.brnc_code
+                LEFT JOIN (
+                    SELECT BankID, Agent, Brnc_code,
+                        SUM(Amount) AS TodayAmount,
+                        COUNT(DISTINCT Code2) AS AccountsCollected
+                    FROM MobilePygTrn
+                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
+                    GROUP BY BankID, Agent, Brnc_code
+                ) tc ON tc.BankID = a.BankID 
+                    AND CAST(tc.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
+                    AND CAST(tc.Brnc_code AS NUMERIC(18,0)) = CAST(a.brnc_code AS NUMERIC(18,0))
+                LEFT JOIN (
+                    SELECT BankID, Agent, Brnc_code, MAX(Date) AS MaxDate
+                    FROM MobilePygTrn
+                    WHERE BankID = @BankID{branchFilterTrn}
+                    GROUP BY BankID, Agent, Brnc_code
+                ) max_dt ON max_dt.BankID = a.BankID 
+                    AND CAST(max_dt.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
+                    AND CAST(max_dt.Brnc_code AS NUMERIC(18,0)) = CAST(a.brnc_code AS NUMERIC(18,0))
+                WHERE a.BankID = @BankID 
+                  AND a.Block = 0 
+                  AND max_dt.MaxDate IS NOT NULL 
+                  AND DATEDIFF(day, max_dt.MaxDate, GETDATE()) > 7
+                  {branchFilter}
+                ORDER BY DATEDIFF(day, max_dt.MaxDate, GETDATE()) DESC, a.NAME";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<AgentOverviewRow>(sql, new
+            {
+                BankID = bankId,
+                DateFrom = dateFrom.Date,
+                DateTo = dateTo.Date,
+                Top = top,
+                FilterBranchID = branchId
+            });
+        }
         public async Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null)
         {
             var bankFilter = bankId.HasValue ? " AND BankID = @BankID" : "";
@@ -344,15 +397,14 @@ namespace PigmyPro.Data.Repositories
         {
             var bankFilter = bankId.HasValue ? " AND BankID = @BankID" : "";
             var branchFilter = branchId.HasValue ? " AND brnc_code = @BranchID" : "";
+            var branchFilterTrn = branchId.HasValue ? " AND Brnc_code = @BranchID" : "";
 
             var sql = $@"
                 SELECT 
-                    COUNT(*) AS TotalAccounts,
-                    ISNULL(SUM(BALANCE), 0) AS TotalBalance,
-                    ISNULL(AVG(BALANCE), 0) AS AvgBalance,
-                    (SELECT COUNT(*) FROM acmaster WHERE CAST(OPN_DATE AS DATE) >= @DateFrom AND CAST(OPN_DATE AS DATE) <= @DateTo {bankFilter} {branchFilter}) AS NewAccountsInPeriod
-                FROM acmaster 
-                WHERE 1=1 {bankFilter} {branchFilter}";
+                    (SELECT COUNT(*) FROM acmaster WHERE 1=1 {bankFilter} {branchFilter}) AS TotalAccounts,
+                    (SELECT ISNULL(SUM(BALANCE), 0) FROM acmaster WHERE 1=1 {bankFilter} {branchFilter}) AS TotalBalance,
+                    (SELECT COUNT(DISTINCT Code2) FROM MobilePygTrn WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo {bankFilter} {branchFilterTrn}) AS TotalCollectionAccounts,
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo {bankFilter} {branchFilterTrn}) AS TotalCollectionAmount";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstAsync<AcMasterSummary>(sql, new

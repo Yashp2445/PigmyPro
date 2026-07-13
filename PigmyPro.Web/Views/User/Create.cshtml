@@ -120,12 +120,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         function toggleBranchDiv() {
-        var role = $("#roleSelector").val();
-        if (role === "SuperAdmin") {
-        $("#branchDiv").hide();
-        } else {
-        $("#branchDiv").show();
-        }
+            var role = $("#roleSelector").val();
+            if (role === "SuperAdmin" || role === "BankAdmin") {
+                $("#branchDiv").hide();
+            } else {
+                $("#branchDiv").show();
+            }
         }
 
         $("#roleSelector").on("change", toggleBranchDiv);

@@ -21,21 +21,23 @@ namespace PigmyPro.Web.Controllers
             _bankRepo = bankRepo;
         }
 
-        public async Task<IActionResult> Index(int? bankId)
+        public async Task<IActionResult> Index(int? bankId, int page = 1)
         {
+            int pageSize = 25;
             bool isSuperAdmin = User.IsInRole(AppRoles.SuperAdmin);
 
-            IEnumerable<User> users;
+            PigmyPro.Data.PagedResult<User> usersResult;
 
             if (isSuperAdmin)
             {
-                users = bankId.HasValue && bankId.Value > 0
-                    ? await _userRepo.GetAllByBankIdAsync(bankId.Value)
-                    : Enumerable.Empty<User>(); 
+                if (bankId.HasValue && bankId.Value > 0)
+                    usersResult = await _userRepo.GetAllByBankIdAsync(bankId.Value, page, pageSize);
+                else
+                    usersResult = new PigmyPro.Data.PagedResult<User> { Items = Enumerable.Empty<User>(), TotalCount = 0, PageNumber = page, PageSize = pageSize }; 
             }
             else
             {
-                users = await _userRepo.GetAllByBankIdAsync(CurrentBankID);
+                usersResult = await _userRepo.GetAllByBankIdAsync(CurrentBankID, page, pageSize);
             }
 
             IEnumerable<PigmyPro.Domain.Entities.Branch> allBranches;
@@ -47,15 +49,21 @@ namespace PigmyPro.Web.Controllers
             else
                 allBranches = await _branchRepo.GetAllAsync();
 
-            var vm = users.Select(u => new UserListVM
+            var vm = new PigmyPro.Data.PagedResult<UserListVM>
             {
-                UserID = u.UserID,
-                Username = u.Username,
-                Name = u.Name,
-                Role = u.Role,
-                BranchName = allBranches.FirstOrDefault(b => b.BranchID == u.BranchID)?.Name,
-                IsActive = u.IsActive
-            }).ToList();
+                TotalCount = usersResult.TotalCount,
+                PageNumber = usersResult.PageNumber,
+                PageSize = usersResult.PageSize,
+                Items = usersResult.Items.Select(u => new UserListVM
+                {
+                    UserID = u.UserID,
+                    Username = u.Username,
+                    Name = u.Name,
+                    Role = u.Role,
+                    BranchName = allBranches.FirstOrDefault(b => b.BranchID == u.BranchID)?.Name,
+                    IsActive = u.IsActive
+                }).ToList()
+            };
 
             ViewBag.IsSuperAdmin = isSuperAdmin;
 
@@ -135,7 +143,7 @@ namespace PigmyPro.Web.Controllers
                 bankId = CurrentBankID;
             }
 
-            if (vm.Role != AppRoles.SuperAdmin && !vm.BranchID.HasValue)
+            if (vm.Role == AppRoles.BranchAdmin && !vm.BranchID.HasValue)
                 ModelState.AddModelError("BranchID", "Branch is required.");
 
             if (!ModelState.IsValid)
@@ -147,7 +155,7 @@ namespace PigmyPro.Web.Controllers
             var user = new User
             {
                 BankID = bankId,
-                BranchID = vm.Role == AppRoles.SuperAdmin ? null : vm.BranchID,
+                BranchID = (vm.Role == AppRoles.SuperAdmin || vm.Role == AppRoles.BankAdmin) ? null : vm.BranchID,
                 Username = vm.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.Password ?? ""),
                 Role = vm.Role,
@@ -210,7 +218,7 @@ namespace PigmyPro.Web.Controllers
             vm.IsSuperAdmin = isSuperAdmin;
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
 
-            if (vm.Role != AppRoles.SuperAdmin && !vm.BranchID.HasValue)
+            if (vm.Role == AppRoles.BranchAdmin && !vm.BranchID.HasValue)
                 ModelState.AddModelError("BranchID", "Branch is required.");
 
             if (!ModelState.IsValid)
@@ -233,7 +241,7 @@ namespace PigmyPro.Web.Controllers
             user.Code = vm.Code;
             user.Name = vm.Name;
             user.IsActive = vm.IsActive;
-            user.BranchID = vm.Role == AppRoles.SuperAdmin ? null : vm.BranchID;
+            user.BranchID = (vm.Role == AppRoles.SuperAdmin || vm.Role == AppRoles.BankAdmin) ? null : vm.BranchID;
 
             if (!string.IsNullOrEmpty(vm.Password))
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.Password);

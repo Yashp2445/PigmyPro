@@ -1,4 +1,4 @@
-@model IEnumerable<PigmyPro.Web.ViewModels.User.UserListVM>
+@model PigmyPro.Data.PagedResult<PigmyPro.Web.ViewModels.User.UserListVM>
 
 @{
     ViewData["Title"] = "Users";
@@ -42,7 +42,7 @@
 
 @* Filter Panels *@
 <div class="filter-card border-0 mb-4 bg-transparent p-0">
-    <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+    <form id="filterForm" method="get" class="d-flex gap-3 align-items-end flex-wrap">
         @if (ViewBag.IsSuperAdmin == true)
         {
             <div style="min-width: 250px;">
@@ -84,7 +84,7 @@
 
 <div class="card elevated border-0">
     <div class="card-body p-0">
-        @if (!Model.Any())
+        @if (!Model.Items.Any())
         {
             <div class="text-center py-5">
                 <i class="bi bi-people text-muted mb-3 d-block" style="font-size: 48px; opacity: 0.2;"></i>
@@ -120,7 +120,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var user in Model)
+                        @foreach (var user in Model.Items)
                         {
                             <tr>
                                 <td>
@@ -179,6 +179,20 @@
                         }
                     </tbody>
                 </table>
+            </div>
+            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+                <div class="text-muted" style="font-size: 13px;">
+                    Showing @(Model.Items.Any() ? ((Model.PageNumber - 1) * Model.PageSize) + 1 : 0) to @(Math.Min(Model.PageNumber * Model.PageSize, Model.TotalCount)) of @Model.TotalCount entries
+                </div>
+                <div class="btn-group">
+                    <button type="submit" form="filterForm" name="page" value="@(Model.PageNumber - 1)" class="btn btn-outline btn-sm" @(Model.PageNumber <= 1 ? "disabled" : "")>
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </button>
+                    <span class="btn btn-outline btn-sm disabled" style="color: var(--color-text-primary); border-color: var(--color-border);">Page @Model.PageNumber of @(Model.TotalPages > 0 ? Model.TotalPages : 1)</span>
+                    <button type="submit" form="filterForm" name="page" value="@(Model.PageNumber + 1)" class="btn btn-outline btn-sm" @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")>
+                        Next <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         }
     </div>

@@ -35,9 +35,9 @@
                         <tr>
                             <td class="mono-data fw-bold text-muted">#@bank.BankID</td>
                             <td>
-                                @if (!string.IsNullOrEmpty(bank.LogoFileName))
+                                @if (bank.HasLogo)
                                 {
-                                    <img src="/uploads/bank-logos/@bank.LogoFileName" alt="Logo" style="max-height: 30px;" class="border rounded" />
+                                    <img src="/Bank/GetLogo?id=@bank.BankID" alt="Logo" style="max-height: 30px;" class="border rounded" />
                                 }
                                 else
                                 {
