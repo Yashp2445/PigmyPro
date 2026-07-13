@@ -107,6 +107,18 @@ namespace PigmyPro.Data.Repositories
             return await connection.ExecuteAsync(query, new { UserID = id, BankID = bankId });
         }
 
+        public async Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null)
+        {
+            var query = "SELECT COUNT(1) FROM UserMast WHERE Username = @Username";
+            if (excludeUserId.HasValue)
+            {
+                query += " AND UserID != @ExcludeUserId";
+            }
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(query, new { Username = username, ExcludeUserId = excludeUserId });
+            return count > 0;
+        }
+
         public async Task<(string Username, string PasswordHash)?> GetAdminCredentialsAsync(string username)
         {
             var query = "SELECT Username, Password FROM AdminCredentials WHERE Username = @Username";

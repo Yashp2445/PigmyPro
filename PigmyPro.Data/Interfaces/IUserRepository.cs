@@ -15,5 +15,6 @@ namespace PigmyPro.Data.Interfaces
         Task<int> UpdateAsync(User user);
         Task<int> DeleteAsync(int id, int bankId);
         Task<(string Username, string PasswordHash)?> GetAdminCredentialsAsync(string username);
+        Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null);
     }
 }

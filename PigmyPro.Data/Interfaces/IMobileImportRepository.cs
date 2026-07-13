@@ -41,6 +41,7 @@ namespace PigmyPro.Data.Interfaces
         Task SetAgentDownloadFlagAsync(int bankId, decimal branchCode, decimal agentCode, string flagValue);
         
         Task<bool> ValidateBranchAsync(int bankId, decimal branchCode);
+        Task<bool> HasPendingMobileTransactionsAsync(int bankId, decimal branchCode, decimal agentCode);
         Task<AgentDetailsRow?> ValidateAgentAsync(int bankId, decimal branchCode, decimal agentCode);
         Task CommitImportAsync(int bankId, decimal branchCode, decimal agentCode, string userId, string clientIp, int totalRecords, List<ImportAccountRow> rows);
     }
