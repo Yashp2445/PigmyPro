@@ -117,14 +117,15 @@
                     </a>
                 }
 
-                <div class="nav-section">Mobile Sync</div>
+                
                 @if (User.IsInRole("BankAdmin") || User.IsInRole("BranchAdmin"))
                 {
+                    <div class="nav-section">Mobile Sync</div>
                     <a href="/MobileImport/Export" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "MobileImport" && ViewContext.RouteData.Values["action"]?.ToString() == "Export" ? "active" : "")">
-                        <i class="bi bi-upload"></i> Export Collections
+                        <i class="bi bi-upload"></i> Download Collection Data
                     </a>
                     <a href="/MobileImport/Upload" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "MobileImport" && ViewContext.RouteData.Values["action"]?.ToString() == "Upload" ? "active" : "")">
-                        <i class="bi bi-download"></i> Upload File
+                        <i class="bi bi-download"></i> Upload Master Account File
                     </a>
                 }
 

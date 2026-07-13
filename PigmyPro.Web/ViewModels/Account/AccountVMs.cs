@@ -22,7 +22,7 @@ namespace PigmyPro.Web.ViewModels.Account
 
     public class AccountIndexVM
     {
-        public IEnumerable<AccountListVM> Accounts { get; set; } = new List<AccountListVM>();
+        public PigmyPro.Data.PagedResult<AccountListVM> Accounts { get; set; } = new PigmyPro.Data.PagedResult<AccountListVM>();
         public bool IsSuperAdmin { get; set; }
         public bool IsBankAdmin { get; set; }
         public int? FilterBankID { get; set; }

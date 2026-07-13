@@ -39,7 +39,7 @@ namespace PigmyPro.Web.ViewModels.Bank
         [Display(Name = "Bank Logo")]
         public IFormFile? LogoFile { get; set; }
 
-        public string? ExistingLogoFileName { get; set; }
+        public bool HasExistingLogo { get; set; }
 
         public bool RemoveLogo { get; set; }
     }
@@ -50,6 +50,6 @@ namespace PigmyPro.Web.ViewModels.Bank
         public string Name { get; set; } = string.Empty;
         public bool ActiveYN { get; set; }
         public bool HasCBS { get; set; }
-        public string? LogoFileName { get; set; }
+        public bool HasLogo { get; set; }
     }
 }

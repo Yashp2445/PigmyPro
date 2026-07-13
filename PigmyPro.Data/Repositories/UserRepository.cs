@@ -16,21 +16,44 @@ namespace PigmyPro.Data.Repositories
             _context = context;
         }
 
-        public async Task<IEnumerable<User>> GetAllAsync()
+        public async Task<PagedResult<User>> GetAllAsync(int pageNumber, int pageSize)
         {
+            var countQuery = "SELECT COUNT(*) FROM UserMast";
             var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date 
                   FROM UserMast 
-                  ORDER BY UserID DESC";
+                  ORDER BY UserID DESC
+                  OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
 
             using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<User>(query);
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery);
+            var items = await connection.QueryAsync<User>(query, new { PageNumber = pageNumber, PageSize = pageSize });
+            
+            return new PagedResult<User>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
-        public async Task<IEnumerable<User>> GetAllByBankIdAsync(int bankId)
+        public async Task<PagedResult<User>> GetAllByBankIdAsync(int bankId, int pageNumber, int pageSize)
         {
-            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date FROM UserMast WHERE BankID = @BankID ORDER BY UserID DESC";
+            var countQuery = "SELECT COUNT(*) FROM UserMast WHERE BankID = @BankID";
+            var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date 
+                          FROM UserMast WHERE BankID = @BankID ORDER BY UserID DESC
+                          OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<User>(query, new { BankID = bankId });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId });
+            var items = await connection.QueryAsync<User>(query, new { BankID = bankId, PageNumber = pageNumber, PageSize = pageSize });
+            
+            return new PagedResult<User>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
         }
 
         public async Task<User?> GetByIdAsync(int id)
@@ -82,6 +105,18 @@ namespace PigmyPro.Data.Repositories
             var query = "DELETE FROM UserMast WHERE UserID = @UserID AND BankID = @BankID";
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, new { UserID = id, BankID = bankId });
+        }
+
+        public async Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null)
+        {
+            var query = "SELECT COUNT(1) FROM UserMast WHERE Username = @Username";
+            if (excludeUserId.HasValue)
+            {
+                query += " AND UserID != @ExcludeUserId";
+            }
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(query, new { Username = username, ExcludeUserId = excludeUserId });
+            return count > 0;
         }
 
         public async Task<(string Username, string PasswordHash)?> GetAdminCredentialsAsync(string username)

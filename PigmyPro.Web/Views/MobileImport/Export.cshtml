@@ -56,18 +56,23 @@
                     Agent
                 </label>
                 <select asp-for="AgentCode" asp-items="Model.Agents"
-                        class="form-select form-select-sm" id="ddlAgent">
+                        class="form-select form-select-sm" id="ddlAgent"
+                        onchange="checkEligibility()">
                     <option value="">-- Select Agent --</option>
                 </select>
             </div>
 
             <div class="col-auto">
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                    <button type="submit" id="btnSubmit" class="btn btn-primary btn-sm px-4" disabled>
                         <i class="bi bi-eye me-1"></i> Preview
                     </button>
                     <a href="/Dashboard/Index" class="btn btn-outline-secondary btn-sm px-4">Cancel</a>
                 </div>
+            </div>
+
+            <div class="col-12 mt-2">
+                <div id="eligibilityMessage" style="font-size:12px; min-height: 18px;"></div>
             </div>
         </form>
     </div>
@@ -140,9 +145,48 @@ else if (Model.Rows.Any())
 
 @section Scripts {
     <script>
+        function checkEligibility() {
+            var branchId = document.getElementById('ddlBranch') ? document.getElementById('ddlBranch').value : '0';
+            var agentCode = document.getElementById('ddlAgent').value;
+            var btnSubmit = document.getElementById('btnSubmit');
+            var msgDiv = document.getElementById('eligibilityMessage');
+
+            if (!btnSubmit || !msgDiv) return;
+
+            // Reset UI
+            btnSubmit.disabled = true;
+            msgDiv.innerHTML = '';
+
+            if (!agentCode) return;
+
+            msgDiv.innerHTML = '<span class="text-muted"><i class="spinner-border spinner-border-sm me-1" role="status"></i> Checking eligibility...</span>';
+
+            fetch('/MobileImport/CheckExportEligibility?branchCode=' + branchId + '&agentCode=' + agentCode)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.eligible) {
+                        msgDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Ready for export</span>';
+                        btnSubmit.disabled = false;
+                    } else {
+                        if (data.readyToCash === true) {
+                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Agent is currently marked Ready to Cash &mdash; please complete the upload cycle before exporting again.</span>';
+                        } else if (data.hasPendingData === false) {
+                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> No pending collection data found for this agent &mdash; nothing to export.</span>';
+                        } else {
+                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Not eligible for export.</span>';
+                        }
+                    }
+                })
+                .catch(err => {
+                    msgDiv.innerHTML = '<span class="text-danger">Error checking eligibility.</span>';
+                });
+        }
+
         function loadAgents(branchId) {
             var $agent = document.getElementById('ddlAgent');
             $agent.innerHTML = '<option value="">-- Loading... --</option>';
+            checkEligibility();
+
             if (!branchId) {
                 $agent.innerHTML = '<option value="">-- Select Agent --</option>';
                 return;
@@ -156,5 +200,13 @@ else if (Model.Rows.Any())
                     });
                 });
         }
+        
+        // Trigger check on page load if agent is pre-selected
+        document.addEventListener('DOMContentLoaded', function() {
+            var agentCode = document.getElementById('ddlAgent') ? document.getElementById('ddlAgent').value : '';
+            if (agentCode) {
+                checkEligibility();
+            }
+        });
     </script>
 }

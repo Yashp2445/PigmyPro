@@ -51,38 +51,52 @@
 
 <!-- Summary Cards -->
 <div class="row g-4 mb-4">
-    <div class="col-xl col-md-4">
+    <div class="col-xl-2 col-md-4">
         <div class="stat-card brand">
             <div class="stat-icon"><i class="bi bi-bank"></i></div>
             <div class="stat-value">@Model.TotalBanks</div>
             <div class="stat-label">Active Banks</div>
         </div>
     </div>
-    <div class="col-xl col-md-4">
+    <div class="col-xl-2 col-md-4">
         <div class="stat-card info">
             <div class="stat-icon"><i class="bi bi-diagram-3-fill"></i></div>
             <div class="stat-value">@Model.TotalBranches</div>
             <div class="stat-label">Total Branches</div>
         </div>
     </div>
-    <div class="col-xl col-md-4">
+    <div class="col-xl-2 col-md-4">
         <div class="stat-card warning">
             <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
             <div class="stat-value">@Model.TotalAgents</div>
             <div class="stat-label">Field Agents</div>
         </div>
     </div>
-    <div class="col-xl col-md-6">
+    <div class="col-xl-2 col-md-4">
         <div class="stat-card success">
             <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
             <div class="stat-value">@Model.TotalAccounts.ToString("N0")</div>
             <div class="stat-label">Active Accounts</div>
         </div>
     </div>
-    <div class="col-xl col-md-6">
+    <div class="col-xl-2 col-md-4">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+            <div class="stat-value">@(Model.AcMasterData?.TotalCollectionAccounts.ToString("N0") ?? "0")</div>
+            <div class="stat-label">Collected A/Cs</div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-wallet-fill"></i></div>
+            <div class="stat-value">₹@(Model.AcMasterData?.TotalBalance.ToString("N2") ?? "0.00")</div>
+            <div class="stat-label">Total Balance</div>
+        </div>
+    </div>
+    <div class="col-xl-12">
         <div class="stat-card brand" style="background: var(--color-brand-primary); border-color: var(--color-brand-primary);">
             <div class="stat-icon" style="background: rgba(255,255,255,0.15); color: white;"><i class="bi bi-cash-stack"></i></div>
-            <div class="stat-value" style="color: white;">₹@Model.TodayCollection.ToString("N2")</div>
+            <div class="stat-value" style="color: white; font-size:30px;">₹@Model.TodayCollection.ToString("N2")</div>
             <div class="stat-label" style="color: rgba(255,255,255,0.7);">Period Collection</div>
         </div>
     </div>
@@ -105,8 +119,8 @@
 </div>
 
 <!-- Bank-wise Table + Pie Chart -->
-<div class="row g-4">
-    <div class="col-lg-8">
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title">Bank-wise Performance</h5>
@@ -175,38 +189,6 @@
             </div>
         </div>
     </div>
-
-    <div class="col-lg-4">
-        <div class="chart-card h-100 p-4">
-            <h5 class="chart-title mb-4">Portfolio Summary</h5>
-            
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-people-fill me-1"></i>TOTAL ACCOUNTS</div>
-                        <h4 class="mb-0 fw-bold mono-data">@Model.AcMasterData?.TotalAccounts.ToString("N0")</h4>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-person-plus-fill me-1 text-success"></i>NEW IN PERIOD</div>
-                        <h4 class="mb-0 fw-bold text-success mono-data">@Model.AcMasterData?.NewAccountsInPeriod.ToString("N0")</h4>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-wallet-fill me-1 text-primary"></i>TOTAL BALANCE</div>
-                        <h3 class="mb-0 fw-bold text-primary mono-data">₹@Model.AcMasterData?.TotalBalance.ToString("N2")</h3>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-graph-up me-1 text-info"></i>AVG ACCOUNT BALANCE</div>
-                        <h4 class="mb-0 fw-bold text-info mono-data">₹@Model.AcMasterData?.AvgBalance.ToString("N2")</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
