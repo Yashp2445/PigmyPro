@@ -146,6 +146,9 @@ namespace PigmyPro.Web.Controllers
             if (vm.Role == AppRoles.BranchAdmin && !vm.BranchID.HasValue)
                 ModelState.AddModelError("BranchID", "Branch is required.");
 
+            if (await _userRepo.UsernameExistsAsync(vm.Username))
+                ModelState.AddModelError("Username", "This username is already taken. Please choose another.");
+
             if (!ModelState.IsValid)
             {
                 vm.BranchList = await GetBranchList(bankId);
@@ -221,6 +224,9 @@ namespace PigmyPro.Web.Controllers
             if (vm.Role == AppRoles.BranchAdmin && !vm.BranchID.HasValue)
                 ModelState.AddModelError("BranchID", "Branch is required.");
 
+            if (await _userRepo.UsernameExistsAsync(vm.Username, vm.UserID))
+                ModelState.AddModelError("Username", "This username is already taken. Please choose another.");
+
             if (!ModelState.IsValid)
             {
                 if (isSuperAdmin)
@@ -277,6 +283,16 @@ namespace PigmyPro.Web.Controllers
                 Value = b.BranchID.ToString(),
                 Text = b.Name
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckUsernameExists(string username, int? userId)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+                return Json(new { exists = false });
+
+            bool exists = await _userRepo.UsernameExistsAsync(username, userId);
+            return Json(new { exists = exists });
         }
     }
 }

@@ -72,6 +72,20 @@
             <div class="stat-label">Bank Accounts</div>
         </div>
     </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card success">
+            <div class="stat-icon"><i class="bi bi-person-check-fill"></i></div>
+            <div class="stat-value">@(Model.AcMasterData?.TotalCollectionAccounts.ToString("N0") ?? "0")</div>
+            <div class="stat-label">Collected A/Cs</div>
+        </div>
+    </div>
+    <div class="col-xl col-md-4">
+        <div class="stat-card info">
+            <div class="stat-icon"><i class="bi bi-wallet-fill"></i></div>
+            <div class="stat-value">₹@(Model.AcMasterData?.TotalBalance.ToString("N2") ?? "0.00")</div>
+            <div class="stat-label">Total Balance</div>
+        </div>
+    </div>
     <div class="col-xl-12">
         <div class="stat-card brand" style="background:var(--color-brand-primary); border-color:var(--color-brand-primary);">
             <div class="stat-icon" style="background:rgba(255,255,255,0.15); color:white;"><i class="bi bi-cash-stack"></i></div>
@@ -83,7 +97,7 @@
 
 <!-- Trend Line Chart & At-Risk Agents -->
 <div class="row g-4 mb-4">
-    <div class="col-lg-8">
+    <div class="col-lg-12">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title">Collection Trend</h5>
@@ -92,38 +106,6 @@
                 <div style="position:relative; height:320px;">
                     <canvas id="collectionTrendChart"></canvas>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="card h-100 border-warning border-opacity-50">
-            <div class="card-header bg-warning bg-opacity-10">
-                <h5 class="card-title text-warning-emphasis m-0"><i class="bi bi-exclamation-triangle me-2"></i>At-Risk Agents</h5>
-            </div>
-            <div class="card-body p-0">
-                @if (Model.AtRiskAgents.Any())
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var agent in Model.AtRiskAgents)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center p-3">
-                                <div>
-                                    <div class="fw-bold">@agent.AgentName</div>
-                                    <div class="text-muted small">@agent.BranchName</div>
-                                </div>
-                                <span class="badge badge-danger">@agent.DaysInactive Days Inactive</span>
-                            </li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <div class="empty-state p-4 h-100 d-flex flex-column justify-content-center">
-                        <i class="bi bi-check-circle empty-state-icon text-success" style="opacity:0.5;"></i>
-                        <div class="empty-state-title">All agents active</div>
-                        <p class="empty-state-subtitle">No agents inactive for > 7 days</p>
-                    </div>
-                }
             </div>
         </div>
     </div>
@@ -262,34 +244,34 @@
     </div>
 
     <div class="col-lg-5">
-        <div class="chart-card h-100 p-4">
-            <h5 class="chart-title mb-4">Portfolio Summary</h5>
-            
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-people-fill me-1"></i>TOTAL ACCOUNTS</div>
-                        <h4 class="mb-0 fw-bold mono-data">@Model.AcMasterData?.TotalAccounts.ToString("N0")</h4>
+        <div class="card h-100 border-warning border-opacity-50">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="card-title text-warning-emphasis m-0"><i class="bi bi-exclamation-triangle me-2"></i>At-Risk Agents</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.AtRiskAgents.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var agent in Model.AtRiskAgents)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center p-3">
+                                <div>
+                                    <div class="fw-bold">@agent.AgentName</div>
+                                    <div class="text-muted small">@agent.BranchName</div>
+                                </div>
+                                <span class="badge badge-danger">@agent.DaysInactive Days Inactive</span>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="empty-state p-4 h-100 d-flex flex-column justify-content-center">
+                        <i class="bi bi-check-circle empty-state-icon text-success" style="opacity:0.5;"></i>
+                        <div class="empty-state-title">All agents active</div>
+                        <p class="empty-state-subtitle">No agents inactive for > 7 days</p>
                     </div>
-                </div>
-                <div class="col-6">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1" title="Distinct accounts that received a collection transaction in period"><i class="bi bi-person-check-fill me-1 text-success"></i>COLLECTED A/CS</div>
-                        <h4 class="mb-0 fw-bold text-success mono-data">@Model.AcMasterData?.TotalCollectionAccounts.ToString("N0")</h4>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-wallet-fill me-1 text-primary"></i>TOTAL BALANCE</div>
-                        <h3 class="mb-0 fw-bold text-primary mono-data">₹@Model.AcMasterData?.TotalBalance.ToString("N2")</h3>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <div class="p-3 rounded border" style="background: var(--color-bg-elevated);">
-                        <div class="text-muted small fw-bold mb-1" title="Sum of all collection transactions in period"><i class="bi bi-cash-stack me-1 text-info"></i>COLLECTION AMOUNT</div>
-                        <h4 class="mb-0 fw-bold text-info mono-data">₹@Model.AcMasterData?.TotalCollectionAmount.ToString("N2")</h4>
-                    </div>
-                </div>
+                }
             </div>
         </div>
     </div>

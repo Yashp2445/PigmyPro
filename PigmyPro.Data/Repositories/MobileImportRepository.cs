@@ -134,6 +134,18 @@ namespace PigmyPro.Data.Repositories
             return count > 0;
         }
 
+        public async Task<bool> HasPendingMobileTransactionsAsync(int bankId, decimal branchCode, decimal agentCode)
+        {
+            var sql = @"SELECT COUNT(1) FROM MobilePygTrn 
+                        WHERE BankID = @BankID 
+                          AND CAST(Brnc_code AS DECIMAL(10,0)) = @BranchCode 
+                          AND CAST(Agent AS DECIMAL(18,0)) = @AgentCode";
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(sql,
+                new { BankID = bankId, BranchCode = branchCode, AgentCode = agentCode });
+            return count > 0;
+        }
+
         public async Task<AgentDetailsRow?> ValidateAgentAsync(int bankId, decimal branchCode, decimal agentCode)
             => await GetAgentDetailsAsync(bankId, branchCode, agentCode);
 

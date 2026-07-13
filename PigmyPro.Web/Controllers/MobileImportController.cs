@@ -65,23 +65,24 @@ namespace PigmyPro.Web.Controllers
                 return View(vm);
             }
 
-            if (agent.RadyToCash != "Y")
+            if (agent.RadyToCash != "N")
             {
-                vm.ErrorMessage = "Agent is not ready to cash. Please set Ready to Cash on the mobile app first!!";
+                vm.ErrorMessage = "Agent is currently marked Ready to Cash — please complete the upload cycle before exporting again.";
+                await PopulateExportDropdowns(vm);
+                vm.HasSearched = true;
+                return View(vm);
+            }
+
+            bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(bankId, branchCode, vm.AgentCode.Value);
+            if (!hasPendingData)
+            {
+                vm.ErrorMessage = "No pending collection data found for this agent — nothing to export.";
                 await PopulateExportDropdowns(vm);
                 vm.HasSearched = true;
                 return View(vm);
             }
 
             var rows = (await _repo.GetPendingCollectionsAsync(bankId, branchCode, vm.AgentCode.Value)).ToList();
-
-            if (!rows.Any())
-            {
-                vm.ErrorMessage = "No pending collections found for this agent.";
-                await PopulateExportDropdowns(vm);
-                vm.HasSearched = true;
-                return View(vm);
-            }
 
             vm.Rows = rows.Select(r => new ExportRowVM
             {
@@ -114,7 +115,7 @@ namespace PigmyPro.Web.Controllers
                 return RedirectToAction("Export");
 
             var agent = await _repo.GetAgentDetailsAsync(bankId, resolvedBranch, agentCode.Value);
-            if (agent == null || agent.RadyToCash != "Y")
+            if (agent == null || agent.RadyToCash != "N")
                 return RedirectToAction("Export");
 
             var rows = (await _repo.GetPendingCollectionsAsync(bankId, resolvedBranch, agentCode.Value)).ToList();
@@ -161,6 +162,53 @@ namespace PigmyPro.Web.Controllers
             return Json(agents.Select(a => new { code = a.Code, name = a.Name }));
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CheckUploadEligibility(decimal branchCode, decimal agentCode)
+        {
+            int bankId = CurrentBankID;
+            decimal resolvedBranch = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : branchCode;
+
+            if (resolvedBranch == 0 || agentCode == 0)
+                return Json(new { eligible = false });
+
+            var agent = await _repo.GetAgentDetailsAsync(bankId, resolvedBranch, agentCode);
+            if (agent == null)
+                return Json(new { eligible = false });
+
+            bool readyToCash = agent.RadyToCash == "Y";
+            bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(bankId, resolvedBranch, agentCode);
+
+            bool eligible = readyToCash && !hasPendingData;
+
+            return Json(new { eligible, readyToCash, hasPendingData });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckExportEligibility(decimal branchCode, decimal agentCode)
+        {
+            int bankId = CurrentBankID;
+            decimal resolvedBranch = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : branchCode;
+
+            if (resolvedBranch == 0 || agentCode == 0)
+                return Json(new { eligible = false });
+
+            var agent = await _repo.GetAgentDetailsAsync(bankId, resolvedBranch, agentCode);
+            if (agent == null)
+                return Json(new { eligible = false });
+
+            bool readyToCash = agent.RadyToCash == "Y";
+            bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(bankId, resolvedBranch, agentCode);
+
+            // Export requires RadyToCash == "N" and hasPendingData == true
+            bool eligible = !readyToCash && hasPendingData;
+
+            return Json(new { eligible, readyToCash, hasPendingData });
+        }
+
         private async Task PopulateExportDropdowns(ExportVM vm)
         {
             if (CurrentUserRole == AppRoles.BankAdmin)
@@ -184,16 +232,44 @@ namespace PigmyPro.Web.Controllers
             }
         }
 
-        [HttpGet]
-        public IActionResult Upload()
+        private async Task PopulateUploadDropdowns(UploadVM vm)
         {
-            return View(new UploadVM());
+            if (CurrentUserRole == AppRoles.BankAdmin)
+            {
+                var branches = await _branchRepo.GetAllByBankIdAsync(CurrentBankID);
+                vm.Branches = branches
+                    .Select(b => new SelectListItem(b.Name, b.BranchID.ToString()))
+                    .ToList();
+            }
+
+            decimal branchCode = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : (vm.SelectedBranchCode.HasValue ? (decimal)vm.SelectedBranchCode.Value : 0);
+
+            if (branchCode > 0)
+            {
+                var agents = await _repo.GetAgentsByBranchAsync(CurrentBankID, branchCode);
+                vm.Agents = agents
+                    .Select(a => new SelectListItem(a.Name, a.Code.ToString()))
+                    .ToList();
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Upload()
+        {
+            var vm = new UploadVM();
+            await PopulateUploadDropdowns(vm);
+            return View(vm);
         }
 
         [HttpPost]
-        public async Task<IActionResult> ParseFile(IFormFile uploadedFile)
+        public async Task<IActionResult> ParseFile(IFormFile uploadedFile, int? SelectedBranchCode, decimal? SelectedAgentCode)
         {
             var vm = new UploadVM();
+            vm.SelectedBranchCode = SelectedBranchCode;
+            vm.SelectedAgentCode = SelectedAgentCode;
+            await PopulateUploadDropdowns(vm);
 
             if (uploadedFile == null || uploadedFile.Length == 0)
             {
@@ -282,6 +358,13 @@ namespace PigmyPro.Web.Controllers
                     return View("Upload", vm);
                 }
 
+                bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(CurrentBankID, branchCode, agentCode);
+                if (hasPendingData)
+                {
+                    vm.ErrorMessage = "Agent already has pending collection data in the system — please export and clear existing data before uploading a new master file.";
+                    return View("Upload", vm);
+                }
+
                 // Parse data rows (index 1 onward)
                 // DAT format per row: Code2, Amount, Name, Balance, Date, Amount(again)
                 double totalAmtCheck = 0;
@@ -328,6 +411,20 @@ namespace PigmyPro.Web.Controllers
                 vm.TotalAmount = (decimal)totalAmtCheck;
                 vm.HasParsedData = true;
                 vm.ParsedRowsJson = JsonSerializer.Serialize(vm.ParsedRows);
+
+                // Cross-check with dropdown selections
+                decimal expectedBranchCode = CurrentUserRole == AppRoles.BranchAdmin 
+                    ? (decimal)CurrentBranchID 
+                    : (vm.SelectedBranchCode.HasValue ? (decimal)vm.SelectedBranchCode.Value : 0);
+
+                if (expectedBranchCode != 0 && expectedBranchCode != branchCode)
+                {
+                    vm.WarningMessage = "Selected branch does not match the file contents.";
+                }
+                else if (vm.SelectedAgentCode.HasValue && vm.SelectedAgentCode.Value != agentCode)
+                {
+                    vm.WarningMessage = "Selected agent does not match the file contents.";
+                }
 
                 return View("Upload", vm);
             }

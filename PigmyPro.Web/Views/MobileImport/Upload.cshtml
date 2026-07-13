@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Upload DAT File";
+    var isBankAdmin = User.IsInRole("BankAdmin");
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -18,6 +19,15 @@
     <div class="alert alert-danger alert-dismissible fade show border-0 mb-4" role="alert"
          style="border-radius:10px; font-size:13px; background:#fef2f2; color:#991b1b; border-left:4px solid #dc2626 !important;">
         <i class="bi bi-exclamation-octagon-fill me-2"></i> @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.WarningMessage))
+{
+    <div class="alert alert-warning alert-dismissible fade show border-0 mb-4" role="alert"
+         style="border-radius:10px; font-size:13px; background:#fffbeb; color:#92400e; border-left:4px solid #d97706 !important;">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @Model.WarningMessage
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
@@ -52,19 +62,48 @@
         </div>
         <div class="card-body p-4">
             <form asp-action="ParseFile" method="post" enctype="multipart/form-data">
+
+                <div class="row g-3 mb-4">
+                    @if (isBankAdmin)
+                    {
+                        <div class="col-md-6">
+                            <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;">
+                                Branch
+                            </label>
+                            <select asp-for="SelectedBranchCode" asp-items="Model.Branches"
+                                    class="form-select form-select-sm" id="ddlBranch"
+                                    onchange="loadAgents(this.value)">
+                                <option value="">-- Select Branch --</option>
+                            </select>
+                        </div>
+                    }
+                    <div class="col-md-6">
+                        <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;">
+                            Agent
+                        </label>
+                        <select asp-for="SelectedAgentCode" asp-items="Model.Agents"
+                                class="form-select form-select-sm" id="ddlAgent"
+                                onchange="checkEligibility()">
+                            <option value="">-- Select Agent --</option>
+                        </select>
+                    </div>
+                    <div class="col-12 mt-2">
+                        <div id="eligibilityMessage" style="font-size:12px; min-height: 18px;"></div>
+                    </div>
+                </div>
                 <div class="mb-4">
                     <label class="form-label"
                            style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;">
                         DAT Archive File
                     </label>
-                    <input type="file" name="uploadedFile" class="form-control" accept=".dat,.DAT" required />
+                    <input type="file" name="uploadedFile" id="fileInput" class="form-control" accept=".dat,.DAT" required disabled />
                     <div style="font-size:11.5px; color:#94a3b8; margin-top:6px;">
                         <i class="bi bi-info-circle me-1"></i>
                         Only .DAT files exported from PigmyPro mobile are accepted
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                    <button type="submit" id="btnSubmit" class="btn btn-primary btn-sm px-4" disabled>
                         <i class="bi bi-file-earmark-check me-1"></i> Parse File
                     </button>
                     <a href="/Dashboard/Index" class="btn btn-outline-secondary btn-sm px-4">Cancel</a>
@@ -174,4 +213,76 @@ else
             </div>
         </div>
     </div>
+}
+
+@section Scripts {
+    <script>
+        function checkEligibility() {
+            var branchId = document.getElementById('ddlBranch') ? document.getElementById('ddlBranch').value : '0';
+            var agentCode = document.getElementById('ddlAgent').value;
+            var fileInput = document.getElementById('fileInput');
+            var btnSubmit = document.getElementById('btnSubmit');
+            var msgDiv = document.getElementById('eligibilityMessage');
+
+            if (!fileInput || !btnSubmit || !msgDiv) return;
+
+            // Reset UI
+            fileInput.disabled = true;
+            fileInput.value = '';
+            btnSubmit.disabled = true;
+            msgDiv.innerHTML = '';
+
+            if (!agentCode) return;
+
+            msgDiv.innerHTML = '<span class="text-muted"><i class="spinner-border spinner-border-sm me-1" role="status"></i> Checking eligibility...</span>';
+
+            fetch('/MobileImport/CheckUploadEligibility?branchCode=' + branchId + '&agentCode=' + agentCode)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.eligible) {
+                        msgDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Ready for upload</span>';
+                        fileInput.disabled = false;
+                        btnSubmit.disabled = false;
+                    } else {
+                        if (data.readyToCash === false) {
+                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Agent is not marked Ready to Cash on mobile.</span>';
+                        } else if (data.hasPendingData === true) {
+                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Agent already has pending collection data in the system &mdash; please export and clear existing data before uploading a new master file.</span>';
+                        } else {
+                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Not eligible for upload.</span>';
+                        }
+                    }
+                })
+                .catch(err => {
+                    msgDiv.innerHTML = '<span class="text-danger">Error checking eligibility.</span>';
+                });
+        }
+
+        function loadAgents(branchId) {
+            var $agent = document.getElementById('ddlAgent');
+            $agent.innerHTML = '<option value="">-- Loading... --</option>';
+            checkEligibility();
+
+            if (!branchId) {
+                $agent.innerHTML = '<option value="">-- Select Agent --</option>';
+                return;
+            }
+            fetch('/MobileImport/GetAgents?branchId=' + branchId)
+                .then(r => r.json())
+                .then(data => {
+                    $agent.innerHTML = '<option value="">-- Select Agent --</option>';
+                    data.forEach(function(a) {
+                        $agent.innerHTML += '<option value="' + a.code + '">' + a.name + '</option>';
+                    });
+                });
+        }
+        
+        // Trigger check on page load if agent is pre-selected
+        document.addEventListener('DOMContentLoaded', function() {
+            var agentCode = document.getElementById('ddlAgent') ? document.getElementById('ddlAgent').value : '';
+            if (agentCode) {
+                checkEligibility();
+            }
+        });
+    </script>
 }
