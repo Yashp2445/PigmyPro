@@ -83,7 +83,7 @@ namespace PigmyPro.Web.Controllers
             var acMasterData = await _repo.GetAcMasterSummaryAsync(from, to, bankId, branchId);
             var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
             var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
-            var atRiskAgents = agentOverview.Where(a => a.DaysInactive > 7 && !a.IsBlocked).OrderByDescending(a => a.DaysInactive).Take(5).ToList();
+            var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, from, to, 5, branchId)).ToList();
 
             // Populate branch dropdown
             var branches = await _repo.GetBranchDropdownAsync(bankId);
@@ -126,7 +126,7 @@ namespace PigmyPro.Web.Controllers
             var agents = await _repo.GetAgentCollectionsByBranchAsync(bankId, branchId, from, to);
             var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
             var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
-            var atRiskAgents = agentOverview.Where(a => a.DaysInactive > 7 && !a.IsBlocked).OrderByDescending(a => a.DaysInactive).Take(5).ToList();
+            var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, from, to, 5, branchId)).ToList();
 
             var vm = new BranchAdminDashboardVM
             {

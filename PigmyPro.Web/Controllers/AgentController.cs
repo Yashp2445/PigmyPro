@@ -23,31 +23,32 @@ namespace PigmyPro.Web.Controllers
             _bankRepo = bankRepo;
         }
 
-        public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode)
+        public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode, int page = 1)
         {
+            int pageSize = 25;
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
-            IEnumerable<Agent> agents;
+            PigmyPro.Data.PagedResult<Agent> agentsResult;
 
             if (isSuperAdmin)
             {
                 if (filterBankID.HasValue && filterBranchCode.HasValue)
-                    agents = await _agentRepo.GetAllByBankAndBranchAsync(filterBankID.Value, filterBranchCode.Value);
+                    agentsResult = await _agentRepo.GetAllByBankAndBranchAsync(filterBankID.Value, filterBranchCode.Value, page, pageSize);
                 else if (filterBankID.HasValue)
-                    agents = await _agentRepo.GetAllByBankAsync(filterBankID.Value);
+                    agentsResult = await _agentRepo.GetAllByBankAsync(filterBankID.Value, page, pageSize);
                 else
-                    agents = Enumerable.Empty<Agent>();
+                    agentsResult = new PigmyPro.Data.PagedResult<Agent> { Items = Enumerable.Empty<Agent>(), TotalCount = 0, PageNumber = page, PageSize = pageSize };
             }
             else if (isBankAdmin)
             {
-                agents = filterBranchCode.HasValue
-                    ? await _agentRepo.GetAllByBankAndBranchAsync(CurrentBankID, filterBranchCode.Value)
-                    : await _agentRepo.GetAllByBankAsync(CurrentBankID);
+                agentsResult = filterBranchCode.HasValue
+                    ? await _agentRepo.GetAllByBankAndBranchAsync(CurrentBankID, filterBranchCode.Value, page, pageSize)
+                    : await _agentRepo.GetAllByBankAsync(CurrentBankID, page, pageSize);
             }
             else
             {
-                agents = await _agentRepo.GetAllByBankAndBranchAsync(CurrentBankID, CurrentBranchID);
+                agentsResult = await _agentRepo.GetAllByBankAndBranchAsync(CurrentBankID, CurrentBranchID, page, pageSize);
             }
 
             IEnumerable<PigmyPro.Domain.Entities.Branch> scopedBranches;
@@ -60,7 +61,7 @@ namespace PigmyPro.Web.Controllers
 
             var allBanks = isSuperAdmin ? await _bankRepo.GetAllAsync() : null;
 
-            var agentList = agents.Select(a => new AgentListVM
+            var agentList = agentsResult.Items.Select(a => new AgentListVM
             {
                 BankID = a.BankID,
                 BranchCode = a.brnc_code,
@@ -77,7 +78,13 @@ namespace PigmyPro.Web.Controllers
 
             var vm = new AgentIndexVM
             {
-                Agents = agentList,
+                Agents = new PigmyPro.Data.PagedResult<AgentListVM>
+                {
+                    Items = agentList,
+                    TotalCount = agentsResult.TotalCount,
+                    PageNumber = agentsResult.PageNumber,
+                    PageSize = agentsResult.PageSize
+                },
                 IsSuperAdmin = isSuperAdmin,
                 IsBankAdmin = isBankAdmin,
                 FilterBankID = filterBankID,

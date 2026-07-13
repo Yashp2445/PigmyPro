@@ -58,7 +58,7 @@ namespace PigmyPro.Web.ViewModels.Agent
         public string? ResetRemark { get; set; }
 
         [Display(Name = "Ready to Cash")]
-        public bool ReadyToCash { get; set; }
+        public bool ReadyToCash { get; set; } = true;
 
         public int? SelectedBankID { get; set; }
 
@@ -71,7 +71,7 @@ namespace PigmyPro.Web.ViewModels.Agent
 
     public class AgentIndexVM
     {
-        public IEnumerable<AgentListVM> Agents { get; set; } = new List<AgentListVM>();
+        public PigmyPro.Data.PagedResult<AgentListVM> Agents { get; set; } = new PigmyPro.Data.PagedResult<AgentListVM>();
 
         public int? FilterBankID { get; set; }
         public decimal? FilterBranchCode { get; set; }

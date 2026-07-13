@@ -28,7 +28,7 @@
 @if (Model.IsSuperAdmin || Model.IsBankAdmin)
 {
     <div class="filter-panel">
-        <form method="get" asp-action="Index" class="row g-3 align-items-end">
+        <form id="filterForm" method="get" asp-action="Index" class="row g-3 align-items-end">
             @if (Model.IsSuperAdmin)
             {
                 <div class="col-md-4">
@@ -81,7 +81,7 @@
 @* ── Table ── *@
 <div class="card">
     <div class="card-body p-0">
-        @if (!Model.Agents.Any())
+        @if (!Model.Agents.Items.Any())
         {
             <div class="empty-state py-5">
                 <i class="bi bi-person-badge empty-state-icon"></i>
@@ -121,7 +121,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var agent in Model.Agents)
+                        @foreach (var agent in Model.Agents.Items)
                         {
                             <tr>
                                 <td>
@@ -175,6 +175,20 @@
                         }
                     </tbody>
                 </table>
+            </div>
+            <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
+                <div class="text-muted" style="font-size: 13px;">
+                    Showing @(Model.Agents.Items.Any() ? ((Model.Agents.PageNumber - 1) * Model.Agents.PageSize) + 1 : 0) to @(Math.Min(Model.Agents.PageNumber * Model.Agents.PageSize, Model.Agents.TotalCount)) of @Model.Agents.TotalCount entries
+                </div>
+                <div class="btn-group">
+                    <button type="submit" form="filterForm" name="page" value="@(Model.Agents.PageNumber - 1)" class="btn btn-outline btn-sm" @(Model.Agents.PageNumber <= 1 ? "disabled" : "")>
+                        <i class="bi bi-chevron-left"></i> Previous
+                    </button>
+                    <span class="btn btn-outline btn-sm disabled" style="color: var(--color-text-primary); border-color: var(--color-border);">Page @Model.Agents.PageNumber of @(Model.Agents.TotalPages > 0 ? Model.Agents.TotalPages : 1)</span>
+                    <button type="submit" form="filterForm" name="page" value="@(Model.Agents.PageNumber + 1)" class="btn btn-outline btn-sm" @(Model.Agents.PageNumber >= Model.Agents.TotalPages ? "disabled" : "")>
+                        Next <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
             </div>
         }
     </div>

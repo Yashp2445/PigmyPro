@@ -33,8 +33,8 @@ namespace PigmyPro.Data.Interfaces
     {
         public int TotalAccounts { get; set; }
         public decimal TotalBalance { get; set; }
-        public decimal AvgBalance { get; set; }
-        public int NewAccountsInPeriod { get; set; }
+        public int TotalCollectionAccounts { get; set; }
+        public decimal TotalCollectionAmount { get; set; }
     }
 
     public class BankAdminSummary
@@ -109,6 +109,7 @@ namespace PigmyPro.Data.Interfaces
         Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null);
         Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionByBankAsync(int bankId);
         Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null);
+        Task<IEnumerable<AgentOverviewRow>> GetAtRiskAgentsAsync(int bankId, DateTime dateFrom, DateTime dateTo, int top, int? branchId = null);
 
         // BranchAdmin
         Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo);

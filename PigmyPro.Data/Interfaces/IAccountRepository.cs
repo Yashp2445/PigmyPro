@@ -6,9 +6,9 @@ namespace PigmyPro.Data.Interfaces
 {
     public interface IAccountRepository
     {
-        Task<IEnumerable<CustomerAccount>> GetAllAsync();
-        Task<IEnumerable<CustomerAccount>> GetAllByBankAsync(int bankId);
-        Task<IEnumerable<CustomerAccount>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode);
+        Task<PagedResult<CustomerAccount>> GetAllAsync(int pageNumber, int pageSize);
+        Task<PagedResult<CustomerAccount>> GetAllByBankAsync(int bankId, int pageNumber, int pageSize);
+        Task<PagedResult<CustomerAccount>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode, int pageNumber, int pageSize);
         Task<CustomerAccount?> GetByFullCodeAsync(int bankId, decimal code1, decimal branchCode, decimal code2);
         Task<int> AddAsync(CustomerAccount account, string? changedBy = null, string? changeIp = null);
         Task<int> UpdateAsync(CustomerAccount account, string? changedBy = null, string? changeIp = null);

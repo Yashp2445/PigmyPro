@@ -6,8 +6,8 @@ namespace PigmyPro.Data.Interfaces
 {
     public interface IUserRepository
     {
-        Task<IEnumerable<User>> GetAllAsync();
-        Task<IEnumerable<User>> GetAllByBankIdAsync(int bankId);
+        Task<PagedResult<User>> GetAllAsync(int pageNumber, int pageSize);
+        Task<PagedResult<User>> GetAllByBankIdAsync(int bankId, int pageNumber, int pageSize);
         Task<User?> GetByIdAsync(int id);
         Task<User?> GetByIdAndBankIdAsync(int id, int bankId);
         Task<User?> GetByUsernameAsync(string username);

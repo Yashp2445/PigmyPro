@@ -20,6 +20,8 @@ namespace PigmyPro.Web.ViewModels.User
 
         public bool IsSuperAdmin { get; set; }
 
+        public bool IsBranchAdmin => Role == "BranchAdmin";
+
         public IEnumerable<SelectListItem> FilteredRoles =>
             IsSuperAdmin
                 ? Roles
@@ -46,6 +48,7 @@ namespace PigmyPro.Web.ViewModels.User
 
         public IEnumerable<SelectListItem>? BranchList { get; set; }
         public IEnumerable<SelectListItem>? BankList { get; set; } 
+
 
         public List<SelectListItem> Roles { get; set; } = new()
     {
