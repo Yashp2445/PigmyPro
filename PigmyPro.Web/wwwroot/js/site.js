@@ -31,6 +31,20 @@ function showToast(message, type = 'success') {
     });
 }
 
+document.addEventListener("DOMContentLoaded", function () {
+    var sidebar = document.getElementById("sidebar");
+    if (sidebar) {
+        var scrollPos = sessionStorage.getItem("sidebarScrollPos");
+        if (scrollPos) {
+            sidebar.scrollTop = scrollPos;
+        }
+
+        sidebar.addEventListener("scroll", function () {
+            sessionStorage.setItem("sidebarScrollPos", sidebar.scrollTop);
+        });
+    }
+});
+
 function setupTableSortAndSearch(tableId, searchInputId) {
     const table = document.getElementById(tableId);
     const searchInput = document.getElementById(searchInputId);

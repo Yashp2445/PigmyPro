@@ -486,6 +486,15 @@ a {
   background: var(--color-bg-surface);
 }
 
+.cell-truncate {
+  display: inline-block;
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

@@ -127,7 +127,8 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table">
                         <thead>
                             <tr>
                                 <th>Bank Name</th>
@@ -143,7 +144,9 @@
                                 @foreach (var bank in Model.BankWiseData)
                                 {
                                     <tr>
-                                        <td class="fw-bold">@bank.BankName</td>
+                                        <td class="fw-bold">
+                                            <div class="cell-truncate" title="@bank.BankName">@bank.BankName</div>
+                                        </td>
                                         <td class="text-center mono-data">@bank.BranchCount</td>
                                         <td class="text-center mono-data">@bank.AgentCount</td>
                                         <td class="text-center mono-data">@bank.AccountCount.ToString("N0")</td>
@@ -185,10 +188,10 @@
                             </tfoot>
                         }
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
     </div>
 </div>
 

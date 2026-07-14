@@ -41,8 +41,13 @@ namespace PigmyPro.Web.ViewModels.Agent
         [Display(Name = "Mobile Number")]
         public string? MobileNo { get; set; }
 
-        [Display(Name = "Number of Holidays")]
-        public int NoOfHolidays { get; set; }      
+        [Display(Name = "No. of Holidays/Month")]
+        public int? NoOfHolidays { get; set; }
+
+        [Required(ErrorMessage = "No. of Receipts per Day is required")]
+        [Range(1, 3, ErrorMessage = "Receipts per day must be between 1 and 3")]
+        [Display(Name = "No. of Receipts per Day")]
+        public int ReceiptNoPerAc { get; set; } = 1;      
 
         public bool Block { get; set; }
 

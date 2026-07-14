@@ -128,7 +128,8 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table">
                         <thead>
                             <tr>
                                 <th>Agent Name</th>
@@ -143,7 +144,9 @@
                                 @foreach (var agent in Model.AgentData)
                                 {
                                     <tr>
-                                        <td class="fw-bold">@agent.AgentName</td>
+                                        <td class="fw-bold">
+                                            <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                        </td>
                                         <td class="text-end fw-bold text-primary mono-data">
                                             @if (agent.TodayAmount > 0)
                                             {
@@ -192,6 +195,7 @@
                             </tfoot>
                         }
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -227,7 +231,8 @@
     </div>
     <div class="card-body p-0">
         <div class="table-wrapper">
-            <table class="table">
+            <div class="table-responsive">
+                <table class="table">
                 <thead>
                     <tr>
                         <th>Code</th>
@@ -246,7 +251,9 @@
                         {
                             <tr>
                                 <td class="mono-data fw-bold text-muted">#@agent.AgentCode</td>
-                                <td class="fw-bold">@agent.AgentName</td>
+                                <td class="fw-bold">
+                                    <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                </td>
                                 <td class="mono-data">@agent.MobileNumber</td>
                                 <td class="text-center">
                                     @if (agent.IsBlocked)
@@ -277,6 +284,7 @@
                     }
                 </tbody>
             </table>
+            </div>
         </div>
     </div>
 </div>

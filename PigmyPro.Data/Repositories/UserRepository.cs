@@ -119,6 +119,82 @@ namespace PigmyPro.Data.Repositories
             return count > 0;
         }
 
+        public async Task<bool> HasPendingPasswordResetAsync(string username)
+        {
+            var query = "SELECT COUNT(1) FROM Change_Password WHERE ini = @Username AND Reason = 'PENDING_RESET'";
+            using var connection = _context.CreateConnection();
+            return await connection.ExecuteScalarAsync<int>(query, new { Username = username }) > 0;
+        }
+
+        public async Task<int> CreatePasswordResetRequestAsync(string username)
+        {
+            var query = @"INSERT INTO Change_Password (ini, Reason, Entry_Date) 
+                          VALUES (@Username, 'PENDING_RESET', GETDATE())";
+            using var connection = _context.CreateConnection();
+            return await connection.ExecuteAsync(query, new { Username = username });
+        }
+
+        public async Task<IEnumerable<dynamic>> GetPendingPasswordResetsAsync(int bankId, bool isSuperAdmin)
+        {
+            var query = @"
+                SELECT c.SRNO, c.ini AS Username, c.Entry_Date AS RequestedDate, u.name AS Name, b.Name AS BankName
+                FROM Change_Password c
+                INNER JOIN UserMast u ON c.ini = u.Username
+                INNER JOIN Banks b ON u.BankID = b.BankID
+                WHERE c.Reason = 'PENDING_RESET'";
+
+            if (!isSuperAdmin)
+            {
+                query += " AND u.BankID = @BankID";
+            }
+
+            query += " ORDER BY c.Entry_Date DESC";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<dynamic>(query, new { BankID = bankId });
+        }
+
+        public async Task<int> ApprovePasswordResetAsync(string username, string adminUsername, string ipAddress)
+        {
+            using var connection = _context.CreateConnection();
+            var queryUpdateLog = @"
+                UPDATE Change_Password 
+                SET Reason = @Reason, 
+                    Operator_IP = @IpAddress, 
+                    Change_Date = GETDATE(), 
+                    Working_Date = GETDATE()
+                WHERE ini = @Username AND Reason = 'PENDING_RESET'";
+
+            var reason = "APPROVED_RESET_BY_" + adminUsername;
+            return await connection.ExecuteAsync(queryUpdateLog, new { Reason = reason, IpAddress = ipAddress, Username = username });
+        }
+
+        public async Task<bool> HasApprovedPasswordResetAsync(string username)
+        {
+            var query = "SELECT COUNT(1) FROM Change_Password WHERE ini = @Username AND Reason LIKE 'APPROVED_RESET_BY_%'";
+            using var connection = _context.CreateConnection();
+            return await connection.ExecuteScalarAsync<int>(query, new { Username = username }) > 0;
+        }
+
+        public async Task<int> ConsumeApprovedPasswordResetAsync(string username)
+        {
+            var query = @"
+                UPDATE Change_Password 
+                SET Reason = 'RESET_COMPLETED',
+                    Change_Date = GETDATE()
+                WHERE ini = @Username AND Reason LIKE 'APPROVED_RESET_BY_%'";
+            using var connection = _context.CreateConnection();
+            return await connection.ExecuteAsync(query, new { Username = username });
+        }
+
+        public async Task<int> LogPasswordChangeAsync(string username, string reason, string ipAddress)
+        {
+            var query = @"INSERT INTO Change_Password (ini, Reason, Operator_IP, Change_Date, Working_Date, Entry_Date) 
+                          VALUES (@Username, @Reason, @IpAddress, GETDATE(), GETDATE(), GETDATE())";
+            using var connection = _context.CreateConnection();
+            return await connection.ExecuteAsync(query, new { Username = username, Reason = reason, IpAddress = ipAddress });
+        }
+
         public async Task<(string Username, string PasswordHash)?> GetAdminCredentialsAsync(string username)
         {
             var query = "SELECT Username, Password FROM AdminCredentials WHERE Username = @Username";

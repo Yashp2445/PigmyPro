@@ -21,7 +21,7 @@ namespace PigmyPro.Data.Repositories
         {
             var countQuery = "SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND brnc_code = @brnc_code";
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
-                         NoOfHolidays, RadyToCash, EntryDate 
+                         NoOfHolidays, ReceiptNoPerAc, RadyToCash, EntryDate 
                   FROM agntmast 
                   WHERE BankID = @BankID AND brnc_code = @brnc_code 
                   ORDER BY code DESC
@@ -43,7 +43,7 @@ namespace PigmyPro.Data.Repositories
         {
             var countQuery = "SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID";
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
-                         NoOfHolidays, RadyToCash, EntryDate 
+                         NoOfHolidays, ReceiptNoPerAc, RadyToCash, EntryDate 
                   FROM agntmast 
                   WHERE BankID = @BankID 
                   ORDER BY code DESC
@@ -65,7 +65,7 @@ namespace PigmyPro.Data.Repositories
         {
             var countQuery = "SELECT COUNT(*) FROM agntmast";
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
-                         NoOfHolidays, RadyToCash, EntryDate 
+                         NoOfHolidays, ReceiptNoPerAc, RadyToCash, EntryDate 
                   FROM agntmast 
                   ORDER BY BankID, brnc_code, code DESC
                   OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
@@ -85,7 +85,7 @@ namespace PigmyPro.Data.Repositories
         public async Task<Agent?> GetByCodeAsync(int bankId, decimal branchCode, decimal agentCode)
         {
             var query = @"SELECT BankID, brnc_code, code, NAME, MobileNo, Block, 
-                         NoOfHolidays, RadyToCash, EntryDate 
+                         NoOfHolidays, ReceiptNoPerAc, RadyToCash, EntryDate 
                   FROM agntmast 
                   WHERE BankID = @BankID AND brnc_code = @brnc_code AND code = @code";
             using var connection = _context.CreateConnection();
@@ -109,6 +109,7 @@ namespace PigmyPro.Data.Repositories
             p.Add("NAME", agent.NAME);
             p.Add("MobileNo", agent.MobileNo);
             p.Add("NoOfHolidays", agent.NoOfHolidays);
+            p.Add("ReceiptNoPerAc", agent.ReceiptNoPerAc);
             p.Add("RadyToCash", agent.RadyToCash);
             p.Add("OpnBy", changedBy);
             p.Add("OpnIP", changeIp);
@@ -143,6 +144,7 @@ namespace PigmyPro.Data.Repositories
             p.Add("NAME", agent.NAME);
             p.Add("MobileNo", agent.MobileNo);
             p.Add("NoOfHolidays", agent.NoOfHolidays);
+            p.Add("ReceiptNoPerAc", agent.ReceiptNoPerAc);
             p.Add("RadyToCash", agent.RadyToCash);
             p.Add("ChangeBy", changedBy);
             p.Add("ChangeIP", changeIp);
@@ -195,6 +197,25 @@ namespace PigmyPro.Data.Repositories
             using var connection = _context.CreateConnection();
             return await connection.ExecuteScalarAsync<decimal>(query,
                 new { BankID = bankId, brnc_code = branchCode });
+        }
+
+        public async Task<bool> IsMobileNumberInUseAsync(int bankId, string mobileNumber, decimal? excludeAgentCode = null)
+        {
+            var query = @"SELECT COUNT(1) 
+                          FROM agntmast 
+                          WHERE BankID = @BankID 
+                            AND MobileNo = @MobileNo";
+            
+            if (excludeAgentCode.HasValue)
+            {
+                query += " AND code != @ExcludeAgentCode";
+            }
+
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(query, 
+                new { BankID = bankId, MobileNo = mobileNumber, ExcludeAgentCode = excludeAgentCode });
+            
+            return count > 0;
         }
 
         private static void ThrowIfSpFailed(string? msg)

@@ -11,6 +11,7 @@ namespace PigmyPro.Domain.Entities
         public string? MobileNo { get; set; }
         public bool? Block { get; set; }      
         public int? NoOfHolidays { get; set; }
+        public int ReceiptNoPerAc { get; set; } = 1;
         public string? RadyToCash { get; set; }
         public DateTime EntryDate { get; set; }
     }
