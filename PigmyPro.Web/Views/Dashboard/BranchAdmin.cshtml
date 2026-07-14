@@ -2,22 +2,18 @@
 
 @{
     ViewData["Title"] = "BranchAdmin Dashboard";
-    ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Branch Overview</li>";
 }
 
 <div class="page-header d-flex align-items-center justify-content-between">
     <div>
-        <h4 class="page-title">Branch Overview</h4>
-        <p class="page-subtitle">Daily performance for your branch</p>
+        <h4 class="page-title mb-0">Branch Overview</h4>
+        <p class="page-subtitle mb-0">Daily performance for your branch</p>
     </div>
     <div class="d-flex align-items-center gap-3">
-        <div class="form-check form-switch m-0">
-            <input class="form-check-input" type="checkbox" id="autoRefreshToggle">
-            <label class="form-check-label text-muted small" for="autoRefreshToggle">Auto-refresh</label>
-        </div>
-        <div class="badge badge-info py-2 px-3">
-            <i class="bi bi-clock-history me-1"></i> Last updated: <span class="mono-data">@Model.LastUpdated.ToString("dd MMM yyyy, hh:mm:ss tt")</span>
-        </div>
+        <a href="javascript:window.location.reload();" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-2">
+            <i class="bi bi-arrow-clockwise"></i> 
+            <span>Refresh Data</span>
+        </a>
     </div>
 </div>
 
@@ -40,36 +36,214 @@
 </div>
 
 <!-- Summary Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-xl col-md-4">
-        <div class="stat-card warning">
-            <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
-            <div class="stat-value">@Model.TotalAgents</div>
-            <div class="stat-label">Branch Agents</div>
+<div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card warning h-100 p-3">
+            <div class="stat-icon mb-2" style="font-size:1.25rem; width:36px; height:36px;"><i class="bi bi-person-badge-fill"></i></div>
+            <div class="stat-value fs-5">@Model.TotalAgents</div>
+            <div class="stat-label small">Branch Agents</div>
         </div>
     </div>
-    <div class="col-xl col-md-4">
-        <div class="stat-card info">
-            <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
-            <div class="stat-value">@Model.TotalAccounts.ToString("N0")</div>
-            <div class="stat-label">Total Accounts</div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card info h-100 p-3">
+            <div class="stat-icon mb-2" style="font-size:1.25rem; width:36px; height:36px;"><i class="bi bi-wallet2"></i></div>
+            <div class="stat-value fs-5">@Model.TotalAccounts.ToString("N0")</div>
+            <div class="stat-label small">Total Accounts</div>
         </div>
     </div>
-    <div class="col-xl col-md-4">
-        <div class="stat-card success">
-            <div class="stat-icon"><i class="bi bi-receipt-cutoff"></i></div>
-            <div class="stat-value">@Model.AccountsCollectedToday</div>
-            <div class="stat-label">Txns in Period</div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card success h-100 p-3">
+            <div class="stat-icon mb-2" style="font-size:1.25rem; width:36px; height:36px;"><i class="bi bi-receipt-cutoff"></i></div>
+            <div class="stat-value fs-5">@Model.AccountsCollectedToday</div>
+            <div class="stat-label small">Txns in Period</div>
         </div>
     </div>
-    <div class="col-xl-12">
-        <div class="stat-card brand" style="background:var(--color-brand-primary); border-color:var(--color-brand-primary);">
-            <div class="stat-icon" style="background:rgba(255,255,255,0.15); color:white;"><i class="bi bi-cash-stack"></i></div>
-            <div class="stat-value" style="color:white; font-size:30px;">₹@Model.TodayCollection.ToString("N2")</div>
-            <div class="stat-label" style="color:rgba(255,255,255,0.7);">Period Total Collection</div>
+    <div class="col-lg-3 col-md-6">
+        <div class="stat-card brand h-100 p-3" style="background:var(--color-brand-primary); border-color:var(--color-brand-primary);">
+            <div class="stat-icon mb-2" style="background:rgba(255,255,255,0.15); color:white; font-size:1.25rem; width:36px; height:36px;"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-value fs-5" style="color:white;">₹@(Model.TodayCollection >= 100000 ? (Model.TodayCollection / 100000).ToString("N2") + "L" : Model.TodayCollection.ToString("N0"))</div>
+            <div class="stat-label small" style="color:rgba(255,255,255,0.7);">Period Total Collection</div>
         </div>
     </div>
 </div>
+
+<!-- New Summary Metrics (Chart + Table) -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom-0 pt-4 pb-0">
+                <h6 class="card-title text-uppercase text-muted fw-bold mb-0">Collection Import Status (Today)</h6>
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-5">
+                        <div style="position:relative; height:220px;">
+                            <canvas id="importStatusChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="table-responsive">
+                            <table class="table table-borderless align-middle mb-0">
+                                <thead>
+                                    <tr class="text-muted small">
+                                        <th class="fw-normal text-uppercase">Status</th>
+                                        <th class="fw-normal text-uppercase text-center">Agents</th>
+                                        <th class="fw-normal text-uppercase text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid rgba(0,0,0,0.05);">
+                                        <td class="py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #f59e0b; margin-right: 12px;"></div>
+                                                <span class="fw-semibold text-dark">Held with Agents (Pending)</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center mono-data py-3">
+                                            <span class="badge bg-warning bg-opacity-10 text-warning-emphasis rounded-pill px-3">@(Model.CollectionHeld?.AgentCount ?? 0)</span>
+                                        </td>
+                                        <td class="text-end fw-bold mono-data text-dark fs-5 py-3">₹@(Model.CollectionHeld?.TotalAmount.ToString("N2") ?? "0.00")</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-3">
+                                            <div class="d-flex align-items-center">
+                                                <div style="width: 12px; height: 12px; border-radius: 50%; background-color: #10b981; margin-right: 12px;"></div>
+                                                <span class="fw-semibold text-dark">Deposited Today (Imported)</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center mono-data py-3">
+                                            <span class="badge bg-success bg-opacity-10 text-success-emphasis rounded-pill px-3">@(Model.CollectionDeposited?.AgentCount ?? 0)</span>
+                                        </td>
+                                        <td class="text-end fw-bold mono-data text-dark fs-5 py-3">₹@(Model.CollectionDeposited?.TotalAmount.ToString("N2") ?? "0.00")</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Registry Tables -->
+<div class="row g-4 mb-4">
+    <!-- Ready to Cash: Yes -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header bg-success bg-opacity-10">
+                <h5 class="card-title text-success-emphasis m-0"><i class="bi bi-check-circle me-2"></i>Ready to Cash</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-wrapper">
+                    <table class="table mb-0 table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Agent Name</th>
+                                <th class="text-center">No. of Receipts</th>
+                                <th class="text-end">Collection Amount</th>
+                                <th class="text-center">Download</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var readyAgents = Model.AgentOverview.Where(x => x.RadyToCash == "Y").ToList();
+                            }
+                            @if (readyAgents.Any())
+                            {
+                                @foreach (var agent in readyAgents)
+                                {
+                                    <tr>
+                                        <td class="mono-data">@agent.AgentCode</td>
+                                        <td class="fw-bold">
+                                            <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                        </td>
+                                        <td class="text-center mono-data">@agent.ReceiptCount</td>
+                                        <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
+                                        <td class="text-center">
+                                            <form asp-controller="MobileImport" asp-action="DownloadExport" method="post" class="m-0 p-0">
+                                                <input type="hidden" name="agentCode" value="@agent.AgentCode" />
+                                                <button type="submit" class="btn btn-success btn-sm px-2 py-1">
+                                                    <i class="bi bi-download"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <i class="bi bi-people empty-state-icon"></i>
+                                            <div class="empty-state-title">No agents ready to cash</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ready to Cash: No/Other -->
+    <div class="col-lg-6">
+        <div class="card h-100 border-warning border-opacity-50">
+            <div class="card-header bg-warning bg-opacity-10">
+                <h5 class="card-title text-warning-emphasis m-0"><i class="bi bi-exclamation-triangle me-2"></i>Agents Not Ready</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-wrapper">
+                    <table class="table mb-0 table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Agent Name</th>
+                                <th class="text-center">No. of Receipts</th>
+                                <th class="text-end">Collection Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var notReadyAgents = Model.AgentOverview.Where(x => x.RadyToCash != "Y").ToList();
+                            }
+                            @if (notReadyAgents.Any())
+                            {
+                                @foreach (var agent in notReadyAgents)
+                                {
+                                    <tr>
+                                        <td class="mono-data">@agent.AgentCode</td>
+                                        <td class="fw-bold">
+                                            <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                        </td>
+                                        <td class="text-center mono-data">@agent.ReceiptCount</td>
+                                        <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4">
+                                        <div class="empty-state">
+                                            <i class="bi bi-people empty-state-icon"></i>
+                                            <div class="empty-state-title">No agents pending</div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- Trend Line Chart & At-Risk Agents -->
 <div class="row g-4 mb-4">
@@ -224,70 +398,6 @@
     </div>
 </div>
 
-<!-- Agent Registry -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5 class="card-title">Agent Registry</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-wrapper">
-            <div class="table-responsive">
-                <table class="table">
-                <thead>
-                    <tr>
-                        <th>Code</th>
-                        <th>Agent Name</th>
-                        <th>Mobile No</th>
-                        <th class="text-center">Status</th>
-                        <th class="text-end">Collection</th>
-                        <th class="text-center">Accounts</th>
-                        <th class="text-center">Days Inactive</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model.AgentOverview.Any())
-                    {
-                        @foreach (var agent in Model.AgentOverview)
-                        {
-                            <tr>
-                                <td class="mono-data fw-bold text-muted">#@agent.AgentCode</td>
-                                <td class="fw-bold">
-                                    <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
-                                </td>
-                                <td class="mono-data">@agent.MobileNumber</td>
-                                <td class="text-center">
-                                    @if (agent.IsBlocked)
-                                    {
-                                        <span class="badge badge-danger">BLOCKED</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge badge-success">ACTIVE</span>
-                                    }
-                                </td>
-                                <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
-                                <td class="text-center mono-data">@agent.AccountsCollected</td>
-                                <td class="text-center mono-data text-danger fw-bold">@(agent.DaysInactive.HasValue ? agent.DaysInactive.Value.ToString() : "N/A")</td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="7">
-                                <div class="empty-state">
-                                    <i class="bi bi-people empty-state-icon"></i>
-                                    <div class="empty-state-title">No agents registered</div>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-            </div>
-        </div>
-    </div>
-</div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -395,7 +505,50 @@
                 }
             });
 
-            setupDashboardAutoRefresh('#autoRefreshToggle', 5);
+            // Import Status Chart
+            var heldAmount = @(Model.CollectionHeld?.TotalAmount ?? 0);
+            var depositedAmount = @(Model.CollectionDeposited?.TotalAmount ?? 0);
+            
+            if (heldAmount > 0 || depositedAmount > 0) {
+                new Chart(document.getElementById('importStatusChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Held with Agents', 'Deposited Today'],
+                        datasets: [{
+                            data: [heldAmount, depositedAmount],
+                            backgroundColor: ['#f59e0b', '#10b981'],
+                            borderWidth: 0,
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: tooltipBg,
+                                padding: 12,
+                                titleFont: { family: 'Inter', size: 13, weight: '700' },
+                                bodyFont: { family: 'JetBrains Mono', size: 12 },
+                                cornerRadius: 8,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function(ctx) { return ' ₹' + ctx.parsed.toLocaleString('en-IN'); }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            } else {
+                var canvas = document.getElementById('importStatusChart');
+                if (canvas) {
+                    canvas.style.display = 'none';
+                    canvas.parentElement.innerHTML = '<div class="empty-state h-100 d-flex flex-column justify-content-center align-items-center"><i class="bi bi-pie-chart text-muted" style="font-size:2rem;opacity:0.5;"></i><div class="mt-2 text-muted small">No data to display</div></div>';
+                }
+            }
+
         })();
     </script>
 }

@@ -281,13 +281,16 @@ namespace PigmyPro.Data.Repositories
                     CAST(a.Block AS BIT) AS IsBlocked,
                     ISNULL(tc.TodayAmount, 0) AS TodayAmount,
                     ISNULL(tc.AccountsCollected, 0) AS AccountsCollected,
-                    DATEDIFF(day, max_dt.MaxDate, GETDATE()) AS DaysInactive
+                    DATEDIFF(day, max_dt.MaxDate, GETDATE()) AS DaysInactive,
+                    a.RadyToCash AS RadyToCash,
+                    ISNULL(tc.ReceiptCount, 0) AS ReceiptCount
                 FROM agntmast a
                 LEFT JOIN brncmast br ON br.BankID = a.BankID AND br.BranchID = a.brnc_code
                 LEFT JOIN (
                     SELECT BankID, Agent, Brnc_code,
                         SUM(Amount) AS TodayAmount,
-                        COUNT(DISTINCT Code2) AS AccountsCollected
+                        COUNT(DISTINCT Code2) AS AccountsCollected,
+                        COUNT(*) AS ReceiptCount
                     FROM MobilePygTrn
                     WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
                     GROUP BY BankID, Agent, Brnc_code
@@ -413,6 +416,50 @@ namespace PigmyPro.Data.Repositories
                 BranchID = branchId,
                 DateFrom = dateFrom.Date,
                 DateTo = dateTo.Date
+            });
+        }
+
+        public async Task<CollectionHeldSummary> GetCollectionHeldWithAgentsAsync(int bankId, int? branchId = null)
+        {
+            var branchFilter = branchId.HasValue ? " AND CAST(Brnc_code AS DECIMAL(10,0)) = @BranchID" : "";
+
+            var sql = $@"
+                SELECT 
+                    COUNT(DISTINCT Agent) AS AgentCount,
+                    ISNULL(SUM(Amount), 0) AS TotalAmount
+                FROM MobilePygTrn 
+                WHERE BankID = @BankID {branchFilter}";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstAsync<CollectionHeldSummary>(sql, new
+            {
+                BankID = bankId,
+                BranchID = branchId
+            });
+        }
+
+        public async Task<CollectionDepositedSummary> GetTodayDepositedCollectionAsync(int bankId, int? branchId = null)
+        {
+            var branchFilter = branchId.HasValue ? " AND dil.Brnc_Code = @BranchID" : "";
+
+            var sql = $@"
+                SELECT 
+                    COUNT(DISTINCT dil.Agent_Code) AS AgentCount, 
+                    ISNULL(SUM(mpa.Amount), 0) AS TotalAmount
+                FROM DataImportLog dil
+                JOIN MobilePygTrn_ALL mpa 
+                    ON mpa.BankID = dil.BankID
+                    AND CAST(mpa.Brnc_code AS DECIMAL(10,0)) = dil.Brnc_Code
+                    AND CAST(mpa.Agent AS DECIMAL(18,0)) = dil.Agent_Code
+                WHERE dil.BankID = @BankID
+                    AND CAST(dil.Import_Date AS DATE) = CAST(GETDATE() AS DATE)
+                    {branchFilter}";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryFirstAsync<CollectionDepositedSummary>(sql, new
+            {
+                BankID = bankId,
+                BranchID = branchId
             });
         }
     }
