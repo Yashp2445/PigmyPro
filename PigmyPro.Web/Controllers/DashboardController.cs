@@ -11,10 +11,14 @@ namespace PigmyPro.Web.Controllers
     public class DashboardController : BaseController
     {
         private readonly IDashboardRepository _repo;
+        private readonly IBankRepository _bankRepo;
+        private readonly IBranchRepository _branchRepo;
 
-        public DashboardController(IDashboardRepository repo)
+        public DashboardController(IDashboardRepository repo, IBankRepository bankRepo, IBranchRepository branchRepo)
         {
             _repo = repo;
+            _bankRepo = bankRepo;
+            _branchRepo = branchRepo;
         }
 
         public IActionResult Index()
@@ -84,12 +88,29 @@ namespace PigmyPro.Web.Controllers
             var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
             var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
             var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, from, to, 5, branchId)).ToList();
+            
+            var collectionHeld = await _repo.GetCollectionHeldWithAgentsAsync(bankId, branchId);
+            var collectionDeposited = await _repo.GetTodayDepositedCollectionAsync(bankId, branchId);
+
+            var bank = await _bankRepo.GetByIdAsync(bankId);
+            string bankName = bank?.Name ?? "Bank Overview";
+            bool hasBankLogo = !string.IsNullOrEmpty(bank?.LogoFileName);
+            string branchName = "";
+            if (branchId.HasValue) 
+            {
+                var branchObj = await _branchRepo.GetByIdAndBankIdAsync(branchId.Value, bankId);
+                if (branchObj != null) branchName = branchObj.Name ?? "";
+            }
 
             // Populate branch dropdown
             var branches = await _repo.GetBranchDropdownAsync(bankId);
 
             var vm = new BankAdminDashboardVM
             {
+                BankID = bankId,
+                BankName = bankName,
+                BranchName = branchName,
+                HasBankLogo = hasBankLogo,
                 TotalBranches = summary.TotalBranches,
                 TotalAgents = summary.TotalAgents,
                 TotalAccounts = summary.TotalAccounts,
@@ -100,6 +121,8 @@ namespace PigmyPro.Web.Controllers
                 AgentOverview = agentOverview.ToList(),
                 DailyTrendData = trendData.ToList(),
                 AtRiskAgents = atRiskAgents,
+                CollectionHeld = collectionHeld,
+                CollectionDeposited = collectionDeposited,
                 LastUpdated = DateTime.Now,
                 DateFrom = from,
                 DateTo = to,
@@ -128,8 +151,22 @@ namespace PigmyPro.Web.Controllers
             var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
             var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, from, to, 5, branchId)).ToList();
 
+            var collectionHeld = await _repo.GetCollectionHeldWithAgentsAsync(bankId, branchId);
+            var collectionDeposited = await _repo.GetTodayDepositedCollectionAsync(bankId, branchId);
+
+            var bank = await _bankRepo.GetByIdAsync(bankId);
+            string bankName = bank?.Name ?? "Bank Overview";
+            bool hasBankLogo = !string.IsNullOrEmpty(bank?.LogoFileName);
+            
+            var branchObj = await _branchRepo.GetByIdAndBankIdAsync(branchId, bankId);
+            string branchName = branchObj?.Name ?? "Branch Overview";
+
             var vm = new BranchAdminDashboardVM
             {
+                BankID = bankId,
+                BankName = bankName,
+                BranchName = branchName,
+                HasBankLogo = hasBankLogo,
                 TotalAgents = summary.TotalAgents,
                 TotalAccounts = summary.TotalAccounts,
                 TodayCollection = summary.TodayCollection,
@@ -138,6 +175,8 @@ namespace PigmyPro.Web.Controllers
                 AgentOverview = agentOverview.ToList(),
                 DailyTrendData = trendData.ToList(),
                 AtRiskAgents = atRiskAgents,
+                CollectionHeld = collectionHeld,
+                CollectionDeposited = collectionDeposited,
                 LastUpdated = DateTime.Now,
                 DateFrom = from,
                 DateTo = to

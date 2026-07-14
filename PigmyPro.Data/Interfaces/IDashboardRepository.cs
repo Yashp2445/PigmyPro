@@ -88,12 +88,26 @@ namespace PigmyPro.Data.Interfaces
         public decimal TodayAmount { get; set; }
         public int AccountsCollected { get; set; }
         public int? DaysInactive { get; set; }
+        public int ReceiptCount { get; set; }
+        public string RadyToCash { get; set; } = "N";
     }
 
     public class DailyTrendPoint
     {
         public DateTime Date { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    public class CollectionHeldSummary 
+    { 
+        public int AgentCount { get; set; } 
+        public decimal TotalAmount { get; set; } 
+    }
+    
+    public class CollectionDepositedSummary 
+    { 
+        public int AgentCount { get; set; } 
+        public decimal TotalAmount { get; set; } 
     }
 
     public interface IDashboardRepository
@@ -120,6 +134,10 @@ namespace PigmyPro.Data.Interfaces
 
         // AcMaster Summary
         Task<AcMasterSummary> GetAcMasterSummaryAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null);
+
+        // New Summary Metrics
+        Task<CollectionHeldSummary> GetCollectionHeldWithAgentsAsync(int bankId, int? branchId = null);
+        Task<CollectionDepositedSummary> GetTodayDepositedCollectionAsync(int bankId, int? branchId = null);
 
         // Dropdown helpers for dashboard filters
         Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync();
