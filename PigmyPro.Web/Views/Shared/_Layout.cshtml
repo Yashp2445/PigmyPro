@@ -66,12 +66,7 @@
                     }
                 });
 
-                // 3. Close tab / Manual URL change logout
-                window.addEventListener('beforeunload', function() {
-                    if (!isInternalNavigation) {
-                        navigator.sendBeacon('/Auth/Logout');
-                    }
-                });
+                // 3. (Removed beforeunload logout as it breaks native browser refresh)
             })();
         </script>
         <div id="sidebar">
@@ -164,8 +159,27 @@
         <div id="main-content">
             <header class="top-navbar">
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        @Html.Raw(ViewData["Breadcrumb"] ?? "<li class='breadcrumb-item active'>Dashboard</li>")
+                    <ol class="breadcrumb m-0">
+                        @if (ViewBag.GlobalBankName != null)
+                        {
+                            <li class='breadcrumb-item active d-flex align-items-center gap-2'>
+                                @if (ViewBag.GlobalHasLogo == true)
+                                {
+                                    <img src='/Bank/GetLogo/@ViewBag.GlobalBankID' style='height:28px; width:auto; border-radius:4px;' onerror="this.style.display='none';" />
+                                }
+                                <span class='fw-bold text-dark fs-6 m-0'>
+                                    @ViewBag.GlobalBankName 
+                                    @if (!string.IsNullOrEmpty(ViewBag.GlobalBranchName as string))
+                                    {
+                                        <text>- @ViewBag.GlobalBranchName</text>
+                                    }
+                                </span>
+                            </li>
+                        }
+                        else
+                        {
+                            @Html.Raw(ViewData["Breadcrumb"] ?? "<li class='breadcrumb-item active'>Dashboard</li>")
+                        }
                     </ol>
                 </nav>
                 <div class="user-info-area">

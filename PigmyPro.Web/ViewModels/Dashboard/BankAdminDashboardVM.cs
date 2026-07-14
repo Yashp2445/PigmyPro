@@ -7,10 +7,18 @@ namespace PigmyPro.Web.ViewModels.Dashboard
 {
     public class BankAdminDashboardVM
     {
+        public string BankName { get; set; } = string.Empty;
+        public string BranchName { get; set; } = string.Empty;
+        public bool HasBankLogo { get; set; }
+        public int BankID { get; set; }
+
         public int TotalBranches { get; set; }
         public int TotalAgents { get; set; }
         public int TotalAccounts { get; set; }
         public decimal TodayCollection { get; set; }
+
+        public CollectionHeldSummary? CollectionHeld { get; set; }
+        public CollectionDepositedSummary? CollectionDeposited { get; set; }
 
         public List<BranchWiseSummary> BranchWiseData { get; set; } = new();
         public List<TopAgentCollection> TopAgents { get; set; } = new();

@@ -65,9 +65,9 @@ namespace PigmyPro.Web.Controllers
                 return View(vm);
             }
 
-            if (agent.RadyToCash != "N")
+            if (agent.RadyToCash != "Y")
             {
-                vm.ErrorMessage = "Agent is currently marked Ready to Cash — please complete the upload cycle before exporting again.";
+                vm.ErrorMessage = "Agent must be marked Ready to Cash before exporting.";
                 await PopulateExportDropdowns(vm);
                 vm.HasSearched = true;
                 return View(vm);
@@ -115,7 +115,7 @@ namespace PigmyPro.Web.Controllers
                 return RedirectToAction("Export");
 
             var agent = await _repo.GetAgentDetailsAsync(bankId, resolvedBranch, agentCode.Value);
-            if (agent == null || agent.RadyToCash != "N")
+            if (agent == null || agent.RadyToCash != "Y")
                 return RedirectToAction("Export");
 
             var rows = (await _repo.GetPendingCollectionsAsync(bankId, resolvedBranch, agentCode.Value)).ToList();
@@ -203,8 +203,8 @@ namespace PigmyPro.Web.Controllers
             bool readyToCash = agent.RadyToCash == "Y";
             bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(bankId, resolvedBranch, agentCode);
 
-            // Export requires RadyToCash == "N" and hasPendingData == true
-            bool eligible = !readyToCash && hasPendingData;
+            // Export requires RadyToCash == "Y" and hasPendingData == true
+            bool eligible = readyToCash && hasPendingData;
 
             return Json(new { eligible, readyToCash, hasPendingData });
         }
