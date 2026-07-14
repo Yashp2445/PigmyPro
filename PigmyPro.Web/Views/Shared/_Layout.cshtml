@@ -96,9 +96,15 @@
                 <a href="/Branch/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Branch" ? "active" : "")">
                     <i class="bi bi-diagram-3-fill"></i> Branches
                 </a>
-                <a href="/User/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "User" ? "active" : "")">
+                <a href="/User/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "User" && ViewContext.RouteData.Values["action"]?.ToString() != "PasswordResetRequests" ? "active" : "")">
                     <i class="bi bi-people-fill"></i> System Users
                 </a>
+                @if (User.IsInRole("SuperAdmin") || User.IsInRole("BankAdmin"))
+                {
+                    <a href="/User/PasswordResetRequests" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "User" && ViewContext.RouteData.Values["action"]?.ToString() == "PasswordResetRequests" ? "active" : "")">
+                        <i class="bi bi-key-fill"></i> Password Resets
+                    </a>
+                }
 
                 <div class="nav-section">Banking Masters</div>
                 <a href="/Agent/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Agent" ? "active" : "")">
@@ -140,9 +146,9 @@
                 <a href="/Report/AgentSummary" class="nav-link @(reportController == "Report" && reportAction == "AgentSummary" ? "active" : "")">
                     <i class="bi bi-person-lines-fill"></i> Agent Summary
                 </a>
-                <a href="/Report/Reconciliation" class="nav-link @(reportController == "Report" && reportAction == "Reconciliation" ? "active" : "")">
+               @*  <a href="/Report/Reconciliation" class="nav-link @(reportController == "Report" && reportAction == "Reconciliation" ? "active" : "")">
                     <i class="bi bi-arrow-left-right"></i> Reconciliation
-                </a>
+                </a> *@
                 @{
                     var psController = ViewContext.RouteData.Values["controller"]?.ToString();
                 }

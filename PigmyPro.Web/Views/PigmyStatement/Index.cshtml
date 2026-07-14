@@ -119,7 +119,8 @@ else
         </div>
         <div class="card-body p-0">
             <div class="table-wrapper">
-                <table class="table" id="statementTable">
+                <div class="table-responsive">
+                    <table class="table" id="statementTable">
                     <thead>
                         <tr>
                             <th class="sortable">ID</th>
@@ -139,10 +140,14 @@ else
                         {
                             <tr>
                                 <td class="mono-data text-muted">@row.ID</td>
-                                <td>@row.BranchName</td>
+                                <td>
+                                    <div class="cell-truncate" title="@row.BranchName">@row.BranchName</div>
+                                </td>
                                 <td class="mono-data">@row.Date.ToString("dd-MMM-yyyy")</td>
                                 <td class="mono-data">@row.AgentCode</td>
-                                <td class="fw-bold">@row.AgentName</td>
+                                <td class="fw-bold">
+                                    <div class="cell-truncate" title="@row.AgentName">@row.AgentName</div>
+                                </td>
                                 <td>
                                     @{
                                         var badgeClass = row.AccountType switch
@@ -156,7 +161,9 @@ else
                                     <span class="badge @badgeClass">@row.AccountType</span>
                                 </td>
                                 <td class="mono-data text-primary fw-bold">#@row.Code2</td>
-                                <td>@row.Name</td>
+                                <td>
+                                    <div class="cell-truncate" title="@row.Name">@row.Name</div>
+                                </td>
                                 <td class="text-end fw-bold mono-data text-primary">₹@row.Amount.ToString("N2")</td>
                                 <td class="mono-data text-muted">@row.EntryDate.ToString("dd-MMM-yyyy")</td>
                             </tr>
@@ -166,10 +173,11 @@ else
                         <tr>
                             <td colspan="8" style="padding: 14px 20px;">Grand Total</td>
                             <td class="text-end text-primary mono-data" style="font-size: 16px;">₹@Model.TotalAmount.ToString("N2")</td>
-                            <td colspan="1"></td>
+                            <td></td>
                         </tr>
                     </tfoot>
                 </table>
+                </div>
             </div>
         </div>
     </div>

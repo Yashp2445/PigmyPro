@@ -120,7 +120,8 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table">
                         <thead>
                             <tr>
                                 <th>Branch Name</th>
@@ -135,7 +136,9 @@
                                 @foreach (var branch in Model.BranchWiseData)
                                 {
                                     <tr>
-                                        <td class="fw-bold">@branch.BranchName</td>
+                                        <td class="fw-bold">
+                                            <div class="cell-truncate" title="@branch.BranchName">@branch.BranchName</div>
+                                        </td>
                                         <td class="text-center mono-data">@branch.AgentCount</td>
                                         <td class="text-center mono-data">@branch.AccountCount.ToString("N0")</td>
                                         <td class="text-end fw-bold text-primary mono-data">
@@ -199,7 +202,8 @@
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
-                    <table class="table">
+                    <div class="table-responsive">
+                        <table class="table">
                         <thead>
                             <tr>
                                 <th>Rank</th>
@@ -218,8 +222,12 @@
                                     rank++;
                                     <tr>
                                         <td class="mono-data fw-bold text-muted">#@rank</td>
-                                        <td class="fw-bold">@agent.AgentName</td>
-                                        <td class="text-muted">@agent.BranchName</td>
+                                        <td class="fw-bold">
+                                            <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                        </td>
+                                        <td class="text-muted">
+                                            <div class="cell-truncate" title="@agent.BranchName">@agent.BranchName</div>
+                                        </td>
                                         <td class="text-center mono-data">@agent.AccountsCollected</td>
                                         <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
                                     </tr>
@@ -238,6 +246,7 @@
                             }
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -256,8 +265,8 @@
                         {
                             <li class="list-group-item d-flex justify-content-between align-items-center p-3">
                                 <div>
-                                    <div class="fw-bold">@agent.AgentName</div>
-                                    <div class="text-muted small">@agent.BranchName</div>
+                                    <div class="fw-bold cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                    <div class="text-muted small cell-truncate" title="@agent.BranchName">@agent.BranchName</div>
                                 </div>
                                 <span class="badge badge-danger">@agent.DaysInactive Days Inactive</span>
                             </li>
@@ -284,7 +293,8 @@
     </div>
     <div class="card-body p-0">
         <div class="table-wrapper">
-            <table class="table">
+            <div class="table-responsive">
+                <table class="table">
                 <thead>
                     <tr>
                         <th>Code</th>
@@ -304,8 +314,12 @@
                         {
                             <tr>
                                 <td class="mono-data fw-bold text-muted">#@agent.AgentCode</td>
-                                <td class="fw-bold">@agent.AgentName</td>
-                                <td class="text-muted">@agent.BranchName</td>
+                                <td class="fw-bold">
+                                    <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                </td>
+                                <td class="text-muted">
+                                    <div class="cell-truncate" title="@agent.BranchName">@agent.BranchName</div>
+                                </td>
                                 <td class="mono-data">@agent.MobileNumber</td>
                                 <td class="text-center">
                                     @if (agent.IsBlocked)

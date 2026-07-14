@@ -128,7 +128,8 @@
                 </div>
             </div>
             <div class="table-wrapper">
-                <table class="table" id="accountTable">
+                <div class="table-responsive">
+                    <table class="table" id="accountTable">
                     <thead>
                         <tr>
                             <th class="sortable">Type &amp; Account No</th>
@@ -157,13 +158,13 @@
                                 </td>
 
                                 <td>
-                                    <div class="fw-bold">@acc.Name</div>
+                                    <div class="fw-bold cell-truncate" title="@acc.Name">@acc.Name</div>
                                     <div class="text-muted" style="font-size: 12px;">
                                         <i class="bi bi-phone"></i> @(acc.MobileNo ?? "N/A")
                                     </div>
                                     @if (!string.IsNullOrEmpty(acc.Address))
                                     {
-                                        <div class="text-muted" style="font-size: 12px; margin-top: 2px;">
+                                        <div class="text-muted cell-truncate" style="font-size: 12px; margin-top: 2px;" title="@acc.Address">
                                             <i class="bi bi-geo-alt"></i> @acc.Address
                                         </div>
                                     }
@@ -195,6 +196,7 @@
                         }
                     </tbody>
                 </table>
+                </div>
             </div>
             <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center">
                 <div class="text-muted" style="font-size: 13px;">

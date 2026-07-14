@@ -294,5 +294,34 @@ namespace PigmyPro.Web.Controllers
             bool exists = await _userRepo.UsernameExistsAsync(username, userId);
             return Json(new { exists = exists });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> PasswordResetRequests()
+        {
+            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
+            int bankId = isSuperAdmin ? 0 : CurrentBankID;
+            
+            var requests = await _userRepo.GetPendingPasswordResetsAsync(bankId, isSuperAdmin);
+            
+            ViewBag.IsSuperAdmin = isSuperAdmin;
+            return View(requests);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApprovePasswordReset(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username)) return BadRequest();
+
+            await _userRepo.ApprovePasswordResetAsync(
+                username, 
+                User.Identity?.Name ?? "Admin", 
+                HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
+            );
+
+            TempData["Success"] = $"Password reset approved for {username}. They will be prompted to change their password on next login.";
+            
+            return RedirectToAction(nameof(PasswordResetRequests));
+        }
     }
 }

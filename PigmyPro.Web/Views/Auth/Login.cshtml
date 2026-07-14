@@ -187,6 +187,7 @@
                     <input asp-for="RememberMe" class="form-check-input" style="cursor: pointer;" />
                     <label asp-for="RememberMe" class="form-check-label" style="font-size: 13px; color: var(--color-text-secondary); cursor: pointer;">Stay signed in</label>
                 </div>
+                <a asp-action="ForgotPassword" style="font-size: 13px; color: var(--color-brand-primary); text-decoration: none; font-weight: 500;">Forgot Password?</a>
             </div>
 
             <button type="submit" class="btn btn-login">Sign In</button>
@@ -197,6 +198,9 @@
         </div>
     </div>
     
+    <div id="db-toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;"></div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // Clear any strict single-tab enforcement flags when landing on the login page
         sessionStorage.removeItem('pigmypro_tab_id');
@@ -212,6 +216,45 @@
                 // Immediately push a new state to overwrite the navigation attempt
                 window.history.pushState(null, "", window.location.href);
             });
+        })();
+
+        // Check DB Connection
+        (function() {
+            fetch('/Auth/CheckDbConnection')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('db-toast-container');
+                        const toast = document.createElement('div');
+                        toast.className = 'toast align-items-center text-white bg-success border-0 show';
+                        toast.style.transition = 'opacity 0.3s';
+                        toast.innerHTML = `
+                            <div class="d-flex">
+                                <div class="toast-body">Connected to database</div>
+                            </div>
+                        `;
+                        container.appendChild(toast);
+                        setTimeout(() => {
+                            toast.style.opacity = '0';
+                            setTimeout(() => toast.remove(), 300);
+                        }, 3000);
+                    } else {
+                        Swal.fire({
+                            text: 'Unable to connect to the database. Please try again later or contact support.',
+                            icon: 'error',
+                            confirmButtonColor: '#3b82f6',
+                            confirmButtonText: 'Okay'
+                        });
+                    }
+                })
+                .catch(() => {
+                    Swal.fire({
+                        text: 'Unable to connect to the database. Please try again later or contact support.',
+                        icon: 'error',
+                        confirmButtonColor: '#3b82f6',
+                        confirmButtonText: 'Okay'
+                    });
+                });
         })();
     </script>
 </body>
