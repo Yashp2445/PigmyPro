@@ -190,6 +190,16 @@ namespace PigmyPro.Web.Controllers
                 branchCode = (decimal)CurrentBranchID;
             }
 
+            if (!string.IsNullOrWhiteSpace(vm.MobileNo) && await _agentRepo.IsMobileNumberInUseAsync(bankId, vm.MobileNo))
+            {
+                ModelState.AddModelError("MobileNo", "This mobile number is already registered to another agent in this bank.");
+            }
+
+            if (vm.ReceiptNoPerAc < 1 || vm.ReceiptNoPerAc > 3)
+            {
+                ModelState.AddModelError("ReceiptNoPerAc", "Receipts per day must be between 1 and 3.");
+            }
+
             if (!ModelState.IsValid)
             {
                 if (isSuperAdmin) vm.BankList = await GetBankList();
@@ -210,7 +220,8 @@ namespace PigmyPro.Web.Controllers
                 NAME = vm.NAME,
                 MobileNo = vm.MobileNo,
                 Block = vm.Block,
-                NoOfHolidays = vm.NoOfHolidays,
+                NoOfHolidays = vm.NoOfHolidays ?? 0,
+                ReceiptNoPerAc = vm.ReceiptNoPerAc,
                 RadyToCash = vm.ReadyToCash ? "Y" : "N"
             };
 
@@ -242,6 +253,7 @@ namespace PigmyPro.Web.Controllers
                 SelectedBankID = agent.BankID,
                 Block = agent.Block ?? false,
                 NoOfHolidays = agent.NoOfHolidays ?? 0,
+                ReceiptNoPerAc = agent.ReceiptNoPerAc,
                 ReadyToCash = agent.RadyToCash == "Y"
             };
 
@@ -270,6 +282,16 @@ namespace PigmyPro.Web.Controllers
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? CurrentBankID) : CurrentBankID;
             decimal branchCode = (isSuperAdmin || isBankAdmin) ? vm.BranchCode : (decimal)CurrentBranchID;
 
+            if (!string.IsNullOrWhiteSpace(vm.MobileNo) && await _agentRepo.IsMobileNumberInUseAsync(bankId, vm.MobileNo, vm.Code))
+            {
+                ModelState.AddModelError("MobileNo", "This mobile number is already registered to another agent in this bank.");
+            }
+
+            if (vm.ReceiptNoPerAc < 1 || vm.ReceiptNoPerAc > 3)
+            {
+                ModelState.AddModelError("ReceiptNoPerAc", "Receipts per day must be between 1 and 3.");
+            }
+
             if (!ModelState.IsValid)
             {
                 if (isSuperAdmin) vm.BankList = await GetBankList(bankId);
@@ -284,7 +306,8 @@ namespace PigmyPro.Web.Controllers
                 code = vm.Code ?? 0,
                 NAME = vm.NAME,
                 MobileNo = vm.MobileNo,
-                NoOfHolidays = vm.NoOfHolidays,
+                NoOfHolidays = vm.NoOfHolidays ?? 0,
+                ReceiptNoPerAc = vm.ReceiptNoPerAc,
                 RadyToCash = vm.ReadyToCash ? "Y" : "N"
                 // Block is intentionally NOT set here — Block/Unblock is
                 // driven by vm.Block via the dedicated flag below, applied

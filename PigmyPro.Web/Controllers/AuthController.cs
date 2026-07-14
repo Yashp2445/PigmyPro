@@ -15,13 +15,15 @@ namespace PigmyPro.Web.Controllers
         private readonly IUserRepository _userRepo;
         private readonly IBankRepository _bankRepo;
         private readonly IConfiguration _configuration;
+        private readonly PigmyPro.Data.Context.DapperContext _dapperContext;
         private static readonly ConcurrentDictionary<string, (int Count, DateTime LastAttempt)> _loginAttempts = new();
 
-        public AuthController(IUserRepository userRepo, IBankRepository bankRepo, IConfiguration configuration)
+        public AuthController(IUserRepository userRepo, IBankRepository bankRepo, IConfiguration configuration, PigmyPro.Data.Context.DapperContext dapperContext)
         {
             _userRepo = userRepo;
             _bankRepo = bankRepo;
             _configuration = configuration;
+            _dapperContext = dapperContext;
         }
 
         public IActionResult Login()
@@ -83,6 +85,13 @@ namespace PigmyPro.Web.Controllers
 
             if (user != null)
             {
+                // Check if there is an approved reset request FIRST
+                if (await _userRepo.HasApprovedPasswordResetAsync(user.Username))
+                {
+                    TempData["ForceChangeUsername"] = user.Username;
+                    return RedirectToAction("ChangePassword");
+                }
+
                 bool isPasswordValid = false;
 
                 try
@@ -111,6 +120,11 @@ namespace PigmyPro.Web.Controllers
                     var bank = await _bankRepo.GetByIdAsync(user.BankID);
                     if (bank != null)
                     {
+                        if (!bank.ActiveYN)
+                        {
+                            ModelState.AddModelError("", "Your bank has been deactivated. Please contact support.");
+                            return View(vm);
+                        }
                         hasCBS = bank.hasCBS;
                     }
                 }
@@ -208,6 +222,93 @@ namespace PigmyPro.Web.Controllers
             return RedirectToAction("Login");
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(string username)
+        {
+            if (string.IsNullOrWhiteSpace(username))
+            {
+                ModelState.AddModelError("Username", "Username is required.");
+                return View();
+            }
+
+            var user = await _userRepo.GetByUsernameAsync(username);
+            if (user != null)
+            {
+                var pendingExists = await _userRepo.HasPendingPasswordResetAsync(username);
+                if (!pendingExists)
+                {
+                    await _userRepo.CreatePasswordResetRequestAsync(username);
+                }
+            }
+
+            ViewBag.SuccessMessage = "If this username exists, a password reset request has been submitted for admin approval.";
+            return View();
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ChangePassword()
+        {
+            if (TempData["ForceChangeUsername"] == null && User.Identity?.IsAuthenticated != true)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var username = TempData["ForceChangeUsername"]?.ToString() ?? User.Identity?.Name;
+            TempData["ForceChangeUsername"] = username; // Keep it alive
+            ViewBag.Username = username;
+            
+            return View(new ChangePasswordVM());
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangePasswordVM vm)
+        {
+            var username = TempData["ForceChangeUsername"]?.ToString() ?? User.Identity?.Name;
+            if (string.IsNullOrEmpty(username)) return RedirectToAction("Login");
+            
+            TempData["ForceChangeUsername"] = username; // Keep it alive
+            ViewBag.Username = username;
+
+            if (!ModelState.IsValid) return View(vm);
+
+            var user = await _userRepo.GetByUsernameAsync(username);
+            if (user == null) return RedirectToAction("Login");
+
+            // Prevent reuse
+            if (BCrypt.Net.BCrypt.Verify(vm.NewPassword, user.PasswordHash))
+            {
+                ModelState.AddModelError("NewPassword", "New password cannot be the same as the old password.");
+                return View(vm);
+            }
+
+            // Update user
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.NewPassword);
+            user.Entry_Date = DateTime.UtcNow;
+            await _userRepo.UpdateAsync(user);
+
+            // Log the change reason
+            await _userRepo.LogPasswordChangeAsync(username, vm.Reason, HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown");
+
+            // Consume the approval record
+            await _userRepo.ConsumeApprovedPasswordResetAsync(username);
+
+            TempData.Remove("ForceChangeUsername");
+            TempData["SuccessMessage"] = "Password changed successfully! Please log in with your new password.";
+            return RedirectToAction("Login");
+        }
+
         public IActionResult AccessDenied()
         {
             return View();
@@ -216,5 +317,27 @@ namespace PigmyPro.Web.Controllers
         [HttpGet]
         [Authorize]
         public IActionResult KeepAlive() => Ok();
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> CheckDbConnection()
+        {
+            try
+            {
+                using var connection = _dapperContext.CreateConnection();
+                if (connection is System.Data.Common.DbConnection dbConnection)
+                {
+                    await dbConnection.OpenAsync();
+                }
+                else
+                {
+                    connection.Open();
+                }
+                return Json(new { success = true });
+            }
+            catch (Exception)
+            {
+                return Json(new { success = false });
+            }
+        }
     }
 }

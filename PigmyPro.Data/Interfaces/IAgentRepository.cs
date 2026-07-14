@@ -25,5 +25,6 @@ namespace PigmyPro.Data.Interfaces
 
         Task<IEnumerable<Agent>> GetAgentsAsync(int bankId, decimal branchCode);
         Task<decimal> GetNextAgentCodeAsync(int bankId, decimal branchCode);
+        Task<bool> IsMobileNumberInUseAsync(int bankId, string mobileNumber, decimal? excludeAgentCode = null);
     }
 }

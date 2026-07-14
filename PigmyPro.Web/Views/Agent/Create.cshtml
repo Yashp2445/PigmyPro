@@ -17,7 +17,7 @@
             </div>
 
             <div class="card-body">
-                <form asp-action="@(isEdit ? "Edit" : "Create")" method="post">
+                <form id="agentForm" asp-action="@(isEdit ? "Edit" : "Create")" method="post">
                     @Html.AntiForgeryToken()
 
                     <input type="hidden" asp-for="IsSuperAdmin" />
@@ -74,7 +74,7 @@
                     </div>
 
                     <div class="row g-3 mb-4">
-                        <div class="col-md-7">
+                        <div class="col-md-4">
                             <label asp-for="MobileNo" class="form-label">Mobile Number</label>
                             <input asp-for="MobileNo" id="mobileNoInput" class="form-control"
                                    type="tel"
@@ -85,10 +85,15 @@
                             <span asp-validation-for="MobileNo" class="text-danger small"></span>
                             <span class="text-danger small" id="customMobileError"></span>
                         </div>
-                        <div class="col-md-5">
-                            <label asp-for="NoOfHolidays" class="form-label">Holidays/Month</label>
+                        <div class="col-md-4">
+                            <label asp-for="NoOfHolidays" class="form-label">Max. Collection Days</label>
                             <input asp-for="NoOfHolidays" id="noOfHolidaysInput" type="number" min="0" class="form-control" placeholder="0" oninput="validateHolidays(this)" />
                             <span class="text-danger small" id="holidaysError"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ReceiptNoPerAc" class="form-label">No. of Receipts per Day</label>
+                            <input asp-for="ReceiptNoPerAc" id="receiptsInput" type="number" min="1" max="3" class="form-control" placeholder="1" oninput="validateReceipts(this)" />
+                            <span class="text-danger small" id="receiptsError"></span>
                         </div>
                     </div>
 
@@ -297,8 +302,22 @@
             function validateHolidays(input) {
                 const errorSpan = document.getElementById('holidaysError');
                 if (maxBankHolidays > 0 && input.value > maxBankHolidays) {
+                    input.setCustomValidity('Cannot exceed Bank limit of ' + maxBankHolidays);
                     errorSpan.textContent = 'Cannot exceed Bank limit of ' + maxBankHolidays;
                 } else {
+                    input.setCustomValidity('');
+                    errorSpan.textContent = '';
+                }
+            }
+
+            function validateReceipts(input) {
+                const errorSpan = document.getElementById('receiptsError');
+                const val = parseInt(input.value, 10);
+                if (isNaN(val) || val < 1 || val > 3) {
+                    input.setCustomValidity('Must be between 1 and 3');
+                    errorSpan.textContent = 'Must be between 1 and 3';
+                } else {
+                    input.setCustomValidity('');
                     errorSpan.textContent = '';
                 }
             }
@@ -330,6 +349,32 @@
                     unobtrusiveSpan.style.display = 'none';
                 }
             }
+
+            document.getElementById('agentForm').addEventListener('submit', function(e) {
+                const mobileInput = document.getElementById('mobileNoInput');
+                if (mobileInput) {
+                    validateMobile(mobileInput);
+                }
+
+                const holidaysInput = document.getElementById('noOfHolidaysInput');
+                if (holidaysInput) {
+                    validateHolidays(holidaysInput);
+                }
+
+                const receiptsInput = document.getElementById('receiptsInput');
+                if (receiptsInput) {
+                    validateReceipts(receiptsInput);
+                }
+
+                const customMobileError = document.getElementById('customMobileError')?.textContent;
+                const holidaysError = document.getElementById('holidaysError')?.textContent;
+                const agentCodeError = document.getElementById('agentCodeError')?.textContent;
+                const receiptsError = document.getElementById('receiptsError')?.textContent;
+
+                if (customMobileError || holidaysError || agentCodeError || receiptsError) {
+                    e.preventDefault();
+                }
+            });
         </script>
     }
 }
