@@ -31,7 +31,7 @@ namespace PigmyPro.Data.Repositories
         }
 
      
-        public async Task<SuperAdminSummary> GetSuperAdminSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null)
+        public async Task<SuperAdminSummary> GetSuperAdminSummaryAsync(int? filterBankId = null)
         {
             var bankFilter = filterBankId.HasValue ? " AND BankID = @FilterBankID" : "";
             var bankFilterBranch = filterBankId.HasValue ? " AND BankID = @FilterBankID" : "";
@@ -42,18 +42,16 @@ namespace PigmyPro.Data.Repositories
                     (SELECT COUNT(*) FROM brncmast WHERE active = 'Y'{bankFilterBranch}) AS TotalBranches,
                     (SELECT COUNT(*) FROM agntmast WHERE Block = 0{bankFilter}) AS TotalAgents,
                     (SELECT COUNT(*) FROM acmaster WHERE 1=1{bankFilter}) AS TotalAccounts,
-                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{bankFilter}) AS TodayCollection";
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE 1=1 {bankFilter}) AS TodayCollection";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstAsync<SuperAdminSummary>(sql, new
             {
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date,
                 FilterBankID = filterBankId
             });
         }
 
-        public async Task<IEnumerable<BankWiseSummary>> GetBankWiseSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null)
+        public async Task<IEnumerable<BankWiseSummary>> GetBankWiseSummaryAsync(int? filterBankId = null)
         {
             var bankWhere = filterBankId.HasValue ? " AND b.BankID = @FilterBankID" : "";
 
@@ -84,7 +82,7 @@ namespace PigmyPro.Data.Repositories
                 LEFT JOIN (
                     SELECT BankID, SUM(Amount) AS TodayCollection 
                     FROM MobilePygTrn 
-                    WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    WHERE 1=1
                     GROUP BY BankID
                 ) tc ON tc.BankID = b.BankID
                 WHERE b.ActiveYN = 1{bankWhere}
@@ -93,8 +91,6 @@ namespace PigmyPro.Data.Repositories
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<BankWiseSummary>(sql, new
             {
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date,
                 FilterBankID = filterBankId
             });
         }
@@ -119,20 +115,20 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AccountTypeCount>(sql);
         }
 
-        public async Task<BankAdminSummary> GetBankAdminSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo)
+        public async Task<BankAdminSummary> GetBankAdminSummaryAsync(int bankId)
         {
             var sql = @"
                 SELECT
                     (SELECT COUNT(*) FROM brncmast WHERE BankID = @BankID AND active = 'Y') AS TotalBranches,
                     (SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND Block = 0) AS TotalAgents,
                     (SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID) AS TotalAccounts,
-                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo) AS TodayCollection";
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE BankID = @BankID ) AS TodayCollection";
 
             using var connection = _context.CreateConnection();
-            return await connection.QueryFirstAsync<BankAdminSummary>(sql, new { BankID = bankId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
+            return await connection.QueryFirstAsync<BankAdminSummary>(sql, new { BankID = bankId, });
         }
 
-        public async Task<IEnumerable<BranchWiseSummary>> GetBranchWiseSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
+        public async Task<IEnumerable<BranchWiseSummary>> GetBranchWiseSummaryAsync(int bankId, int? filterBranchId = null)
         {
             var branchFilter = filterBranchId.HasValue ? " AND br.BranchID = @FilterBranchID" : "";
 
@@ -157,7 +153,7 @@ namespace PigmyPro.Data.Repositories
                 LEFT JOIN (
                     SELECT BankID, Brnc_code, SUM(Amount) AS TodayCollection 
                     FROM MobilePygTrn 
-                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    WHERE BankID = @BankID 
                     GROUP BY BankID, Brnc_code
                 ) tc ON tc.BankID = br.BankID AND tc.Brnc_code = br.BranchID
                 WHERE br.BankID = @BankID AND br.active = 'Y'{branchFilter}
@@ -167,13 +163,11 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<BranchWiseSummary>(sql, new
             {
                 BankID = bankId,
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date,
                 FilterBranchID = filterBranchId
             });
         }
 
-        public async Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
+        public async Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, int? filterBranchId = null)
         {
             var branchFilter = filterBranchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
             var branchFilterTrn = filterBranchId.HasValue ? " AND Brnc_code = @FilterBranchID" : "";
@@ -191,7 +185,7 @@ namespace PigmyPro.Data.Repositories
                         SUM(Amount) AS TodayAmount,
                         COUNT(DISTINCT Code2) AS AccountsCollected
                     FROM MobilePygTrn
-                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
+                    WHERE BankID = @BankID {branchFilterTrn}
                     GROUP BY BankID, Agent, Brnc_code
                 ) tc ON tc.BankID = a.BankID AND tc.Agent = a.code AND tc.Brnc_code = a.brnc_code
                 WHERE a.BankID = @BankID AND a.Block = 0 AND ISNULL(tc.TodayAmount, 0) > 0{branchFilter}
@@ -202,8 +196,6 @@ namespace PigmyPro.Data.Repositories
             {
                 BankID = bankId,
                 Top = top,
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date,
                 FilterBranchID = filterBranchId
             });
         }
@@ -230,20 +222,20 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AccountTypeCount>(sql, new { BankID = bankId });
         }
 
-        public async Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo)
+        public async Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId)
         {
             var sql = @"
                 SELECT
-                    (SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND brnc_code = @BranchID) AS TotalAgents,
+                    (SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND brnc_code = @BranchID AND Block = 0) AS TotalAgents,
                     (SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID AND brnc_code = @BranchID) AS TotalAccounts,
-                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE BankID = @BankID AND Brnc_code = @BranchID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo) AS TodayCollection,
-                    (SELECT COUNT(DISTINCT Code2) FROM MobilePygTrn WHERE BankID = @BankID AND Brnc_code = @BranchID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo) AS AccountsCollectedToday";
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE BankID = @BankID AND Brnc_code = @BranchID ) AS TodayCollection,
+                    (SELECT COUNT(DISTINCT Code2) FROM MobilePygTrn WHERE BankID = @BankID AND Brnc_code = @BranchID ) AS AccountsCollectedToday";
 
             using var connection = _context.CreateConnection();
-            return await connection.QueryFirstAsync<BranchAdminSummary>(sql, new { BankID = bankId, BranchID = branchId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
+            return await connection.QueryFirstAsync<BranchAdminSummary>(sql, new { BankID = bankId, BranchID = branchId, });
         }
 
-        public async Task<IEnumerable<AgentCollectionRow>> GetAgentCollectionsByBranchAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo)
+        public async Task<IEnumerable<AgentCollectionRow>> GetAgentCollectionsByBranchAsync(int bankId, int branchId)
         {
             var sql = @"
                 SELECT 
@@ -257,17 +249,17 @@ namespace PigmyPro.Data.Repositories
                         SUM(Amount) AS TodayAmount,
                         COUNT(DISTINCT Code2) AS AccountsCollected
                     FROM MobilePygTrn
-                    WHERE BankID = @BankID AND Brnc_code = @BranchID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
+                    WHERE BankID = @BankID AND Brnc_code = @BranchID 
                     GROUP BY BankID, Agent, Brnc_code
                 ) tc ON tc.BankID = a.BankID AND tc.Agent = a.code AND tc.Brnc_code = a.brnc_code
                 WHERE a.BankID = @BankID AND a.brnc_code = @BranchID
                 ORDER BY tc.TodayAmount DESC, a.NAME";
 
             using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<AgentCollectionRow>(sql, new { BankID = bankId, BranchID = branchId, DateFrom = dateFrom.Date, DateTo = dateTo.Date });
+            return await connection.QueryAsync<AgentCollectionRow>(sql, new { BankID = bankId, BranchID = branchId, });
         }
 
-        public async Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null)
+        public async Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, int? filterBranchId = null)
         {
             var branchFilter = filterBranchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
             var branchFilterTrn = filterBranchId.HasValue ? " AND Brnc_code = @FilterBranchID" : "";
@@ -292,7 +284,7 @@ namespace PigmyPro.Data.Repositories
                         COUNT(DISTINCT Code2) AS AccountsCollected,
                         COUNT(*) AS ReceiptCount
                     FROM MobilePygTrn
-                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
+                    WHERE BankID = @BankID {branchFilterTrn}
                     GROUP BY BankID, Agent, Brnc_code
                 ) tc ON tc.BankID = a.BankID 
                     AND CAST(tc.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
@@ -312,13 +304,11 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AgentOverviewRow>(sql, new
             {
                 BankID = bankId,
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date,
                 FilterBranchID = filterBranchId
             });
         }
 
-        public async Task<IEnumerable<AgentOverviewRow>> GetAtRiskAgentsAsync(int bankId, DateTime dateFrom, DateTime dateTo, int top, int? branchId = null)
+        public async Task<IEnumerable<AgentOverviewRow>> GetAtRiskAgentsAsync(int bankId, int top, int? branchId = null)
         {
             var branchFilter = branchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";
             var branchFilterTrn = branchId.HasValue ? " AND Brnc_code = @FilterBranchID" : "";
@@ -340,7 +330,7 @@ namespace PigmyPro.Data.Repositories
                         SUM(Amount) AS TodayAmount,
                         COUNT(DISTINCT Code2) AS AccountsCollected
                     FROM MobilePygTrn
-                    WHERE BankID = @BankID AND CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo{branchFilterTrn}
+                    WHERE BankID = @BankID {branchFilterTrn}
                     GROUP BY BankID, Agent, Brnc_code
                 ) tc ON tc.BankID = a.BankID 
                     AND CAST(tc.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
@@ -364,13 +354,11 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AgentOverviewRow>(sql, new
             {
                 BankID = bankId,
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date,
                 Top = top,
                 FilterBranchID = branchId
             });
         }
-        public async Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null)
+        public async Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(int? bankId = null, int? branchId = null)
         {
             var bankFilter = bankId.HasValue ? " AND BankID = @BankID" : "";
             var branchFilter = branchId.HasValue ? " AND Brnc_code = @BranchID" : "";
@@ -380,8 +368,7 @@ namespace PigmyPro.Data.Repositories
                     CAST(Date AS DATE) AS Date,
                     SUM(Amount) AS Amount
                 FROM MobilePygTrn
-                WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo
-                    {bankFilter}
+                WHERE 1=1 {bankFilter}
                     {branchFilter}
                 GROUP BY CAST(Date AS DATE)
                 ORDER BY CAST(Date AS DATE)";
@@ -391,12 +378,10 @@ namespace PigmyPro.Data.Repositories
             {
                 BankID = bankId,
                 BranchID = branchId,
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date
-            });
+                });
         }
 
-        public async Task<AcMasterSummary> GetAcMasterSummaryAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null)
+        public async Task<AcMasterSummary> GetAcMasterSummaryAsync(int? bankId = null, int? branchId = null)
         {
             var bankFilter = bankId.HasValue ? " AND BankID = @BankID" : "";
             var branchFilter = branchId.HasValue ? " AND brnc_code = @BranchID" : "";
@@ -406,17 +391,15 @@ namespace PigmyPro.Data.Repositories
                 SELECT 
                     (SELECT COUNT(*) FROM acmaster WHERE 1=1 {bankFilter} {branchFilter}) AS TotalAccounts,
                     (SELECT ISNULL(SUM(BALANCE), 0) FROM acmaster WHERE 1=1 {bankFilter} {branchFilter}) AS TotalBalance,
-                    (SELECT COUNT(DISTINCT Code2) FROM MobilePygTrn WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo {bankFilter} {branchFilterTrn}) AS TotalCollectionAccounts,
-                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE CAST(Date AS DATE) >= @DateFrom AND CAST(Date AS DATE) <= @DateTo {bankFilter} {branchFilterTrn}) AS TotalCollectionAmount";
+                    (SELECT COUNT(DISTINCT Code2) FROM MobilePygTrn WHERE 1=1 {bankFilter} {branchFilterTrn}) AS TotalCollectionAccounts,
+                    (SELECT ISNULL(SUM(Amount), 0) FROM MobilePygTrn WHERE 1=1 {bankFilter} {branchFilterTrn}) AS TotalCollectionAmount";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstAsync<AcMasterSummary>(sql, new
             {
                 BankID = bankId,
                 BranchID = branchId,
-                DateFrom = dateFrom.Date,
-                DateTo = dateTo.Date
-            });
+                });
         }
 
         public async Task<CollectionHeldSummary> GetCollectionHeldWithAgentsAsync(int bankId, int? branchId = null)
@@ -464,3 +447,4 @@ namespace PigmyPro.Data.Repositories
         }
     }
 }
+

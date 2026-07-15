@@ -27,7 +27,5 @@ namespace PigmyPro.Web.ViewModels.Dashboard
         public DateTime LastUpdated { get; set; }
 
         // Dashboard filters
-        public DateTime DateFrom { get; set; }
-        public DateTime DateTo { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
@@ -32,20 +32,17 @@ namespace PigmyPro.Web.Controllers
             };
         }
 
-        public async Task<IActionResult> SuperAdmin(DateTime? dateFrom, DateTime? dateTo, int? bankId)
+        public async Task<IActionResult> SuperAdmin(int? bankId)
         {
             if (CurrentUserRole != AppRoles.SuperAdmin)
                 return RedirectToAction(nameof(Index));
 
             ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Dashboard</li>";
 
-            var from = dateFrom ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var to = dateTo ?? DateTime.Today;
-
-            var summary = await _repo.GetSuperAdminSummaryAsync(from, to, bankId);
-            var bankWise = await _repo.GetBankWiseSummaryAsync(from, to, bankId);
-            var acMasterData = await _repo.GetAcMasterSummaryAsync(from, to, bankId);
-            var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId);
+            var summary = await _repo.GetSuperAdminSummaryAsync(bankId);
+            var bankWise = await _repo.GetBankWiseSummaryAsync(bankId);
+            var acMasterData = await _repo.GetAcMasterSummaryAsync(bankId);
+            var trendData = await _repo.GetDailyCollectionTrendAsync(bankId);
 
             // Populate bank dropdown
             var banks = await _repo.GetBankDropdownAsync();
@@ -61,8 +58,6 @@ namespace PigmyPro.Web.Controllers
                 AcMasterData = acMasterData,
                 DailyTrendData = trendData.ToList(),
                 LastUpdated = DateTime.Now,
-                DateFrom = from,
-                DateTo = to,
                 FilterBankID = bankId,
                 Banks = banks.Select(b => new SelectListItem(b.Name, b.BankID.ToString())).ToList()
             };
@@ -70,7 +65,7 @@ namespace PigmyPro.Web.Controllers
             return View(vm);
         }
 
-        public async Task<IActionResult> BankAdmin(DateTime? dateFrom, DateTime? dateTo, int? branchId)
+        public async Task<IActionResult> BankAdmin(int? branchId)
         {
             if (CurrentUserRole != AppRoles.BankAdmin)
                 return RedirectToAction(nameof(Index));
@@ -78,16 +73,13 @@ namespace PigmyPro.Web.Controllers
             ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Dashboard</li>";
 
             var bankId = CurrentBankID;
-            var from = dateFrom ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var to = dateTo ?? DateTime.Today;
-
-            var summary = await _repo.GetBankAdminSummaryAsync(bankId, from, to);
-            var branchWise = await _repo.GetBranchWiseSummaryAsync(bankId, from, to, branchId);
-            var topAgents = await _repo.GetTopAgentCollectionsAsync(bankId, 10, from, to, branchId);
-            var acMasterData = await _repo.GetAcMasterSummaryAsync(from, to, bankId, branchId);
-            var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
-            var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
-            var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, from, to, 5, branchId)).ToList();
+            var summary = await _repo.GetBankAdminSummaryAsync(bankId);
+            var branchWise = await _repo.GetBranchWiseSummaryAsync(bankId, branchId);
+            var topAgents = await _repo.GetTopAgentCollectionsAsync(bankId, 10, branchId);
+            var acMasterData = await _repo.GetAcMasterSummaryAsync(bankId, branchId);
+            var agentOverview = await _repo.GetAgentOverviewAsync(bankId, branchId);
+            var trendData = await _repo.GetDailyCollectionTrendAsync(bankId, branchId);
+            var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, 5, branchId)).ToList();
             
             var collectionHeld = await _repo.GetCollectionHeldWithAgentsAsync(bankId, branchId);
             var collectionDeposited = await _repo.GetTodayDepositedCollectionAsync(bankId, branchId);
@@ -124,8 +116,6 @@ namespace PigmyPro.Web.Controllers
                 CollectionHeld = collectionHeld,
                 CollectionDeposited = collectionDeposited,
                 LastUpdated = DateTime.Now,
-                DateFrom = from,
-                DateTo = to,
                 FilterBranchID = branchId,
                 Branches = branches.Select(b => new SelectListItem(b.Name, b.BranchID.ToString())).ToList()
             };
@@ -133,7 +123,7 @@ namespace PigmyPro.Web.Controllers
             return View(vm);
         }
 
-        public async Task<IActionResult> BranchAdmin(DateTime? dateFrom, DateTime? dateTo)
+        public async Task<IActionResult> BranchAdmin()
         {
             if (CurrentUserRole != AppRoles.BranchAdmin)
                 return RedirectToAction(nameof(Index));
@@ -142,14 +132,11 @@ namespace PigmyPro.Web.Controllers
 
             var bankId = CurrentBankID;
             var branchId = CurrentBranchID;
-            var from = dateFrom ?? new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-            var to = dateTo ?? DateTime.Today;
-
-            var summary = await _repo.GetBranchAdminSummaryAsync(bankId, branchId, from, to);
-            var agents = await _repo.GetAgentCollectionsByBranchAsync(bankId, branchId, from, to);
-            var agentOverview = await _repo.GetAgentOverviewAsync(bankId, from, to, branchId);
-            var trendData = await _repo.GetDailyCollectionTrendAsync(from, to, bankId, branchId);
-            var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, from, to, 5, branchId)).ToList();
+            var summary = await _repo.GetBranchAdminSummaryAsync(bankId, branchId);
+            var agents = await _repo.GetAgentCollectionsByBranchAsync(bankId, branchId);
+            var agentOverview = await _repo.GetAgentOverviewAsync(bankId, branchId);
+            var trendData = await _repo.GetDailyCollectionTrendAsync(bankId, branchId);
+            var atRiskAgents = (await _repo.GetAtRiskAgentsAsync(bankId, 5, branchId)).ToList();
 
             var collectionHeld = await _repo.GetCollectionHeldWithAgentsAsync(bankId, branchId);
             var collectionDeposited = await _repo.GetTodayDepositedCollectionAsync(bankId, branchId);
@@ -177,12 +164,11 @@ namespace PigmyPro.Web.Controllers
                 AtRiskAgents = atRiskAgents,
                 CollectionHeld = collectionHeld,
                 CollectionDeposited = collectionDeposited,
-                LastUpdated = DateTime.Now,
-                DateFrom = from,
-                DateTo = to
+                LastUpdated = DateTime.Now
             };
 
             return View(vm);
         }
     }
 }
+
