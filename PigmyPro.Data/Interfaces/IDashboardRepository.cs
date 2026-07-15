@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -113,27 +113,27 @@ namespace PigmyPro.Data.Interfaces
     public interface IDashboardRepository
     {
         // SuperAdmin
-        Task<SuperAdminSummary> GetSuperAdminSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null);
-        Task<IEnumerable<BankWiseSummary>> GetBankWiseSummaryAsync(DateTime dateFrom, DateTime dateTo, int? filterBankId = null);
+        Task<SuperAdminSummary> GetSuperAdminSummaryAsync(int? filterBankId = null);
+        Task<IEnumerable<BankWiseSummary>> GetBankWiseSummaryAsync(int? filterBankId = null);
         Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionAsync();
 
         // BankAdmin
-        Task<BankAdminSummary> GetBankAdminSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo);
-        Task<IEnumerable<BranchWiseSummary>> GetBranchWiseSummaryAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null);
-        Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null);
+        Task<BankAdminSummary> GetBankAdminSummaryAsync(int bankId);
+        Task<IEnumerable<BranchWiseSummary>> GetBranchWiseSummaryAsync(int bankId, int? filterBranchId = null);
+        Task<IEnumerable<TopAgentCollection>> GetTopAgentCollectionsAsync(int bankId, int top, int? filterBranchId = null);
         Task<IEnumerable<AccountTypeCount>> GetAccountTypeDistributionByBankAsync(int bankId);
-        Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, DateTime dateFrom, DateTime dateTo, int? filterBranchId = null);
-        Task<IEnumerable<AgentOverviewRow>> GetAtRiskAgentsAsync(int bankId, DateTime dateFrom, DateTime dateTo, int top, int? branchId = null);
+        Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, int? filterBranchId = null);
+        Task<IEnumerable<AgentOverviewRow>> GetAtRiskAgentsAsync(int bankId, int top, int? branchId = null);
 
         // BranchAdmin
-        Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo);
-        Task<IEnumerable<AgentCollectionRow>> GetAgentCollectionsByBranchAsync(int bankId, int branchId, DateTime dateFrom, DateTime dateTo);
+        Task<BranchAdminSummary> GetBranchAdminSummaryAsync(int bankId, int branchId);
+        Task<IEnumerable<AgentCollectionRow>> GetAgentCollectionsByBranchAsync(int bankId, int branchId);
 
         // Trend
-        Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null);
+        Task<IEnumerable<DailyTrendPoint>> GetDailyCollectionTrendAsync(int? bankId = null, int? branchId = null);
 
         // AcMaster Summary
-        Task<AcMasterSummary> GetAcMasterSummaryAsync(DateTime dateFrom, DateTime dateTo, int? bankId = null, int? branchId = null);
+        Task<AcMasterSummary> GetAcMasterSummaryAsync(int? bankId = null, int? branchId = null);
 
         // New Summary Metrics
         Task<CollectionHeldSummary> GetCollectionHeldWithAgentsAsync(int bankId, int? branchId = null);
@@ -144,3 +144,4 @@ namespace PigmyPro.Data.Interfaces
         Task<IEnumerable<BranchDropdownItem>> GetBranchDropdownAsync(int bankId);
     }
 }
+

@@ -21,15 +21,7 @@
 <!-- Filter Panel -->
 <div class="filter-panel">
     <form asp-action="SuperAdmin" method="get" class="row g-3 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label">Date From</label>
-            <input type="date" name="dateFrom" value="@Model.DateFrom.ToString("yyyy-MM-dd")" class="form-control" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Date To</label>
-            <input type="date" name="dateTo" value="@Model.DateTo.ToString("yyyy-MM-dd")" class="form-control" />
-        </div>
-        <div class="col-md-3">
+        <div class="col-md-6">
             <label class="form-label">Bank</label>
             <select name="bankId" class="form-select">
                 <option value="">All Banks</option>
@@ -66,14 +58,14 @@
         <div class="stat-card warning">
             <div class="stat-icon"><i class="bi bi-person-badge-fill"></i></div>
             <div class="stat-value">@Model.TotalAgents</div>
-            <div class="stat-label">Field Agents</div>
+            <div class="stat-label">Total Active Agents</div>
         </div>
     </div>
     <div class="col-xl-2 col-md-4">
         <div class="stat-card success">
             <div class="stat-icon"><i class="bi bi-wallet2"></i></div>
             <div class="stat-value">@Model.TotalAccounts.ToString("N0")</div>
-            <div class="stat-label">Active Accounts</div>
+            <div class="stat-label">Total Accounts</div>
         </div>
     </div>
     <div class="col-xl-2 col-md-4">
@@ -83,13 +75,7 @@
             <div class="stat-label">Collected A/Cs</div>
         </div>
     </div>
-    <div class="col-xl-2 col-md-4">
-        <div class="stat-card info">
-            <div class="stat-icon"><i class="bi bi-wallet-fill"></i></div>
-            <div class="stat-value">₹@(Model.AcMasterData?.TotalBalance.ToString("N2") ?? "0.00")</div>
-            <div class="stat-label">Total Balance</div>
-        </div>
-    </div>
+
     <div class="col-xl-12">
         <div class="stat-card brand" style="background: var(--color-brand-primary); border-color: var(--color-brand-primary);">
             <div class="stat-icon" style="background: rgba(255,255,255,0.15); color: white;"><i class="bi bi-cash-stack"></i></div>
@@ -249,3 +235,4 @@
         })();
     </script>
 }
+

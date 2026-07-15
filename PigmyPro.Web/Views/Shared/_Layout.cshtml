@@ -125,6 +125,9 @@
                     <a href="/MobileImport/Export" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "MobileImport" && ViewContext.RouteData.Values["action"]?.ToString() == "Export" ? "active" : "")">
                         <i class="bi bi-upload"></i> Download Collection Data
                     </a>
+                     <a href="/MobileImport/ReDownload" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "MobileImport" && ViewContext.RouteData.Values["action"]?.ToString() == "Export" ? "active" : "")">
+                        <i class="bi bi-upload"></i> ReDownload Collection Data
+                    </a>
                     <a href="/MobileImport/Upload" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "MobileImport" && ViewContext.RouteData.Values["action"]?.ToString() == "Upload" ? "active" : "")">
                         <i class="bi bi-download"></i> Upload Master Account File
                     </a>
@@ -169,10 +172,6 @@
                                 }
                                 <span class='fw-bold text-dark fs-6 m-0'>
                                     @ViewBag.GlobalBankName 
-                                    @if (!string.IsNullOrEmpty(ViewBag.GlobalBranchName as string))
-                                    {
-                                        <text>- @ViewBag.GlobalBranchName</text>
-                                    }
                                 </span>
                             </li>
                         }
@@ -200,6 +199,12 @@
                         <div class="user-info-text">
                             <div class="user-info-name">@displayName</div>
                             <div class="user-info-role">@roleFriendly</div>
+                            @if (userRole == "BranchAdmin" && !string.IsNullOrEmpty(ViewBag.GlobalBranchName as string))
+                            {
+                                <div style="font-size: 0.7rem; color: #d97706; margin-top: 2px; font-weight: 500; opacity: 0.9;">
+                                    <i class="bi bi-geo-alt-fill" style="font-size: 0.65rem; margin-right: 3px; opacity: 0.85;"></i>@ViewBag.GlobalBranchName
+                                </div>
+                            }
                         </div>
                     </div>
                     <div style="width:1px;height:24px;background:var(--color-border);margin:0 8px;"></div>

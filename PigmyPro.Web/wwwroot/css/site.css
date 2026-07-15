@@ -819,3 +819,9 @@ a {
 .mono-data {
   font-family: var(--font-mono);
 }
+/* Compact Horizontal Card Modifier */
+.stat-card-compact {
+    padding: 16px 20px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+}
