@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using PigmyPro.Data.Interfaces;
@@ -148,6 +148,8 @@ namespace PigmyPro.Web.Controllers
             var branchObj = await _branchRepo.GetByIdAndBankIdAsync(branchId, bankId);
             string branchName = branchObj?.Name ?? "Branch Overview";
 
+            var agentsReadyForUpload = await _repo.GetAgentsReadyForUploadAsync(bankId, branchId);
+
             var vm = new BranchAdminDashboardVM
             {
                 BankID = bankId,
@@ -162,6 +164,7 @@ namespace PigmyPro.Web.Controllers
                 AgentOverview = agentOverview.ToList(),
                 DailyTrendData = trendData.ToList(),
                 AtRiskAgents = atRiskAgents,
+                AgentsReadyForUpload = agentsReadyForUpload.ToList(),
                 CollectionHeld = collectionHeld,
                 CollectionDeposited = collectionDeposited,
                 LastUpdated = DateTime.Now

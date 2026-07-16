@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Threading.Tasks;
 using Dapper;
 using PigmyPro.Data.Context;
@@ -19,7 +20,7 @@ namespace PigmyPro.Data.Repositories
         public async Task<PagedResult<User>> GetAllAsync(int pageNumber, int pageSize)
         {
             var countQuery = "SELECT COUNT(*) FROM UserMast";
-            var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date 
+            var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date 
                   FROM UserMast 
                   ORDER BY UserID DESC
                   OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
@@ -40,7 +41,7 @@ namespace PigmyPro.Data.Repositories
         public async Task<PagedResult<User>> GetAllByBankIdAsync(int bankId, int pageNumber, int pageSize)
         {
             var countQuery = "SELECT COUNT(*) FROM UserMast WHERE BankID = @BankID";
-            var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date 
+            var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date 
                           FROM UserMast WHERE BankID = @BankID ORDER BY UserID DESC
                           OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
@@ -58,29 +59,29 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<User?> GetByIdAsync(int id)
         {
-            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date FROM UserMast WHERE UserID = @UserID";
+            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date FROM UserMast WHERE UserID = @UserID";
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<User>(query, new { UserID = id });
         }
 
         public async Task<User?> GetByIdAndBankIdAsync(int id, int bankId)
         {
-            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date FROM UserMast WHERE UserID = @UserID AND BankID = @BankID";
+            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date FROM UserMast WHERE UserID = @UserID AND BankID = @BankID";
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<User>(query, new { UserID = id, BankID = bankId });
         }
 
         public async Task<User?> GetByUsernameAsync(string username)
         {
-            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive, Entry_Date FROM UserMast WHERE Username = @Username";
+            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date FROM UserMast WHERE Username = @Username";
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<User>(query, new { Username = username });
         }
 
         public async Task<int> AddAsync(User user)
         {
-            var query = @"INSERT INTO UserMast (BankID, BranchID, Username, PasswordHash, Role, code, name, IsActive) 
-                        VALUES (@BankID, @BranchID, @Username, @PasswordHash, @Role, @Code, @Name, @IsActive)";
+            var query = @"INSERT INTO UserMast (BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive) 
+                        VALUES (@BankID, @BranchID, @Username, @PasswordHash, @Role, @Code, @Name, @MobileNo, @IsActive)";
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, user);
         }
@@ -94,6 +95,7 @@ namespace PigmyPro.Data.Repositories
                         Role = @Role, 
                         code = @Code, 
                         name = @Name, 
+                        MobileNo = @MobileNo,
                         IsActive = @IsActive 
                         WHERE UserID = @UserID AND BankID = @BankID";
             using var connection = _context.CreateConnection();
@@ -119,74 +121,6 @@ namespace PigmyPro.Data.Repositories
             return count > 0;
         }
 
-        public async Task<bool> HasPendingPasswordResetAsync(string username)
-        {
-            var query = "SELECT COUNT(1) FROM Change_Password WHERE ini = @Username AND Reason = 'PENDING_RESET'";
-            using var connection = _context.CreateConnection();
-            return await connection.ExecuteScalarAsync<int>(query, new { Username = username }) > 0;
-        }
-
-        public async Task<int> CreatePasswordResetRequestAsync(string username)
-        {
-            var query = @"INSERT INTO Change_Password (ini, Reason, Entry_Date) 
-                          VALUES (@Username, 'PENDING_RESET', GETDATE())";
-            using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, new { Username = username });
-        }
-
-        public async Task<IEnumerable<dynamic>> GetPendingPasswordResetsAsync(int bankId, bool isSuperAdmin)
-        {
-            var query = @"
-                SELECT c.SRNO, c.ini AS Username, c.Entry_Date AS RequestedDate, u.name AS Name, b.Name AS BankName
-                FROM Change_Password c
-                INNER JOIN UserMast u ON c.ini = u.Username
-                INNER JOIN Banks b ON u.BankID = b.BankID
-                WHERE c.Reason = 'PENDING_RESET'";
-
-            if (!isSuperAdmin)
-            {
-                query += " AND u.BankID = @BankID";
-            }
-
-            query += " ORDER BY c.Entry_Date DESC";
-
-            using var connection = _context.CreateConnection();
-            return await connection.QueryAsync<dynamic>(query, new { BankID = bankId });
-        }
-
-        public async Task<int> ApprovePasswordResetAsync(string username, string adminUsername, string ipAddress)
-        {
-            using var connection = _context.CreateConnection();
-            var queryUpdateLog = @"
-                UPDATE Change_Password 
-                SET Reason = @Reason, 
-                    Operator_IP = @IpAddress, 
-                    Change_Date = GETDATE(), 
-                    Working_Date = GETDATE()
-                WHERE ini = @Username AND Reason = 'PENDING_RESET'";
-
-            var reason = "APPROVED_RESET_BY_" + adminUsername;
-            return await connection.ExecuteAsync(queryUpdateLog, new { Reason = reason, IpAddress = ipAddress, Username = username });
-        }
-
-        public async Task<bool> HasApprovedPasswordResetAsync(string username)
-        {
-            var query = "SELECT COUNT(1) FROM Change_Password WHERE ini = @Username AND Reason LIKE 'APPROVED_RESET_BY_%'";
-            using var connection = _context.CreateConnection();
-            return await connection.ExecuteScalarAsync<int>(query, new { Username = username }) > 0;
-        }
-
-        public async Task<int> ConsumeApprovedPasswordResetAsync(string username)
-        {
-            var query = @"
-                UPDATE Change_Password 
-                SET Reason = 'RESET_COMPLETED',
-                    Change_Date = GETDATE()
-                WHERE ini = @Username AND Reason LIKE 'APPROVED_RESET_BY_%'";
-            using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, new { Username = username });
-        }
-
         public async Task<int> LogPasswordChangeAsync(string username, string reason, string ipAddress)
         {
             var query = @"INSERT INTO Change_Password (ini, Reason, Operator_IP, Change_Date, Working_Date, Entry_Date) 
@@ -206,6 +140,39 @@ namespace PigmyPro.Data.Repositories
                 return null;
 
             return (result.Username, result.Password);
+        }
+
+        public async Task<(string Msg, string OTP)> GenerateResetOtpAsync(string username)
+        {
+            using var connection = _context.CreateConnection();
+            var parameters = new DynamicParameters();
+            parameters.Add("@Username", username);
+            parameters.Add("@Msg", dbType: DbType.String, direction: ParameterDirection.Output, size: 80);
+            parameters.Add("@OTP", dbType: DbType.String, direction: ParameterDirection.Output, size: 80);
+
+            await connection.ExecuteAsync("SP_GenerateResetOTP_User", parameters, commandType: CommandType.StoredProcedure);
+
+            string msg = parameters.Get<string>("@Msg");
+            string otp = parameters.Get<string>("@OTP");
+
+            return (msg, otp);
+        }
+
+        public async Task<(string Msg, bool Valid)> VerifyResetOtpAsync(string username, string enteredOtp)
+        {
+            using var connection = _context.CreateConnection();
+            var parameters = new DynamicParameters();
+            parameters.Add("@Username", username);
+            parameters.Add("@EnteredOTP", enteredOtp);
+            parameters.Add("@Msg", dbType: DbType.String, direction: ParameterDirection.Output, size: 80);
+            parameters.Add("@Valid", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+
+            await connection.ExecuteAsync("SP_VerifyResetOTP_User", parameters, commandType: CommandType.StoredProcedure);
+
+            string msg = parameters.Get<string>("@Msg");
+            bool valid = parameters.Get<bool>("@Valid");
+
+            return (msg, valid);
         }
     }
 }

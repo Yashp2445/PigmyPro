@@ -122,6 +122,12 @@ namespace PigmyPro.Web.Controllers
             if (!rows.Any())
                 return RedirectToAction("Export");
 
+            int outOfSyncCount = await _repo.ReconcileDownloadAsync(bankId, resolvedBranch, agentCode.Value);
+            if (outOfSyncCount > 0)
+            {
+                TempData["Warning"] = $"{outOfSyncCount} record(s) were out of sync and have now been archived.";
+            }
+
             int totalRecords = rows.Count;
             decimal totalAmount = rows.Sum(x => x.Amount);
 
@@ -178,11 +184,12 @@ namespace PigmyPro.Web.Controllers
                 return Json(new { eligible = false });
 
             bool readyToCash = agent.RadyToCash == "Y";
+            bool hasAcmasterRecords = await _repo.HasAcmasterRecordsAsync(bankId, resolvedBranch, agentCode);
             bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(bankId, resolvedBranch, agentCode);
 
-            bool eligible = readyToCash && !hasPendingData;
+            bool eligible = readyToCash && hasAcmasterRecords && !hasPendingData;
 
-            return Json(new { eligible, readyToCash, hasPendingData });
+            return Json(new { eligible, readyToCash, hasAcmasterRecords, hasPendingData });
         }
 
         [HttpGet]
@@ -480,6 +487,159 @@ namespace PigmyPro.Web.Controllers
                 TempData["Error"] = "Upload failed: " + ex.Message;
                 return RedirectToAction("Upload");
             }
+        }
+        // ==========================================
+        // REDOWNLOAD FLOW
+        // ==========================================
+        [HttpGet]
+        public async Task<IActionResult> Redownload()
+        {
+            var vm = new RedownloadVM();
+            // We can reuse PopulateExportDropdowns by casting or changing its signature,
+            // or just write a small helper for Redownload
+            await PopulateRedownloadDropdowns(vm);
+            return View(vm);
+        }
+
+        private async Task PopulateRedownloadDropdowns(RedownloadVM vm)
+        {
+            if (CurrentUserRole == AppRoles.BankAdmin)
+            {
+                var branches = await _branchRepo.GetAllByBankIdAsync(CurrentBankID);
+                vm.Branches = branches
+                    .Select(b => new SelectListItem(b.Name, b.BranchID.ToString()))
+                    .ToList();
+            }
+
+            decimal branchCode = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : (vm.BranchCode.HasValue ? (decimal)vm.BranchCode.Value : 0);
+
+            if (branchCode > 0)
+            {
+                var agents = await _repo.GetAgentsByBranchAsync(CurrentBankID, branchCode);
+                vm.Agents = agents
+                    .Select(a => new SelectListItem(a.Name, a.Code.ToString()))
+                    .ToList();
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMaxDownloadDate(decimal branchCode, decimal agentCode)
+        {
+            int bankId = CurrentBankID;
+            decimal resolvedBranch = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : branchCode;
+
+            if (resolvedBranch == 0 || agentCode == 0)
+                return Json(null);
+
+            var maxDate = await _repo.GetMaxDownloadDateAsync(bankId, resolvedBranch, agentCode);
+            if (maxDate.HasValue)
+            {
+                return Json(new { date = maxDate.Value.ToString("yyyy-MM-dd") });
+            }
+            
+            return Json(null);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> PreviewRedownload(RedownloadVM vm)
+        {
+            await PopulateRedownloadDropdowns(vm);
+
+            if (!vm.BranchCode.HasValue && CurrentUserRole != AppRoles.BranchAdmin)
+            {
+                vm.ErrorMessage = "Please select a branch.";
+                return View("Redownload", vm);
+            }
+            if (!vm.AgentCode.HasValue)
+            {
+                vm.ErrorMessage = "Please select an agent.";
+                return View("Redownload", vm);
+            }
+            if (!vm.SelectedDate.HasValue)
+            {
+                vm.ErrorMessage = "Please select a date.";
+                return View("Redownload", vm);
+            }
+
+            decimal resolvedBranch = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : (decimal)vm.BranchCode.Value;
+
+            int bankId = CurrentBankID;
+            
+            var rows = await _repo.GetArchivedCollectionsAsync(bankId, resolvedBranch, vm.AgentCode.Value, vm.SelectedDate.Value);
+            
+            vm.HasSearched = true;
+            vm.Rows = rows.Select(r => new ExportRowVM
+            {
+                SrNo = r.SrNo,
+                CollectionDate = r.CollectionDate,
+                Code1 = r.Code1,
+                Code2 = r.Code2,
+                CustomerName = r.CustomerName ?? "",
+                Amount = r.Amount,
+                Balance = r.Balance
+            }).ToList();
+            
+            vm.TotalRecords = vm.Rows.Count;
+            vm.TotalAmount = vm.Rows.Sum(r => r.Amount);
+
+            return View("Redownload", vm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DownloadRedownload(int? branchCode, decimal? agentCode, DateTime? selectedDate)
+        {
+            if (!agentCode.HasValue || !selectedDate.HasValue)
+                return RedirectToAction("Redownload");
+
+            decimal resolvedBranch = CurrentUserRole == AppRoles.BranchAdmin
+                ? (decimal)CurrentBranchID
+                : (branchCode ?? 0);
+            
+            if (resolvedBranch == 0)
+                return RedirectToAction("Redownload");
+
+            int bankId = CurrentBankID;
+            var rows = (await _repo.GetArchivedCollectionsAsync(bankId, resolvedBranch, agentCode.Value, selectedDate.Value)).ToList();
+            if (!rows.Any())
+                return RedirectToAction("Redownload");
+
+            int totalRecords = rows.Count;
+            decimal totalAmount = rows.Sum(x => x.Amount);
+
+            var sb = new StringBuilder();
+
+            string agentStr = agentCode.Value.ToString("0").PadLeft(3, '0');
+            string branchStr = resolvedBranch.ToString("0").PadLeft(3, '0');
+            string recordsStr = totalRecords.ToString().PadLeft(6, '0');
+            string amountStr = ((long)totalAmount).ToString().PadLeft(6, '0');
+
+            // Header matching DownloadExport exactly
+            sb.AppendLine($"000000,{recordsStr},{amountStr}          ,{agentStr}{branchStr},{DateTime.Today:dd-MM-yy},00000000");
+
+            foreach (var r in rows)
+            {
+                string code2Str = r.Code2.ToString().PadLeft(6, '0');
+                string rowAmtStr = ((long)r.Amount).ToString().PadLeft(6, '0');
+                string name = (r.CustomerName ?? string.Empty);
+                if (name.Length > 16) name = name.Substring(0, 16);
+                name = name.PadRight(16);
+                string balStr = ((long)r.Balance).ToString().PadLeft(6, '0');
+                string dateStr = r.CollectionDate.ToString("dd-MM-yy");
+
+                sb.AppendLine($"{code2Str},{rowAmtStr},{name},{balStr},{dateStr},{rowAmtStr}");
+            }
+
+            // User explicitly requested to skip LogExportAsync and SetAgentDownloadFlagAsync.
+            // (DataExportLog logging is omitted per user confirmation).
+
+            var bytes = Encoding.ASCII.GetBytes(sb.ToString());
+            return File(bytes, "text/plain", "PCRX.DAT");
         }
     }
 }

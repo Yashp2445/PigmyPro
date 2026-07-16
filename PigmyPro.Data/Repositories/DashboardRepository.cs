@@ -259,6 +259,39 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<AgentCollectionRow>(sql, new { BankID = bankId, BranchID = branchId, });
         }
 
+        public async Task<IEnumerable<AgentUploadReadyRow>> GetAgentsReadyForUploadAsync(int bankId, int branchId)
+        {
+            // Eligibility logic:
+            // 1. RadyToCash = 'Y'
+            // 2. Has acmaster records for this Bank+Branch+Agent
+            // 3. Has NO pending MobilePygTrn records
+            var sql = @"
+                SELECT 
+                    a.code AS AgentCode, 
+                    a.NAME AS AgentName
+                FROM agntmast a
+                WHERE a.BankID = @BankID 
+                  AND a.brnc_code = @BranchID
+                  AND a.Block = 0
+                  AND a.RadyToCash = 'Y'
+                  AND EXISTS (
+                      SELECT 1 FROM acmaster ac 
+                      WHERE ac.BankID = a.BankID 
+                        AND CAST(ac.brnc_code AS DECIMAL(10,0)) = a.brnc_code 
+                        AND CAST(ac.AgnCode AS DECIMAL(18,0)) = a.code
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM MobilePygTrn m 
+                      WHERE m.BankID = a.BankID 
+                        AND CAST(m.Brnc_code AS DECIMAL(10,0)) = a.brnc_code 
+                        AND CAST(m.Agent AS DECIMAL(18,0)) = a.code
+                  )
+                ORDER BY a.NAME";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<AgentUploadReadyRow>(sql, new { BankID = bankId, BranchID = branchId });
+        }
+
         public async Task<IEnumerable<AgentOverviewRow>> GetAgentOverviewAsync(int bankId, int? filterBranchId = null)
         {
             var branchFilter = filterBranchId.HasValue ? " AND a.brnc_code = @FilterBranchID" : "";

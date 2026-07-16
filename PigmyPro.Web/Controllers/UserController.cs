@@ -164,6 +164,7 @@ namespace PigmyPro.Web.Controllers
                 Role = vm.Role,
                 Code = vm.Code,
                 Name = vm.Name,
+                MobileNo = vm.MobileNo,
                 IsActive = vm.IsActive
             };
 
@@ -194,6 +195,7 @@ namespace PigmyPro.Web.Controllers
                 Role = user.Role,
                 Code = user.Code,
                 Name = user.Name,
+                MobileNo = user.MobileNo,
                 IsActive = user.IsActive,
                 BranchID = user.BranchID,
                 IsSuperAdmin = isSuperAdmin
@@ -246,6 +248,7 @@ namespace PigmyPro.Web.Controllers
             user.Role = vm.Role;
             user.Code = vm.Code;
             user.Name = vm.Name;
+            user.MobileNo = vm.MobileNo;
             user.IsActive = vm.IsActive;
             user.BranchID = (vm.Role == AppRoles.SuperAdmin || vm.Role == AppRoles.BankAdmin) ? null : vm.BranchID;
 
@@ -295,33 +298,5 @@ namespace PigmyPro.Web.Controllers
             return Json(new { exists = exists });
         }
 
-        [HttpGet]
-        public async Task<IActionResult> PasswordResetRequests()
-        {
-            bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
-            int bankId = isSuperAdmin ? 0 : CurrentBankID;
-            
-            var requests = await _userRepo.GetPendingPasswordResetsAsync(bankId, isSuperAdmin);
-            
-            ViewBag.IsSuperAdmin = isSuperAdmin;
-            return View(requests);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ApprovePasswordReset(string username)
-        {
-            if (string.IsNullOrWhiteSpace(username)) return BadRequest();
-
-            await _userRepo.ApprovePasswordResetAsync(
-                username, 
-                User.Identity?.Name ?? "Admin", 
-                HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown"
-            );
-
-            TempData["Success"] = $"Password reset approved for {username}. They will be prompted to change their password on next login.";
-            
-            return RedirectToAction(nameof(PasswordResetRequests));
-        }
     }
 }

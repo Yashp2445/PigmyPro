@@ -14,6 +14,7 @@ namespace PigmyPro.Domain.Entities
         public string Role { get; set; } = "BranchAdmin"; // SuperAdmin, BankAdmin, BranchAdmin
         public string? Code { get; set; }
         public string? Name { get; set; }
+        public string? MobileNo { get; set; }
         public bool IsActive { get; set; }
         public DateTime Entry_Date { get; set; }
     }
