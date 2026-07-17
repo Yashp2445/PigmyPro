@@ -16,12 +16,10 @@ namespace PigmyPro.Data.Interfaces
         Task<int> DeleteAsync(int id, int bankId);
         Task<(string Username, string PasswordHash)?> GetAdminCredentialsAsync(string username);
         Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null);
-        Task<bool> HasPendingPasswordResetAsync(string username);
-        Task<int> CreatePasswordResetRequestAsync(string username);
-        Task<IEnumerable<dynamic>> GetPendingPasswordResetsAsync(int bankId, bool isSuperAdmin);
-        Task<int> ApprovePasswordResetAsync(string username, string adminUsername, string ipAddress);
         Task<int> LogPasswordChangeAsync(string username, string reason, string ipAddress);
-        Task<bool> HasApprovedPasswordResetAsync(string username);
-        Task<int> ConsumeApprovedPasswordResetAsync(string username);
+
+        // New SP-driven OTP methods
+        Task<(string Msg, string OTP)> GenerateResetOtpAsync(string username);
+        Task<(string Msg, bool Valid)> VerifyResetOtpAsync(string username, string enteredOtp);
     }
 }

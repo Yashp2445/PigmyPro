@@ -23,11 +23,10 @@ namespace PigmyPro.Web.ViewModels.Dashboard
         public List<AgentOverviewRow> AgentOverview { get; set; } = new();
         public List<DailyTrendPoint> DailyTrendData { get; set; } = new();
         public List<AgentOverviewRow> AtRiskAgents { get; set; } = new();
+        public List<AgentUploadReadyRow> AgentsReadyForUpload { get; set; } = new();
 
         public DateTime LastUpdated { get; set; }
 
         // Dashboard filters
-        public DateTime DateFrom { get; set; }
-        public DateTime DateTo { get; set; }
     }
 }

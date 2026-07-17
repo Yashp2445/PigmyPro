@@ -61,11 +61,18 @@
                         <span asp-validation-for="BranchID" class="text-danger" style="font-size:11px;"></span>
                     </div>
 
-                    <!-- FULL NAME -->
-                    <div class="mb-3">
-                        <label class="form-label">FULL NAME</label>
-                        <input asp-for="Name" class="form-control" placeholder="Enter full name" />
-                        <span asp-validation-for="Name" class="text-danger" style="font-size:11px;"></span>
+                    <!-- FULL NAME & MOBILE -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">FULL NAME</label>
+                            <input asp-for="Name" class="form-control" placeholder="Enter full name" />
+                            <span asp-validation-for="Name" class="text-danger" style="font-size:11px;"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">MOBILE NUMBER</label>
+                            <input asp-for="MobileNo" class="form-control" placeholder="10-digit number" />
+                            <span asp-validation-for="MobileNo" class="text-danger" style="font-size:11px;"></span>
+                        </div>
                     </div>
 
                     <!-- USERNAME + PASSWORD -->

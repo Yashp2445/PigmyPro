@@ -23,20 +23,17 @@
     </div>
 }
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <h4 class="page-title">Branch Directory</h4>
-        <p class="page-subtitle">
-            @(ViewBag.BankName != null
-                ? "Operating branches for " + ViewBag.BankName
-                : "Comprehensive list of all branch offices")
-        </p>
-    </div>
+@using PigmyPro.Web.ViewModels.Shared
 
-    <a href="/Branch/Create" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> New Branch
-    </a>
-</div>
+@{
+    var headerSubtitle = ViewBag.BankName != null ? "Operating branches for " + ViewBag.BankName : "Comprehensive list of all branch offices";
+    var header = new PageHeaderVM {
+        Title = "Branch Directory",
+        Subtitle = headerSubtitle,
+        ActionsHtml = @"<a href=""/Branch/Create"" class=""btn btn-primary""><i class=""bi bi-plus-lg""></i> New Branch</a>"
+    };
+}
+<partial name="_PageHeader" model="header" />
 
 @if (ViewBag.IsSuperAdmin == true)
 {

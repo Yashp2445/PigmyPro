@@ -1,15 +1,15 @@
-@model PigmyPro.Web.ViewModels.MobileImport.ExportVM
+@model PigmyPro.Web.ViewModels.MobileImport.RedownloadVM
 
 @{
-    ViewData["Title"] = "Download Collections Data";
+    ViewData["Title"] = "ReDownload Collections Data";
     var isBankAdmin = User.IsInRole("BankAdmin");
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
-        <h4 style="font-size:18px; font-weight:700; margin:0; color:#0f172a;">Download Collections Data</h4>
+        <h4 style="font-size:18px; font-weight:700; margin:0; color:#0f172a;">ReDownload Collections Data</h4>
         <p style="font-size:12px; color:#94a3b8; margin:0;">
-            Generate a DAT file of pending collections for the selected agent
+            Generate a DAT file from previously archived collections
         </p>
     </div>
 </div>
@@ -35,11 +35,11 @@
 @* Filter Panel *@
 <div class="card shadow-sm border-0 mb-4" style="border-radius:12px;">
     <div class="card-body p-3">
-        <form asp-action="Export" method="post" class="row g-3 align-items-end">
+        <form asp-action="PreviewRedownload" method="post" class="row g-3 align-items-end">
 
             @if (isBankAdmin)
             {
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;">
                         Branch
                     </label>
@@ -51,15 +51,22 @@
                 </div>
             }
 
-            <div class="col-md-4">
+            <div class="@(isBankAdmin ? "col-md-3" : "col-md-4")">
                 <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;">
                     Agent
                 </label>
                 <select asp-for="AgentCode" asp-items="Model.Agents"
                         class="form-select form-select-sm" id="ddlAgent"
-                        onchange="checkEligibility()">
+                        onchange="checkDownloadDate()">
                     <option value="">-- Select Agent --</option>
                 </select>
+            </div>
+            
+            <div class="@(isBankAdmin ? "col-md-3" : "col-md-4")">
+                <label class="form-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;">
+                    Date
+                </label>
+                <input type="date" asp-for="SelectedDate" class="form-control form-control-sm" id="txtDate" disabled />
             </div>
 
             <div class="col-auto">
@@ -82,7 +89,7 @@
 {
     <div class="text-center py-5 text-muted">
         <i class="bi bi-cloud-arrow-down" style="font-size:42px; opacity:.15;"></i>
-        <p class="mt-3" style="font-size:13px;">Select a branch and agent to preview pending collections</p>
+        <p class="mt-3" style="font-size:13px;">Select a branch, agent, and date to preview archived collections</p>
     </div>
 }
 else if (Model.Rows.Any() && Model.TotalAmount > 0)
@@ -93,9 +100,10 @@ else if (Model.Rows.Any() && Model.TotalAmount > 0)
             Total: <strong class="text-success">₹@Model.TotalAmount.ToString("N2")</strong>
         </div>
 
-        <form asp-action="DownloadExport" method="post">
+        <form asp-action="DownloadRedownload" method="post">
             <input type="hidden" name="branchCode" value="@Model.BranchCode" />
             <input type="hidden" name="agentCode" value="@Model.AgentCode" />
+            <input type="hidden" name="selectedDate" value="@Model.SelectedDate?.ToString("yyyy-MM-dd")" />
             <button type="submit" class="btn btn-success btn-sm px-4">
                 <i class="bi bi-download me-1"></i> Download File
             </button>
@@ -146,7 +154,7 @@ else if (Model.Rows.Any() && Model.TotalAmount == 0)
 {
     <div class="text-center py-5 text-muted">
         <i class="bi bi-wallet2" style="font-size:42px; opacity:.15;"></i>
-        <p class="mt-3" style="font-size:13px;">Selected agent has no collections to export (₹0.00)</p>
+        <p class="mt-3" style="font-size:13px;">Selected agent has no collections for this date (₹0.00)</p>
     </div>
 }
 
@@ -166,47 +174,59 @@ else if (Model.Rows.Any() && Model.TotalAmount == 0)
         </script>
     }
     <script>
-        function checkEligibility() {
+        function checkDownloadDate() {
             var branchId = document.getElementById('ddlBranch') ? document.getElementById('ddlBranch').value : '0';
             var agentCode = document.getElementById('ddlAgent').value;
             var btnSubmit = document.getElementById('btnSubmit');
+            var txtDate = document.getElementById('txtDate');
             var msgDiv = document.getElementById('eligibilityMessage');
 
-            if (!btnSubmit || !msgDiv) return;
+            if (!btnSubmit || !txtDate || !msgDiv) return;
 
             // Reset UI
             btnSubmit.disabled = true;
+            txtDate.disabled = true;
+            txtDate.value = '';
             msgDiv.innerHTML = '';
 
             if (!agentCode) return;
 
-            msgDiv.innerHTML = '<span class="text-muted"><i class="spinner-border spinner-border-sm me-1" role="status"></i> Checking eligibility...</span>';
+            msgDiv.innerHTML = '<span class="text-muted"><i class="spinner-border spinner-border-sm me-1" role="status"></i> Checking archives...</span>';
 
-            fetch('/MobileImport/CheckExportEligibility?branchCode=' + branchId + '&agentCode=' + agentCode)
+            fetch('/MobileImport/GetMaxDownloadDate?branchCode=' + branchId + '&agentCode=' + agentCode)
                 .then(r => r.json())
                 .then(data => {
-                    if (data.eligible) {
+                    if (data && data.date) {
+                        txtDate.value = data.date;
+                        txtDate.disabled = false;
                         msgDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Ready for export</span>';
                         btnSubmit.disabled = false;
                     } else {
-                        if (data.readyToCash === true) {
-                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Agent is currently marked Ready to Cash &mdash; please complete the upload cycle before exporting again.</span>';
-                        } else if (data.hasPendingData === false) {
-                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> No pending collection data found for this agent &mdash; nothing to export.</span>';
-                        } else {
-                            msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Not eligible for export.</span>';
-                        }
+                        msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> No archived collection data found for this agent.</span>';
                     }
                 })
                 .catch(err => {
-                    msgDiv.innerHTML = '<span class="text-danger">Error checking eligibility.</span>';
+                    msgDiv.innerHTML = '<span class="text-danger">Error checking archives.</span>';
                 });
         }
+
+        // Add event listener to date input so when it changes, the submit button is enabled/disabled appropriately
+        document.getElementById('txtDate')?.addEventListener('change', function() {
+            var btnSubmit = document.getElementById('btnSubmit');
+            var msgDiv = document.getElementById('eligibilityMessage');
+            if (this.value) {
+                btnSubmit.disabled = false;
+                msgDiv.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Ready for export</span>';
+            } else {
+                btnSubmit.disabled = true;
+                msgDiv.innerHTML = '<span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Please select a valid date.</span>';
+            }
+        });
 
         function loadAgents(branchId) {
             var $agent = document.getElementById('ddlAgent');
             $agent.innerHTML = '<option value="">-- Loading... --</option>';
-            checkEligibility();
+            checkDownloadDate();
 
             if (!branchId) {
                 $agent.innerHTML = '<option value="">-- Select Agent --</option>';
@@ -222,11 +242,18 @@ else if (Model.Rows.Any() && Model.TotalAmount == 0)
                 });
         }
         
-        // Trigger check on page load if agent is pre-selected
+        // Trigger check on page load if agent is pre-selected (but only if we aren't already displaying results for a date, 
+        // to avoid overwriting the user's selected date on validation failures or after preview).
         document.addEventListener('DOMContentLoaded', function() {
             var agentCode = document.getElementById('ddlAgent') ? document.getElementById('ddlAgent').value : '';
-            if (agentCode) {
-                checkEligibility();
+            var txtDate = document.getElementById('txtDate');
+            if (agentCode && !txtDate.value) {
+                checkDownloadDate();
+            } else if (agentCode && txtDate.value) {
+                // Already populated (from model postback)
+                txtDate.disabled = false;
+                document.getElementById('btnSubmit').disabled = false;
+                document.getElementById('eligibilityMessage').innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Ready for export</span>';
             }
         });
     </script>

@@ -5,15 +5,18 @@
     ViewData["Breadcrumb"] = "<li class='breadcrumb-item active'>Bank Directory</li>";
 }
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <h1 class="page-title">Bank Directory</h1>
-        <p class="page-subtitle">Multi-bank tenant management for Super Admins</p>
-    </div>
-    <a href="/Bank/Create" class="btn btn-primary">
-        <i class="bi bi-plus-lg"></i> Add Bank
-    </a>
-</div>
+@using PigmyPro.Web.ViewModels.Shared
+
+@{
+    var headerSubtitle = ViewBag.IsSuperAdmin == true ? "Manage organizational bank tenants" : "Your organization details";
+    var actions = ViewBag.IsSuperAdmin == true ? @"<a href=""/Bank/Create"" class=""btn btn-primary""><i class=""bi bi-plus-lg""></i> New Bank</a>" : "";
+    var header = new PageHeaderVM {
+        Title = "Bank Directory",
+        Subtitle = headerSubtitle,
+        ActionsHtml = actions
+    };
+}
+<partial name="_PageHeader" model="header" />
 
 <div class="card elevated border-0">
     <div class="card-body p-0">

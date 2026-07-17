@@ -85,12 +85,6 @@ namespace PigmyPro.Web.Controllers
 
             if (user != null)
             {
-                // Check if there is an approved reset request FIRST
-                if (await _userRepo.HasApprovedPasswordResetAsync(user.Username))
-                {
-                    TempData["ForceChangeUsername"] = user.Username;
-                    return RedirectToAction("ChangePassword");
-                }
 
                 bool isPasswordValid = false;
 
@@ -231,54 +225,118 @@ namespace PigmyPro.Web.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ForgotPassword(string username)
+        public async Task<IActionResult> GenerateResetOtp([FromForm] string username)
         {
             if (string.IsNullOrWhiteSpace(username))
+                return Json(new { success = false, message = "Username is required." });
+
+            var (msg, otp) = await _userRepo.GenerateResetOtpAsync(username);
+
+            if (msg == "Mobile Number Not Found")
             {
-                ModelState.AddModelError("Username", "Username is required.");
-                return View();
+                return Json(new { success = false, message = "Mobile number not found. Please contact your branch administrator to register your mobile number." });
             }
+
+            if (msg == "OTP already sent, please wait")
+            {
+                return Json(new { success = false, message = "OTP already sent. Please wait 60 seconds before requesting a new one." });
+            }
+
+            // Successfully generated, clear any previous session tracking
+            HttpContext.Session.Remove($"OtpAttempts_{username}");
+            HttpContext.Session.Remove($"OtpUsed_{username}");
+
+            return Json(new { success = true, message = "If this username exists, an OTP has been sent to the registered mobile number." });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyResetOtp([FromForm] string username, [FromForm] string otp)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(otp))
+                return Json(new { success = false, message = "Username and OTP are required." });
+
+            var isUsed = HttpContext.Session.GetInt32($"OtpUsed_{username}") == 1;
+            if (isUsed)
+                return Json(new { success = false, message = "OTP has already been used." });
+
+            var attempts = HttpContext.Session.GetInt32($"OtpAttempts_{username}") ?? 0;
+            if (attempts >= 5)
+                return Json(new { success = false, message = "Too many failed attempts. Please request a new OTP." });
+
+            var (msg, valid) = await _userRepo.VerifyResetOtpAsync(username, otp);
+
+            if (!valid)
+            {
+                attempts++;
+                HttpContext.Session.SetInt32($"OtpAttempts_{username}", attempts);
+
+                if (msg == "No OTP request found" || msg == "OTP has expired")
+                {
+                    return Json(new { success = false, message = msg + ". Please request a new one." });
+                }
+                
+                return Json(new { success = false, message = "Invalid OTP." });
+            }
+
+            // Success - give a short-lived token to allow step 3, mark as used in session
+            HttpContext.Session.SetInt32($"OtpUsed_{username}", 1);
+            string token = Guid.NewGuid().ToString("N");
+            TempData["ResetToken_" + username] = token;
+
+            return Json(new { success = true, token = token });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPasswordWithOtp([FromForm] string username, [FromForm] string newPassword, [FromForm] string confirmPassword, [FromForm] string token)
+        {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(newPassword) || newPassword != confirmPassword)
+                return Json(new { success = false, message = "Invalid input or passwords do not match." });
+
+            var expectedToken = TempData["ResetToken_" + username]?.ToString();
+            if (string.IsNullOrEmpty(expectedToken) || expectedToken != token)
+                return Json(new { success = false, message = "Invalid or expired session. Please verify your OTP again." });
+
+            // Keep the token alive in case of validation failure below
+            TempData["ResetToken_" + username] = expectedToken;
 
             var user = await _userRepo.GetByUsernameAsync(username);
-            if (user != null)
-            {
-                var pendingExists = await _userRepo.HasPendingPasswordResetAsync(username);
-                if (!pendingExists)
-                {
-                    await _userRepo.CreatePasswordResetRequestAsync(username);
-                }
-            }
+            if (user == null)
+                return Json(new { success = false, message = "User not found." });
 
-            ViewBag.SuccessMessage = "If this username exists, a password reset request has been submitted for admin approval.";
-            return View();
+            if (BCrypt.Net.BCrypt.Verify(newPassword, user.PasswordHash))
+                return Json(new { success = false, message = "New password cannot be the same as the old password." });
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.Entry_Date = DateTime.UtcNow;
+            await _userRepo.UpdateAsync(user);
+
+            await _userRepo.LogPasswordChangeAsync(username, "Self-service OTP reset", HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown");
+
+            TempData.Remove("ResetToken_" + username);
+
+            return Json(new { success = true });
         }
 
         [HttpGet]
-        [AllowAnonymous]
+        [Authorize]
         public IActionResult ChangePassword()
         {
-            if (TempData["ForceChangeUsername"] == null && User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
-            var username = TempData["ForceChangeUsername"]?.ToString() ?? User.Identity?.Name;
-            TempData["ForceChangeUsername"] = username; // Keep it alive
+            var username = User.Identity?.Name;
             ViewBag.Username = username;
             
             return View(new ChangePasswordVM());
         }
 
         [HttpPost]
-        [AllowAnonymous]
+        [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ChangePassword(ChangePasswordVM vm)
         {
-            var username = TempData["ForceChangeUsername"]?.ToString() ?? User.Identity?.Name;
+            var username = User.Identity?.Name;
             if (string.IsNullOrEmpty(username)) return RedirectToAction("Login");
             
-            TempData["ForceChangeUsername"] = username; // Keep it alive
             ViewBag.Username = username;
 
             if (!ModelState.IsValid) return View(vm);
@@ -300,11 +358,6 @@ namespace PigmyPro.Web.Controllers
 
             // Log the change reason
             await _userRepo.LogPasswordChangeAsync(username, vm.Reason, HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown");
-
-            // Consume the approval record
-            await _userRepo.ConsumeApprovedPasswordResetAsync(username);
-
-            TempData.Remove("ForceChangeUsername");
             TempData["SuccessMessage"] = "Password changed successfully! Please log in with your new password.";
             return RedirectToAction("Login");
         }
