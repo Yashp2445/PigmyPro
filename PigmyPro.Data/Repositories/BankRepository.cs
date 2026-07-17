@@ -19,7 +19,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<Bank>> GetAllAsync()
         {
-            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, No_of_Holidays, LogoFileName FROM Banks ORDER BY BankID DESC";
+            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, No_of_Holidays, LogoFileName, AppLoginPrefix FROM Banks ORDER BY BankID DESC";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<Bank>(query);
@@ -37,9 +37,9 @@ namespace PigmyPro.Data.Repositories
         public async Task<int> AddAsync(Bank bank)
         {
             var query = @"INSERT INTO Banks 
-            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode, hasCBS, No_of_Holidays, Logo, LogoFileName)
+            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode, hasCBS, No_of_Holidays, Logo, LogoFileName, AppLoginPrefix)
             VALUES 
-            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode, @hasCBS, @No_of_Holidays, @Logo, @LogoFileName)";
+            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode, @hasCBS, @No_of_Holidays, @Logo, @LogoFileName, @AppLoginPrefix)";
 
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, bank);
@@ -58,7 +58,8 @@ namespace PigmyPro.Data.Repositories
             hasCBS = @hasCBS,
             No_of_Holidays = @No_of_Holidays,
             Logo = @Logo,
-            LogoFileName = @LogoFileName
+            LogoFileName = @LogoFileName,
+            AppLoginPrefix = @AppLoginPrefix
             WHERE BankID = @BankID";
 
             using var connection = _context.CreateConnection();
@@ -71,6 +72,13 @@ namespace PigmyPro.Data.Repositories
 
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, new { BankID = id });
+        }
+
+        public async Task<int> GetDependentBranchCountAsync(int bankId)
+        {
+            var query = "SELECT COUNT(*) FROM brncmast WHERE BankID = @BankID";
+            using var connection = _context.CreateConnection();
+            return await connection.ExecuteScalarAsync<int>(query, new { BankID = bankId });
         }
     }
 }

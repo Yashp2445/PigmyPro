@@ -148,6 +148,26 @@
             color: #dc2626;
             border-left: 4px solid #dc2626;
         }
+
+        .caps-warning {
+            display: none;
+            align-items: center;
+            background-color: #fffbeb;
+            color: #d97706;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-md);
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 8px;
+            box-shadow: 0 2px 4px rgba(217, 119, 6, 0.05);
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
@@ -179,6 +199,9 @@
             <div class="mb-4 text-start">
                 <label asp-for="Password" class="form-label">Password</label>
                 <input asp-for="Password" class="form-control" type="password" placeholder="••••••••" />
+                <div id="capsLockWarning" class="caps-warning">
+                    <i class="bi bi-capslock-fill me-2" style="font-size: 14px;"></i> Caps Lock is on
+                </div>
                 <span asp-validation-for="Password" class="text-danger" style="font-size: 11px;"></span>
             </div>
 
@@ -216,6 +239,30 @@
                 // Immediately push a new state to overwrite the navigation attempt
                 window.history.pushState(null, "", window.location.href);
             });
+        })();
+
+        // Caps Lock detection
+        (function() {
+            const pwdInput = document.getElementById('Password');
+            const capsWarning = document.getElementById('capsLockWarning');
+
+            if (pwdInput && capsWarning) {
+                const checkCapsLock = (e) => {
+                    if (e.getModifierState && e.getModifierState('CapsLock')) {
+                        capsWarning.style.display = 'flex';
+                    } else {
+                        capsWarning.style.display = 'none';
+                    }
+                };
+
+                pwdInput.addEventListener('keyup', checkCapsLock);
+                pwdInput.addEventListener('keydown', checkCapsLock);
+                pwdInput.addEventListener('mousedown', checkCapsLock);
+                pwdInput.addEventListener('focus', checkCapsLock);
+                pwdInput.addEventListener('blur', () => {
+                    capsWarning.style.display = 'none';
+                });
+            }
         })();
 
         // Check DB Connection

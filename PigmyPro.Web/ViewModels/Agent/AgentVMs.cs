@@ -27,8 +27,11 @@ namespace PigmyPro.Web.ViewModels.Agent
         public bool IsSuperAdmin { get; set; }
         public bool IsBankAdmin { get; set; }
 
+        public string? AppLoginPrefix { get; set; }
+
         [Required(ErrorMessage = "Agent Code is required")]
         [Display(Name = "Agent ID/Code")]
+        [DisplayFormat(DataFormatString = "{0:0}", ApplyFormatInEditMode = true)]
         public decimal? Code { get; set; }
 
         [Required(ErrorMessage = "Agent Name is required")]

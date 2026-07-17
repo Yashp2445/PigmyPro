@@ -278,5 +278,26 @@
             })();
         </script>
     }
+
+    @if (User.Identity?.IsAuthenticated == true && ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard")
+    {
+        <script>
+            // Prevent back navigation from Dashboard
+            (function () {
+                // Push an initial state into the history stack so there is a buffer
+                window.history.pushState(null, "", window.location.href);
+
+                // Listen for the popstate event (triggered by Back/Forward buttons)
+                window.addEventListener('popstate', function (event) {
+                    // Immediately push a new state to overwrite the navigation attempt (prevents quick double-backs)
+                    window.history.pushState(null, "", window.location.href);
+                    
+                    // Trigger a visible refresh so the user understands they are staying on the dashboard
+                    // and gets fresh data rather than the page appearing frozen.
+                    window.location.reload();
+                });
+            })();
+        </script>
+    }
 </body>
 </html>
