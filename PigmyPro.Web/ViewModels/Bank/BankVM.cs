@@ -11,17 +11,24 @@ namespace PigmyPro.Web.ViewModels.Bank
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
 
+        [StringLength(4, ErrorMessage = "Prefix must be at most 4 characters")]
+        [Display(Name = "App Login Prefix")]
+        public string? AppLoginPrefix { get; set; }
+
         [StringLength(200)]
         public string? Address { get; set; }
 
         [StringLength(15)]
+        [Display(Name = "Contact No")]
         public string? ContactNo { get; set; }
 
         [StringLength(50)]
+        [Display(Name = "Contact Person")]
         public string? ContactPerson { get; set; }
 
         [EmailAddress]
         [StringLength(50)]
+        [Display(Name = "Email ID")]
         public string? EmailID { get; set; }
 
         public bool ActiveYN { get; set; } = true;
@@ -51,5 +58,8 @@ namespace PigmyPro.Web.ViewModels.Bank
         public bool ActiveYN { get; set; }
         public bool HasCBS { get; set; }
         public bool HasLogo { get; set; }
+
+        public int DependentBranchCount { get; set; }
+        public bool CanDelete => DependentBranchCount == 0;
     }
 }

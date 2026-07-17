@@ -97,6 +97,16 @@
                         </div>
                     </div>
 
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label text-muted mb-1" style="font-size: 13px;">Mobile App Agent User ID</label>
+                            <div class="form-control bg-light text-primary fw-bold" id="computedUserIdDisplay" style="border-style: dashed; font-family: 'JetBrains Mono', monospace;">
+                                ---
+                            </div>
+                            
+                        </div>
+                    </div>
+
                     <div class="mb-4 pt-3 border-top">
                         <h6 class="form-label" style="font-size: 13px; color: var(--color-text-primary); margin-bottom: 12px;">Business Rules</h6>
                         <div class="row g-3">
@@ -184,6 +194,57 @@
         }
     </script>
 
+    <script>
+        const appLoginPrefix = '@(Model.AppLoginPrefix ?? "")'.padEnd(4, '0').substring(0, 4);
+
+        function updateComputedUserId() {
+            let branchCodeStr = '';
+            const branchSelect = document.getElementById('branchSelect');
+            if (branchSelect) {
+                branchCodeStr = branchSelect.value;
+            } else {
+                const branchCodeInput = document.getElementById('BranchCode');
+                if (branchCodeInput) {
+                    branchCodeStr = branchCodeInput.value;
+                }
+            }
+            
+            const agentCodeInput = document.getElementById('agentCodeInput');
+            let agentCodeStr = agentCodeInput ? agentCodeInput.value : '';
+            
+            const displayEl = document.getElementById('computedUserIdDisplay');
+            if (!displayEl) return;
+
+            if (appLoginPrefix && branchCodeStr && agentCodeStr) {
+                const branchInt = parseInt(branchCodeStr, 10);
+                const agentInt = parseInt(agentCodeStr, 10);
+
+                if (!isNaN(branchInt) && !isNaN(agentInt)) {
+                    const branchPadded = branchInt.toString().padStart(3, '0');
+                    const agentPadded = agentInt.toString().padStart(3, '0');
+                    displayEl.textContent = appLoginPrefix + branchPadded + agentPadded;
+                } else {
+                    displayEl.textContent = '---';
+                }
+            } else {
+                displayEl.textContent = '---';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const agentCodeInput = document.getElementById('agentCodeInput');
+            if (agentCodeInput) {
+                agentCodeInput.addEventListener('input', updateComputedUserId);
+            }
+            const branchSelect = document.getElementById('branchSelect');
+            if (branchSelect) {
+                branchSelect.addEventListener('change', updateComputedUserId);
+            }
+            // Initial computation
+            updateComputedUserId();
+        });
+    </script>
+
     @if (!isEdit)
     {
         <script>
@@ -199,6 +260,7 @@
                     .then(r => r.json())
                     .then(data => { 
                         codeInput.value = data.code; 
+                        updateComputedUserId();
                         if (loading) loading.classList.add('d-none');
                     })
                     .catch(() => { if (loading) loading.classList.add('d-none'); });

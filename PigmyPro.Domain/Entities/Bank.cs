@@ -19,5 +19,6 @@ namespace PigmyPro.Domain.Entities
         public int? No_of_Holidays { get; set; }
         public byte[]? Logo { get; set; }
         public string? LogoFileName { get; set; }
+        public string? AppLoginPrefix { get; set; }
     }
 }

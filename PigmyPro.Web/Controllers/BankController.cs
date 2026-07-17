@@ -23,16 +23,23 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
+            ViewBag.IsSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             var data = await _repo.GetAllAsync();
 
-            var vm = data.Select(x => new BankListVM
+            var vm = new List<BankListVM>();
+            foreach (var x in data)
             {
-                BankID = x.BankID,
-                Name = x.Name,
-                ActiveYN = x.ActiveYN,
-                HasCBS = x.hasCBS == 'Y',
-                HasLogo = !string.IsNullOrEmpty(x.LogoFileName) // Keep LogoFileName as an indicator of existence
-            }).ToList();
+                var branchCount = await _repo.GetDependentBranchCountAsync(x.BankID);
+                vm.Add(new BankListVM
+                {
+                    BankID = x.BankID,
+                    Name = x.Name,
+                    ActiveYN = x.ActiveYN,
+                    HasCBS = x.hasCBS == 'Y',
+                    HasLogo = !string.IsNullOrEmpty(x.LogoFileName), // Keep LogoFileName as an indicator of existence
+                    DependentBranchCount = branchCount
+                });
+            }
 
             return View(vm);
         }
@@ -117,6 +124,7 @@ namespace PigmyPro.Web.Controllers
                 ContactNo = vm.ContactNo,
                 ContactPerson = vm.ContactPerson,
                 EmailID = vm.EmailID,
+                AppLoginPrefix = vm.AppLoginPrefix,
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
@@ -148,6 +156,7 @@ namespace PigmyPro.Web.Controllers
                 ContactNo = data.ContactNo,
                 ContactPerson = data.ContactPerson,
                 EmailID = data.EmailID,
+                AppLoginPrefix = data.AppLoginPrefix,
                 ActiveYN = data.ActiveYN,
                 HasCBS = data.hasCBS == 'Y',
                 No_of_Holidays = data.No_of_Holidays,
@@ -196,6 +205,7 @@ namespace PigmyPro.Web.Controllers
                 ContactNo = vm.ContactNo,
                 ContactPerson = vm.ContactPerson,
                 EmailID = vm.EmailID,
+                AppLoginPrefix = vm.AppLoginPrefix,
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
@@ -214,10 +224,28 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
+            var branchCount = await _repo.GetDependentBranchCountAsync(id);
+            if (branchCount > 0)
+            {
+                TempData["Error"] = $"Cannot delete this bank because it has {branchCount} dependent branch(es).";
+                return RedirectToAction(nameof(Index));
+            }
+
             await _repo.DeleteAsync(id);
 
             TempData["Success"] = "Bank deleted.";
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckDependencies(int id)
+        {
+            var branchCount = await _repo.GetDependentBranchCountAsync(id);
+            if (branchCount > 0)
+            {
+                return Json(new { canDelete = false, branchCount, message = $"This bank cannot be deleted because it still has {branchCount} active branch(es). Please remove all branches first." });
+            }
+            return Json(new { canDelete = true, branchCount = 0, message = "" });
         }
 
         [HttpGet]

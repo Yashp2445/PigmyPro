@@ -121,11 +121,7 @@ namespace PigmyPro.Data.Repositories
             return rows;
         }
 
-        // ─────────────────────────────────────────────────────────
-        // Update — base fields always applied; Reset and Block/Unblock
-        // are conditionally applied inside the SP based on the flags
-        // passed here (driven by the Reset/Block checkboxes on Edit).
-        // ─────────────────────────────────────────────────────────
+    
         public async Task<int> UpdateAsync(
             Agent agent,
             bool resetAgent,

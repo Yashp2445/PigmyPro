@@ -37,14 +37,33 @@ namespace PigmyPro.Web.Controllers
                 data = await _repo.GetAllByBankIdAsync(CurrentBankID);
             }
 
-            var vm = data.Select(x => new BranchListVM
+            var vm = new List<BranchListVM>();
+            foreach (var x in data)
             {
-                BranchID = x.BranchID,
-                BankID = x.BankID,
-                Name = x.Name,
-                IsActive = x.Active == "Y" ? "Active" : "Inactive",
-                EntryDate = x.EntryDate
-            }).ToList();
+                var deps = await _repo.GetDependentRecordCountsAsync(x.BankID, x.BranchID);
+                var hasDependents = deps.AgentCount > 0 || deps.UserCount > 0 || deps.AccountCount > 0 || deps.TransactionCount > 0;
+                
+                var msgParts = new List<string>();
+                if (deps.AgentCount > 0) msgParts.Add($"{deps.AgentCount} agents");
+                if (deps.UserCount > 0) msgParts.Add($"{deps.UserCount} users");
+                if (deps.AccountCount > 0) msgParts.Add($"{deps.AccountCount} accounts");
+                if (deps.TransactionCount > 0) msgParts.Add($"{deps.TransactionCount} transactions");
+
+                string msg = hasDependents 
+                    ? $"This branch cannot be deleted because it still has: {string.Join(", ", msgParts)}." 
+                    : "";
+
+                vm.Add(new BranchListVM
+                {
+                    BranchID = x.BranchID,
+                    BankID = x.BankID,
+                    Name = x.Name,
+                    IsActive = x.Active == "Y" ? "Active" : "Inactive",
+                    EntryDate = x.EntryDate,
+                    CanDelete = !hasDependents,
+                    DependencyMessage = msg
+                });
+            }
 
             ViewBag.IsSuperAdmin = isSuperAdmin;
             ViewBag.SelectedBankID = bankId ?? 0;
@@ -204,9 +223,47 @@ namespace PigmyPro.Web.Controllers
         {
             int targetBankId = User.IsInRole(AppRoles.SuperAdmin) ? bankId : CurrentBankID;
 
+            var deps = await _repo.GetDependentRecordCountsAsync(targetBankId, id);
+            if (deps.AgentCount > 0 || deps.UserCount > 0 || deps.AccountCount > 0 || deps.TransactionCount > 0)
+            {
+                TempData["Error"] = "Cannot delete this branch because it has dependent agents, users, accounts, or transactions.";
+                return RedirectToAction(nameof(Index));
+            }
+
             await _repo.DeleteAsync(id, targetBankId);
             TempData["Success"] = "Branch deleted.";
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckDependencies(int id, int bankId)
+        {
+            int targetBankId = User.IsInRole(AppRoles.SuperAdmin) ? bankId : CurrentBankID;
+            
+            var deps = await _repo.GetDependentRecordCountsAsync(targetBankId, id);
+            bool hasDependents = deps.AgentCount > 0 || deps.UserCount > 0 || deps.AccountCount > 0 || deps.TransactionCount > 0;
+            
+            if (hasDependents)
+            {
+                var msgParts = new List<string>();
+                if (deps.AgentCount > 0) msgParts.Add($"{deps.AgentCount} agents");
+                if (deps.UserCount > 0) msgParts.Add($"{deps.UserCount} users");
+                if (deps.AccountCount > 0) msgParts.Add($"{deps.AccountCount} accounts");
+                if (deps.TransactionCount > 0) msgParts.Add($"{deps.TransactionCount} transactions");
+
+                string msg = $"This branch cannot be deleted because it still has: {string.Join(", ", msgParts)}.";
+                
+                return Json(new { 
+                    canDelete = false, 
+                    agentCount = deps.AgentCount,
+                    userCount = deps.UserCount,
+                    accountCount = deps.AccountCount,
+                    transactionCount = deps.TransactionCount,
+                    message = msg 
+                });
+            }
+
+            return Json(new { canDelete = true, message = "" });
         }
 
         public async Task<JsonResult> GetByBankId(int bankId)

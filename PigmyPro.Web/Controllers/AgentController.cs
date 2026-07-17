@@ -151,6 +151,9 @@ namespace PigmyPro.Web.Controllers
                 vm.Code = await _agentRepo.GetNextAgentCodeAsync(CurrentBankID, (decimal)CurrentBranchID);
             }
 
+            var bank = await _bankRepo.GetByIdAsync(CurrentBankID);
+            vm.AppLoginPrefix = bank?.AppLoginPrefix;
+
             return View(vm);
         }
 
@@ -204,6 +207,8 @@ namespace PigmyPro.Web.Controllers
             {
                 if (isSuperAdmin) vm.BankList = await GetBankList();
                 if (isSuperAdmin || isBankAdmin) vm.BranchList = await GetBranchList(bankId);
+                var bankInfo = await _bankRepo.GetByIdAsync(CurrentBankID);
+                vm.AppLoginPrefix = bankInfo?.AppLoginPrefix;
                 return View(vm);
             }
 
@@ -267,6 +272,9 @@ namespace PigmyPro.Web.Controllers
                 vm.BranchList = await GetBranchList(CurrentBankID, agent.brnc_code);
             }
 
+            var bank = await _bankRepo.GetByIdAsync(CurrentBankID);
+            vm.AppLoginPrefix = bank?.AppLoginPrefix;
+
             return View("Create", vm);
         }
 
@@ -296,6 +304,8 @@ namespace PigmyPro.Web.Controllers
             {
                 if (isSuperAdmin) vm.BankList = await GetBankList(bankId);
                 if (isSuperAdmin || isBankAdmin) vm.BranchList = await GetBranchList(bankId, branchCode);
+                var bankInfo = await _bankRepo.GetByIdAsync(CurrentBankID);
+                vm.AppLoginPrefix = bankInfo?.AppLoginPrefix;
                 return View("Create", vm);
             }
 

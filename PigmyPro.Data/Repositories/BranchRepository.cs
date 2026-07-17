@@ -73,5 +73,25 @@ namespace PigmyPro.Data.Repositories
             using var connection = _context.CreateConnection();
             return await connection.ExecuteAsync(query, new { BranchID = id, BankID = bankId });
         }
+
+        public async Task<(int AgentCount, int UserCount, int AccountCount, int TransactionCount)> GetDependentRecordCountsAsync(int bankId, int branchId)
+        {
+            var sql = @"
+                SELECT COUNT(*) FROM agntmast WHERE BankID = @BankID AND brnc_code = @BranchID;
+                SELECT COUNT(*) FROM UserMast WHERE BankID = @BankID AND BranchID = @BranchID;
+                SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID AND CAST(brnc_code AS INT) = @BranchID;
+                SELECT COUNT(*) FROM MobilePygTrn WHERE BankID = @BankID AND CAST(Brnc_code AS INT) = @BranchID;
+            ";
+
+            using var connection = _context.CreateConnection();
+            using var multi = await connection.QueryMultipleAsync(sql, new { BankID = bankId, BranchID = branchId });
+
+            int agentCount = await multi.ReadFirstAsync<int>();
+            int userCount = await multi.ReadFirstAsync<int>();
+            int accountCount = await multi.ReadFirstAsync<int>();
+            int transactionCount = await multi.ReadFirstAsync<int>();
+
+            return (agentCount, userCount, accountCount, transactionCount);
+        }
     }
 }

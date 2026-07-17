@@ -12,5 +12,6 @@ namespace PigmyPro.Data.Interfaces
         Task<int> AddAsync(Branch branch);
         Task<int> UpdateAsync(Branch branch);
         Task<int> DeleteAsync(int id, int bankId);
+        Task<(int AgentCount, int UserCount, int AccountCount, int TransactionCount)> GetDependentRecordCountsAsync(int bankId, int branchId);
     }
 }
