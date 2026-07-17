@@ -22,43 +22,57 @@
                         <input type="hidden" asp-for="BankID" />
                     }
 
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label fw-bold"></label>
-                        <input asp-for="Name" class="form-control" />
-                        <span asp-validation-for="Name" class="text-danger"></span>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label asp-for="Name" class="form-label fw-bold"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="AppLoginPrefix" class="form-label fw-bold"></label>
+                            <input asp-for="AppLoginPrefix" class="form-control" placeholder="e.g. B001" />
+                            <span asp-validation-for="AppLoginPrefix" class="text-danger"></span>
+                        </div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Address" class="form-label fw-bold"></label>
-                        <textarea asp-for="Address" class="form-control"></textarea>
+                        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="ContactPerson" class="form-label fw-bold"></label>
-                        <input asp-for="ContactPerson" class="form-control" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="ContactPerson" class="form-label fw-bold"></label>
+                            <input asp-for="ContactPerson" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ContactNo" class="form-label fw-bold"></label>
+                            <input asp-for="ContactNo" class="form-control" />
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="ContactNo" class="form-label fw-bold"></label>
-                        <input asp-for="ContactNo" class="form-control" />
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="EmailID" class="form-label fw-bold"></label>
+                            <input asp-for="EmailID" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="No_of_Holidays" class="form-label fw-bold"></label>
+                            <input asp-for="No_of_Holidays" class="form-control" type="number" />
+                        </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label asp-for="EmailID" class="form-label fw-bold"></label>
-                        <input asp-for="EmailID" class="form-control" />
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="No_of_Holidays" class="form-label fw-bold"></label>
-                        <input asp-for="No_of_Holidays" class="form-control" type="number" />
-                    </div>
-
-                    <div class="mb-3">
-                        <input asp-for="ActiveYN" type="checkbox" /> Active
-                    </div>
-
-                    <div class="mb-3">
-                        <input asp-for="HasCBS" type="checkbox" /> Has CBS
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6 d-flex align-items-center mt-4">
+                            <div class="form-check me-4">
+                                <input asp-for="ActiveYN" class="form-check-input" type="checkbox" />
+                                <label asp-for="ActiveYN" class="form-check-label">Active</label>
+                            </div>
+                            <div class="form-check">
+                                <input asp-for="HasCBS" class="form-check-input" type="checkbox" />
+                                <label asp-for="HasCBS" class="form-check-label">Has CBS</label>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">

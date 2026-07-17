@@ -110,9 +110,18 @@
                                         <a href="/Branch/Edit/@item.BranchID?bankId=@item.BankID" class="btn btn-outline btn-sm">
                                             <i class="bi bi-pencil"></i> Edit
                                         </a>
-                                        <button type="button" class="btn btn-outline btn-sm text-danger" onclick="confirmDelete(@item.BranchID, @item.BankID, '@item.Name')">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
+                                        @if(item.CanDelete)
+                                        {
+                                            <button type="button" class="btn btn-outline btn-sm text-danger" onclick="confirmDelete(@item.BranchID, @item.BankID, '@item.Name')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-outline btn-sm text-muted" style="cursor: not-allowed; opacity: 0.65;" onclick="showDependencyError('@item.DependencyMessage')" title="Cannot delete: @item.DependencyMessage">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        }
                                     </div>
                                 </td>
                             </tr>
@@ -125,40 +134,57 @@
     </div>
 </div>
 
-<!-- DELETE MODAL -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body text-center p-5">
-                <div class="mb-4 text-danger">
-                    <i class="bi bi-exclamation-triangle" style="font-size: 64px;"></i>
-                </div>
-                <h4 class="fw-bold mb-2" style="color: var(--color-text-primary);">Remove Branch?</h4>
-                <p id="deleteMsg" class="text-muted mb-4"></p>
-
-                <form id="deleteForm" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" id="deleteId" />
-                    <input type="hidden" name="bankId" id="deleteBankId" />
-
-                    <div class="d-flex gap-3 justify-content-center">
-                        <button type="button" class="btn btn-outline" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger px-4">Delete Branch</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+@Html.AntiForgeryToken()
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        function showDependencyError(message) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cannot Delete',
+                text: message,
+                confirmButtonColor: '#2563eb'
+            });
+        }
+
         function confirmDelete(id, bankId, name) {
-            document.getElementById('deleteMsg').textContent = 'Are you sure you want to permanently remove branch "' + name + '"?';
-            document.getElementById('deleteId').value = id;
-            document.getElementById('deleteBankId').value = bankId;
-            document.getElementById('deleteForm').action = '/Branch/Delete';
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+            Swal.fire({
+                title: 'Remove Branch?',
+                text: 'Are you sure you want to permanently remove branch "' + name + '"?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Delete Branch'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = '/Branch/Delete';
+                    
+                    const token = document.createElement('input');
+                    token.type = 'hidden';
+                    token.name = '__RequestVerificationToken';
+                    token.value = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    form.appendChild(token);
+
+                    const idInput = document.createElement('input');
+                    idInput.type = 'hidden';
+                    idInput.name = 'id';
+                    idInput.value = id;
+                    form.appendChild(idInput);
+
+                    const bankIdInput = document.createElement('input');
+                    bankIdInput.type = 'hidden';
+                    bankIdInput.name = 'bankId';
+                    bankIdInput.value = bankId;
+                    form.appendChild(bankIdInput);
+
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
         }
     </script>
 }
