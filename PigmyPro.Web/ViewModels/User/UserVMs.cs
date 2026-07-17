@@ -44,6 +44,10 @@ namespace PigmyPro.Web.ViewModels.User
         public string? Code { get; set; }
         public string? Name { get; set; }
 
+        [Display(Name = "Mobile Number")]
+        [StringLength(10, MinimumLength = 10, ErrorMessage = "Mobile number must be 10 digits.")]
+        public string? MobileNo { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public IEnumerable<SelectListItem>? BranchList { get; set; }

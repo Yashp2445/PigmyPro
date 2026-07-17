@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -110,6 +110,12 @@ namespace PigmyPro.Data.Interfaces
         public decimal TotalAmount { get; set; } 
     }
 
+    public class AgentUploadReadyRow
+    {
+        public decimal AgentCode { get; set; }
+        public string AgentName { get; set; } = string.Empty;
+    }
+
     public interface IDashboardRepository
     {
         // SuperAdmin
@@ -138,6 +144,9 @@ namespace PigmyPro.Data.Interfaces
         // New Summary Metrics
         Task<CollectionHeldSummary> GetCollectionHeldWithAgentsAsync(int bankId, int? branchId = null);
         Task<CollectionDepositedSummary> GetTodayDepositedCollectionAsync(int bankId, int? branchId = null);
+
+        // Agents Ready for Upload
+        Task<IEnumerable<AgentUploadReadyRow>> GetAgentsReadyForUploadAsync(int bankId, int branchId);
 
         // Dropdown helpers for dashboard filters
         Task<IEnumerable<BankDropdownItem>> GetBankDropdownAsync();

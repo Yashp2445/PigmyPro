@@ -26,19 +26,17 @@
     </div>
 }
 
-<div class="page-header d-flex align-items-center justify-content-between">
-    <div>
-        <h1 class="page-title">User Management</h1>
-        <p class="page-subtitle">
-            @(ViewBag.BankName != null
-                ? "Authorized personnel for " + ViewBag.BankName
-                : "Control access for branch staff and administrators")
-        </p>
-    </div>
-    <a href="/User/Create" class="btn btn-primary">
-        <i class="bi bi-person-plus-fill"></i> Register User
-    </a>
-</div>
+@using PigmyPro.Web.ViewModels.Shared
+
+@{
+    var headerSubtitle = ViewBag.BankName != null ? "Authorized personnel for " + ViewBag.BankName : "Control access for branch staff and administrators";
+    var header = new PageHeaderVM {
+        Title = "User Management",
+        Subtitle = headerSubtitle,
+        ActionsHtml = @"<a href=""/User/Create"" class=""btn btn-primary""><i class=""bi bi-person-plus-fill""></i> Register User</a>"
+    };
+}
+<partial name="_PageHeader" model="header" />
 
 @* Filter Panels *@
 <div class="filter-card border-0 mb-4 bg-transparent p-0">

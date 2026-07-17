@@ -1,0 +1,41 @@
+@model PigmyPro.Web.ViewModels.Shared.StatCardVM
+
+<div class="stat-card @Model.Variant @(Model.IsCompact ? "stat-card-compact" : "") h-100 d-flex @(Model.IsCompact ? "" : "flex-column justify-content-center")" 
+     style="@(Model.Variant.StartsWith("premium") ? "padding: 16px 20px !important; border: none; color: white; overflow: hidden; position: relative;" : "")">
+    
+    @if (Model.Variant.StartsWith("premium"))
+    {
+        <i class="@Model.IconClass" style="position: absolute; right: -5%; bottom: -15%; font-size: 5.5rem; opacity: 0.08; transform: rotate(-10deg); pointer-events:none;"></i>
+        
+        <div class="d-flex justify-content-between align-items-start mb-2 position-relative z-1">
+            <div class="stat-label fw-bold" style="color:rgba(255,255,255,0.85); text-transform: uppercase; letter-spacing: 0.5px; font-size:0.7rem; margin-top:0;">@Model.Title</div>
+            <div class="stat-icon rounded-circle mb-0 d-flex align-items-center justify-content-center flex-shrink-0" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.25); color: white; font-size:0.9rem; width:28px; height:28px; box-shadow: 0 2px 6px rgba(0,0,0,0.15); margin-left:8px;">
+                <i class="@Model.IconClass"></i>
+            </div>
+        </div>
+        
+        <div class="stat-value fw-bolder mb-1 position-relative z-1" style="color:white; font-size:1.45rem; line-height:1;">@Model.Value</div>
+        
+        @if (!string.IsNullOrEmpty(Model.Subtitle))
+        {
+            <div class="d-flex align-items-center gap-3 position-relative z-1" style="color:rgba(255,255,255,0.75); font-size:0.75rem; font-weight:500;">
+                @Html.Raw(Model.Subtitle)
+            </div>
+        }
+    }
+    else
+    {
+        <div class="stat-icon mb-0 me-3 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" 
+             style="width:40px; height:40px; font-size:1.2rem; @(Model.IsCompact ? "margin-bottom:0;" : "")">
+            <i class="@Model.IconClass"></i>
+        </div>
+        <div>
+            <div class="stat-value" style="font-size:1.25rem; font-weight:700; line-height:1.1;">@Model.Value</div>
+            <div class="stat-label" style="font-size:0.75rem; margin-top:4px; font-weight:600; text-transform:uppercase; letter-spacing:0.3px;">@Model.Title</div>
+            @if (!string.IsNullOrEmpty(Model.Subtitle))
+            {
+                <div class="stat-label mt-1" style="font-size:0.7rem; opacity: 0.8;">@Html.Raw(Model.Subtitle)</div>
+            }
+        </div>
+    }
+</div>

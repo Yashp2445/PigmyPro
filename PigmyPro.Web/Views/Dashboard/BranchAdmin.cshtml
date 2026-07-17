@@ -132,11 +132,11 @@
         </div>
     </div>
     
-    <!-- Ready to Cash: No/Other -->
+    <!-- Ready for Master Upload -->
     <div class="col-lg-6">
-        <div class="card h-100 border-warning border-opacity-50">
-            <div class="card-header bg-warning bg-opacity-10">
-                <h5 class="card-title text-warning-emphasis m-0"><i class="bi bi-exclamation-triangle me-2"></i>Agents Not Ready</h5>
+        <div class="card h-100 border-primary border-opacity-50">
+            <div class="card-header bg-primary bg-opacity-10">
+                <h5 class="card-title text-primary-emphasis m-0"><i class="bi bi-cloud-arrow-up me-2"></i>Ready for Master Upload</h5>
             </div>
             <div class="card-body p-0">
                 <div class="table-wrapper">
@@ -145,41 +145,113 @@
                             <tr>
                                 <th>Code</th>
                                 <th>Agent Name</th>
-                                <th class="text-center">No. of Receipts</th>
-                                <th class="text-end">Collection Amount</th>
+                                <th class="text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @{
-                                var notReadyAgents = Model.AgentOverview.Where(x => x.RadyToCash != "Y").ToList();
-                            }
-                            @if (notReadyAgents.Any())
+                            @if (Model.AgentsReadyForUpload.Any())
                             {
-                                @foreach (var agent in notReadyAgents)
+                                @foreach (var agent in Model.AgentsReadyForUpload)
                                 {
                                     <tr>
                                         <td class="mono-data">@agent.AgentCode</td>
                                         <td class="fw-bold">
                                             <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
                                         </td>
-                                        <td class="text-center mono-data">@agent.ReceiptCount</td>
-                                        <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
+                                        <td class="text-center">
+                                            <form asp-controller="MobileImport" asp-action="ParseFile" method="post" enctype="multipart/form-data" class="d-flex align-items-center m-0 p-0 justify-content-center gap-2">
+                                                <input type="hidden" name="SelectedAgentCode" value="@agent.AgentCode" />
+                                                <input type="file" name="uploadedFile" class="form-control form-control-sm" style="max-width: 150px;" accept=".dat" required />
+                                                <button type="submit" class="btn btn-primary btn-sm px-2 py-1">
+                                                    <i class="bi bi-upload"></i> Upload
+                                                </button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 }
                             }
                             else
                             {
                                 <tr>
-                                    <td colspan="4">
+                                    <td colspan="3">
                                         <div class="empty-state">
-                                            <i class="bi bi-people empty-state-icon"></i>
-                                            <div class="empty-state-title">No agents pending</div>
+                                            <i class="bi bi-cloud-check empty-state-icon"></i>
+                                            <div class="empty-state-title">No agents ready for master upload</div>
                                         </div>
                                     </td>
                                 </tr>
                             }
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Agent Registry Tables -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title m-0"><i class="bi bi-people me-2"></i>Agent Registry</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-wrapper">
+                    <div class="table-responsive">
+                        <table class="table mb-0 table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Agent Name</th>
+                                    <th>Mobile No</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-end">Collection</th>
+                                    <th class="text-center">Accounts</th>
+                                    <th class="text-center">Days Inactive</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.AgentOverview.Any())
+                                {
+                                    @foreach (var agent in Model.AgentOverview)
+                                    {
+                                        <tr>
+                                            <td class="mono-data">@agent.AgentCode</td>
+                                            <td class="fw-bold">
+                                                <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
+                                            </td>
+                                            <td class="mono-data">@agent.MobileNumber</td>
+                                            <td class="text-center">
+                                                @if (agent.IsBlocked)
+                                                {
+                                                    <span class="badge badge-danger">BLOCKED</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-success">ACTIVE</span>
+                                                }
+                                            </td>
+                                            <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
+                                            <td class="text-center mono-data">@agent.AccountsCollected</td>
+                                            <td class="text-center mono-data @(agent.DaysInactive > 7 ? "text-danger fw-bold" : "")">@(agent.DaysInactive.HasValue ? agent.DaysInactive.Value.ToString() : "N/A")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="7">
+                                            <div class="empty-state">
+                                                <i class="bi bi-people empty-state-icon"></i>
+                                                <div class="empty-state-title">No agents found</div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
