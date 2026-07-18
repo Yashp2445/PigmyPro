@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Dapper;
 using System.Data;
+using Dapper;
 using PigmyPro.Data.Context;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
@@ -47,31 +47,53 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<int> AddAsync(Branch branch)
         {
-            var query = "usp_InsertBranch";
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, 
-                new { BankID = branch.BankID, Name = branch.Name, Active = branch.Active }, 
-                commandType: System.Data.CommandType.StoredProcedure);
+            var p = new DynamicParameters();
+            p.Add("Op", "I");
+            p.Add("BankID", branch.BankID);
+            p.Add("name", branch.Name);
+            p.Add("active", branch.Active);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateBranch", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
         }
 
         public async Task<int> UpdateAsync(Branch branch)
         {
-            var query = @"UPDATE brncmast SET 
-                          name = @name, 
-                          active = @active 
-                          WHERE BranchID = @BranchID AND BankID = @BankID";
-
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, branch);
+            var p = new DynamicParameters();
+            p.Add("Op", "U");
+            p.Add("BranchID", branch.BranchID);
+            p.Add("BankID", branch.BankID);
+            p.Add("name", branch.Name);
+            p.Add("active", branch.Active);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateBranch", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
         }
 
         public async Task<int> DeleteAsync(int id, int bankId)
         {
-            var query = @"DELETE FROM brncmast 
-                          WHERE BranchID = @BranchID AND BankID = @BankID";
-
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, new { BranchID = id, BankID = bankId });
+            var p = new DynamicParameters();
+            p.Add("Op", "D");
+            p.Add("BranchID", id);
+            p.Add("BankID", bankId);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateBranch", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
+        }
+
+        private static void ThrowIfSpFailed(string? msg)
+        {
+            if (!string.IsNullOrEmpty(msg) && msg != "1")
+                throw new System.Exception($"sp_insertUpdateBranch failed: {msg}");
         }
 
         public async Task<(int AgentCount, int UserCount, int AccountCount, int TransactionCount)> GetDependentRecordCountsAsync(int bankId, int branchId)

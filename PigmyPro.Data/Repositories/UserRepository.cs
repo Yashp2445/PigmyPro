@@ -80,33 +80,65 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<int> AddAsync(User user)
         {
-            var query = @"INSERT INTO UserMast (BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive) 
-                        VALUES (@BankID, @BranchID, @Username, @PasswordHash, @Role, @Code, @Name, @MobileNo, @IsActive)";
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, user);
+            var p = new DynamicParameters();
+            p.Add("Op", "I");
+            p.Add("BankID", user.BankID);
+            p.Add("BranchID", user.BranchID);
+            p.Add("Username", user.Username);
+            p.Add("PasswordHash", user.PasswordHash);
+            p.Add("Role", user.Role);
+            p.Add("Code", user.Code);
+            p.Add("Name", user.Name);
+            p.Add("MobileNo", user.MobileNo);
+            p.Add("IsActive", user.IsActive);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateUser", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
         }
 
         public async Task<int> UpdateAsync(User user)
         {
-            var query = @"UPDATE UserMast SET 
-                        BranchID = @BranchID, 
-                        Username = @Username, 
-                        PasswordHash = @PasswordHash, 
-                        Role = @Role, 
-                        code = @Code, 
-                        name = @Name, 
-                        MobileNo = @MobileNo,
-                        IsActive = @IsActive 
-                        WHERE UserID = @UserID AND BankID = @BankID";
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, user);
+            var p = new DynamicParameters();
+            p.Add("Op", "U");
+            p.Add("UserID", user.UserID);
+            p.Add("BankID", user.BankID);
+            p.Add("BranchID", user.BranchID);
+            p.Add("Username", user.Username);
+            p.Add("PasswordHash", user.PasswordHash);
+            p.Add("Role", user.Role);
+            p.Add("Code", user.Code);
+            p.Add("Name", user.Name);
+            p.Add("MobileNo", user.MobileNo);
+            p.Add("IsActive", user.IsActive);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateUser", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
         }
 
         public async Task<int> DeleteAsync(int id, int bankId)
         {
-            var query = "DELETE FROM UserMast WHERE UserID = @UserID AND BankID = @BankID";
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, new { UserID = id, BankID = bankId });
+            var p = new DynamicParameters();
+            p.Add("Op", "D");
+            p.Add("UserID", id);
+            p.Add("BankID", bankId);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateUser", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
+        }
+
+        private static void ThrowIfSpFailed(string? msg)
+        {
+            if (!string.IsNullOrEmpty(msg) && msg != "1")
+                throw new System.Exception($"sp_insertUpdateUser failed: {msg}");
         }
 
         public async Task<bool> UsernameExistsAsync(string username, int? excludeUserId = null)

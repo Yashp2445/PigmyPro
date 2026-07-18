@@ -5,6 +5,7 @@ using Dapper;
 using PigmyPro.Data.Context;
 using PigmyPro.Data.Interfaces;
 using PigmyPro.Domain.Entities;
+using System.Data;
 
 namespace PigmyPro.Data.Repositories
 {
@@ -36,42 +37,72 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<int> AddAsync(Bank bank)
         {
-            var query = @"INSERT INTO Banks 
-            (Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, CollectionGLCode, hasCBS, No_of_Holidays, Logo, LogoFileName, AppLoginPrefix)
-            VALUES 
-            (@Name, @Address, @ContactNo, @ContactPerson, @EmailID, @ActiveYN, @CollectionGLCode, @hasCBS, @No_of_Holidays, @Logo, @LogoFileName, @AppLoginPrefix)";
-
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, bank);
+            var p = new DynamicParameters();
+            p.Add("Op", "I");
+            p.Add("Name", bank.Name);
+            p.Add("Address", bank.Address);
+            p.Add("ContactNo", bank.ContactNo);
+            p.Add("ContactPerson", bank.ContactPerson);
+            p.Add("EmailID", bank.EmailID);
+            p.Add("ActiveYN", bank.ActiveYN);
+            p.Add("CollectionGLCode", bank.CollectionGLCode);
+            p.Add("hasCBS", bank.hasCBS);
+            p.Add("RecieptPrinting", bank.RecieptPrinting);
+            p.Add("No_of_Holidays", bank.No_of_Holidays);
+            p.Add("Logo", bank.Logo, DbType.Binary);
+            p.Add("LogoFileName", bank.LogoFileName);
+            p.Add("AppLoginPrefix", bank.AppLoginPrefix);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateBank", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
         }
 
         public async Task<int> UpdateAsync(Bank bank)
         {
-            var query = @"UPDATE Banks SET
-            Name = @Name,
-            Address = @Address,
-            ContactNo = @ContactNo,
-            ContactPerson = @ContactPerson,
-            EmailID = @EmailID,
-            ActiveYN = @ActiveYN,
-            CollectionGLCode = @CollectionGLCode,
-            hasCBS = @hasCBS,
-            No_of_Holidays = @No_of_Holidays,
-            Logo = @Logo,
-            LogoFileName = @LogoFileName,
-            AppLoginPrefix = @AppLoginPrefix
-            WHERE BankID = @BankID";
-
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, bank);
+            var p = new DynamicParameters();
+            p.Add("Op", "U");
+            p.Add("BankID", bank.BankID);
+            p.Add("Name", bank.Name);
+            p.Add("Address", bank.Address);
+            p.Add("ContactNo", bank.ContactNo);
+            p.Add("ContactPerson", bank.ContactPerson);
+            p.Add("EmailID", bank.EmailID);
+            p.Add("ActiveYN", bank.ActiveYN);
+            p.Add("CollectionGLCode", bank.CollectionGLCode);
+            p.Add("hasCBS", bank.hasCBS);
+            p.Add("RecieptPrinting", bank.RecieptPrinting);
+            p.Add("No_of_Holidays", bank.No_of_Holidays);
+            p.Add("Logo", bank.Logo, DbType.Binary);
+            p.Add("LogoFileName", bank.LogoFileName);
+            p.Add("AppLoginPrefix", bank.AppLoginPrefix);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateBank", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
         }
 
         public async Task<int> DeleteAsync(int id)
         {
-            var query = "DELETE FROM Banks WHERE BankID = @BankID";
-
             using var connection = _context.CreateConnection();
-            return await connection.ExecuteAsync(query, new { BankID = id });
+            var p = new DynamicParameters();
+            p.Add("Op", "D");
+            p.Add("BankID", id);
+            p.Add("Msg", dbType: DbType.String, size: 80, direction: ParameterDirection.Output);
+
+            var rows = await connection.ExecuteAsync("sp_insertUpdateBank", p, commandType: CommandType.StoredProcedure);
+            ThrowIfSpFailed(p.Get<string>("Msg"));
+            return rows;
+        }
+
+        private static void ThrowIfSpFailed(string? msg)
+        {
+            if (!string.IsNullOrEmpty(msg) && msg != "1")
+                throw new System.Exception($"sp_insertUpdateBank failed: {msg}");
         }
 
         public async Task<int> GetDependentBranchCountAsync(int bankId)
