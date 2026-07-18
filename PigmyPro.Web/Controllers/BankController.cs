@@ -36,6 +36,7 @@ namespace PigmyPro.Web.Controllers
                     Name = x.Name,
                     ActiveYN = x.ActiveYN,
                     HasCBS = x.hasCBS == 'Y',
+                    RecieptPrinting = x.RecieptPrinting == 'Y',
                     HasLogo = !string.IsNullOrEmpty(x.LogoFileName), // Keep LogoFileName as an indicator of existence
                     DependentBranchCount = branchCount
                 });
@@ -128,6 +129,7 @@ namespace PigmyPro.Web.Controllers
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
+                RecieptPrinting = vm.RecieptPrinting ? 'Y' : 'N',
                 No_of_Holidays = vm.No_of_Holidays,
                 Logo = logoData,
                 LogoFileName = logoFileName,
@@ -159,6 +161,7 @@ namespace PigmyPro.Web.Controllers
                 AppLoginPrefix = data.AppLoginPrefix,
                 ActiveYN = data.ActiveYN,
                 HasCBS = data.hasCBS == 'Y',
+                RecieptPrinting = data.RecieptPrinting == 'Y',
                 No_of_Holidays = data.No_of_Holidays,
                 HasExistingLogo = !string.IsNullOrEmpty(data.LogoFileName),
 
@@ -209,6 +212,7 @@ namespace PigmyPro.Web.Controllers
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
+                RecieptPrinting = vm.RecieptPrinting ? 'Y' : 'N',
                 No_of_Holidays = vm.No_of_Holidays,
                 Logo = logoData,
                 LogoFileName = logoFileName

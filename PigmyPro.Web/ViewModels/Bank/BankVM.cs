@@ -33,6 +33,9 @@ namespace PigmyPro.Web.ViewModels.Bank
 
         public bool ActiveYN { get; set; } = true;
         public bool HasCBS { get; set; }
+        
+        [Display(Name = "Receipt Printing")]
+        public bool RecieptPrinting { get; set; }
 
         [Display(Name = "No of Holidays")]
         public int? No_of_Holidays { get; set; }
@@ -57,6 +60,7 @@ namespace PigmyPro.Web.ViewModels.Bank
         public string Name { get; set; } = string.Empty;
         public bool ActiveYN { get; set; }
         public bool HasCBS { get; set; }
+        public bool RecieptPrinting { get; set; }
         public bool HasLogo { get; set; }
 
         public int DependentBranchCount { get; set; }

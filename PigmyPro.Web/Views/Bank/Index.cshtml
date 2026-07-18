@@ -29,7 +29,7 @@
                         <th>Logo</th>
                         <th>Bank Name</th>
                         <th>Status</th>
-                        <th>Has CBS</th>
+                        <th>Features</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -62,14 +62,21 @@
                                 }
                             </td>
                             <td>
-                                @if (bank.HasCBS)
-                                {
-                                    <span class="badge bg-primary">CBS</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary text-white">Non-CBS</span>
-                                }
+                                <div class="d-flex flex-column gap-1">
+                                    @if (bank.HasCBS)
+                                    {
+                                        <span class="badge bg-primary" style="width: fit-content;">CBS</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary text-white" style="width: fit-content;">Non-CBS</span>
+                                    }
+                                    
+                                    @if (bank.RecieptPrinting)
+                                    {
+                                        <span class="badge bg-info text-dark" style="width: fit-content;">Receipt Printing</span>
+                                    }
+                                </div>
                             </td>
                             <td class="text-end">
                                 <div class="d-flex justify-content-end gap-2">
