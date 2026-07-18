@@ -16,6 +16,7 @@ namespace PigmyPro.Domain.Entities
         public DateTime EntryDateTime { get; set; }
         public long CollectionGLCode { get; set; }
         public char hasCBS { get; set; } = 'N';
+        public char? RecieptPrinting { get; set; } = 'N';
         public int? No_of_Holidays { get; set; }
         public byte[]? Logo { get; set; }
         public string? LogoFileName { get; set; }
