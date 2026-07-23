@@ -87,21 +87,6 @@ namespace PigmyPro.Data.Repositories
                 new { BankID = bankId, BranchCode = branchCode, Code2 = code2 });
         }
 
-        public async Task<bool> HasAcmasterRecordsAsync(int bankId, decimal branchCode, decimal agentCode)
-        {
-            var sql = @"
-                SELECT COUNT(1) 
-                FROM acmaster 
-                WHERE BankID = @BankID 
-                  AND CAST(brnc_code AS DECIMAL(10,0)) = @BranchCode 
-                  AND CAST(AgnCode AS DECIMAL(18,0)) = @AgentCode";
-            
-            using var connection = _context.CreateConnection();
-            var count = await connection.ExecuteScalarAsync<int>(sql, 
-                new { BankID = bankId, BranchCode = branchCode, AgentCode = agentCode });
-            
-            return count > 0;
-        }
 
         public async Task LogExportAsync(int bankId, decimal branchCode, decimal agentCode,
             string userId, int totalRecords, decimal totalAmount)

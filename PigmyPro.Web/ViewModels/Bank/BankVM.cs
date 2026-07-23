@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using PigmyPro.Web.ViewModels.Agent;
 
 namespace PigmyPro.Web.ViewModels.Bank
 {
@@ -8,26 +10,28 @@ namespace PigmyPro.Web.ViewModels.Bank
         public int BankID { get; set; }
 
         [Required(ErrorMessage = "Bank Name is required")]
-        [StringLength(100)]
+        [StringLength(300)]
         public string Name { get; set; } = string.Empty;
 
         [StringLength(4, ErrorMessage = "Prefix must be at most 4 characters")]
         [Display(Name = "App Login Prefix")]
         public string? AppLoginPrefix { get; set; }
 
-        [StringLength(200)]
+        [StringLength(600)]
         public string? Address { get; set; }
 
-        [StringLength(15)]
+        [StringLength(40)]
+        [ValidIndianMobile]
+        [Remote(action: "VerifyContactNo", controller: "Bank", AdditionalFields = "BankID")]
         [Display(Name = "Contact No")]
         public string? ContactNo { get; set; }
 
-        [StringLength(50)]
+        [StringLength(200)]
         [Display(Name = "Contact Person")]
         public string? ContactPerson { get; set; }
 
         [EmailAddress]
-        [StringLength(50)]
+        [StringLength(200)]
         [Display(Name = "Email ID")]
         public string? EmailID { get; set; }
 
@@ -38,6 +42,7 @@ namespace PigmyPro.Web.ViewModels.Bank
         public bool RecieptPrinting { get; set; }
 
         [Display(Name = "No of Holidays")]
+        [Range(0, 99, ErrorMessage = "Number of holidays cannot exceed 99.")]
         public int? No_of_Holidays { get; set; }
 
         public bool IsPigmy { get; set; } = true; 

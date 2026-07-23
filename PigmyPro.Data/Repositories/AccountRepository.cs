@@ -160,5 +160,28 @@ namespace PigmyPro.Data.Repositories
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<int>(query, new { BankID = bankId });
         }
+
+        public async Task<bool> IsMobileNumberInUseAsync(int bankId, string mobileNo, decimal? excludeCode1 = null, decimal? excludeBranchCode = null, decimal? excludeCode2 = null)
+        {
+            if (string.IsNullOrWhiteSpace(mobileNo)) return false;
+            var query = @"SELECT COUNT(1) FROM CA_Mast 
+                          WHERE BankID = @BankID AND MobileNo = @MobileNo";
+            
+            if (excludeCode1.HasValue && excludeBranchCode.HasValue && excludeCode2.HasValue)
+            {
+                query += " AND NOT (CODE1 = @Code1 AND brnc_code = @BranchCode AND CODE2 = @Code2)";
+            }
+
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(query, new 
+            { 
+                BankID = bankId, 
+                MobileNo = mobileNo,
+                Code1 = excludeCode1,
+                BranchCode = excludeBranchCode,
+                Code2 = excludeCode2
+            });
+            return count > 0;
+        }
     }
 }

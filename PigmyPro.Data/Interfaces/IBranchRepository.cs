@@ -8,6 +8,7 @@ namespace PigmyPro.Data.Interfaces
     {
         Task<IEnumerable<Branch>> GetAllAsync();
         Task<IEnumerable<Branch>> GetAllByBankIdAsync(int bankId);
+        Task<IEnumerable<Branch>> GetActiveByBankIdAsync(int bankId);
         Task<Branch?> GetByIdAndBankIdAsync(int id, int bankId);
         Task<int> AddAsync(Branch branch);
         Task<int> UpdateAsync(Branch branch);
