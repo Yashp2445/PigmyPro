@@ -84,13 +84,14 @@
                             <span id="usernameError" class="text-danger fw-bold" style="display:none;font-size:11px;"><i class="bi bi-exclamation-triangle-fill"></i> This username is already taken.</span>
                         </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">
-                                @(isEdit ? "PASSWORD (leave blank to keep)" : "PASSWORD")
-                            </label>
-                            <input asp-for="Password" type="password" class="form-control" />
-                            <span asp-validation-for="Password" class="text-danger" style="font-size:11px;"></span>
-                        </div>
+                        @if (!isEdit)
+                        {
+                            <div class="col-md-6">
+                                <label class="form-label">PASSWORD</label>
+                                <input asp-for="Password" type="password" class="form-control" onpaste="return false;" />
+                                <span asp-validation-for="Password" class="text-danger" style="font-size:11px;"></span>
+                            </div>
+                        }
                     </div>
 
                     <!-- ACTIVE TOGGLE -->
@@ -148,7 +149,7 @@
 
             if (!bankId) return;
 
-            $.get('/Branch/GetByBankId?bankId=' + bankId, function (data) {
+            $.get('/User/GetBranches?bankId=' + bankId, function (data) {
                 $.each(data, function (i, item) {
                     branchDropdown.append(
                         '<option value="' + item.value + '">' + item.text + '</option>'

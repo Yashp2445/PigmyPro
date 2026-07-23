@@ -26,6 +26,14 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<Bank>(query);
         }
 
+        public async Task<IEnumerable<Bank>> GetActiveAsync()
+        {
+            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, No_of_Holidays, LogoFileName, AppLoginPrefix FROM Banks WHERE ActiveYN = 1 ORDER BY BankID DESC";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<Bank>(query);
+        }
+
         public async Task<Bank?> GetByIdAsync(int id)
         {
             var query = "SELECT * FROM Banks WHERE BankID = @BankID";
@@ -110,6 +118,23 @@ namespace PigmyPro.Data.Repositories
             var query = "SELECT COUNT(*) FROM brncmast WHERE BankID = @BankID";
             using var connection = _context.CreateConnection();
             return await connection.ExecuteScalarAsync<int>(query, new { BankID = bankId });
+        }
+
+        public async Task<bool> IsContactNoInUseAsync(int excludeBankId, string contactNo)
+        {
+            var query = "SELECT COUNT(1) FROM Banks WHERE ContactNo = @ContactNo AND BankID != @ExcludeBankID";
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(query, new { ContactNo = contactNo, ExcludeBankID = excludeBankId });
+            return count > 0;
+        }
+
+        public async Task<bool> IsAppLoginPrefixInUseAsync(int excludeBankId, string prefix)
+        {
+            if (string.IsNullOrWhiteSpace(prefix)) return false;
+            var query = "SELECT COUNT(1) FROM Banks WHERE AppLoginPrefix = @Prefix AND BankID != @ExcludeBankID";
+            using var connection = _context.CreateConnection();
+            var count = await connection.ExecuteScalarAsync<int>(query, new { Prefix = prefix, ExcludeBankID = excludeBankId });
+            return count > 0;
         }
     }
 }

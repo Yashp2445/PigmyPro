@@ -35,6 +35,17 @@ namespace PigmyPro.Data.Repositories
             return await connection.QueryAsync<Branch>(query, new { BankID = bankId });
         }
 
+        public async Task<IEnumerable<Branch>> GetActiveByBankIdAsync(int bankId)
+        {
+            var query = @"SELECT BranchID, BankID, name, active, EntryDate 
+                          FROM brncmast 
+                          WHERE BankID = @BankID AND active = 'Y' 
+                          ORDER BY BranchID DESC";
+
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<Branch>(query, new { BankID = bankId });
+        }
+
         public async Task<Branch?> GetByIdAndBankIdAsync(int id, int bankId)
         {
             var query = @"SELECT BranchID, BankID, name, active, EntryDate 

@@ -112,7 +112,7 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                vm.BankList = (await _bankRepo.GetAllAsync()).Select(b => new SelectListItem
+                vm.BankList = (await _bankRepo.GetActiveAsync()).Select(b => new SelectListItem
                 {
                     Value = b.BankID.ToString(),
                     Text = b.Name,
@@ -121,7 +121,7 @@ namespace PigmyPro.Web.Controllers
 
                 if (filterBankID.HasValue)
                 {
-                    vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(filterBankID.Value))
+                    vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(filterBankID.Value))
                         .Select(b => new SelectListItem
                         {
                             Value = b.BranchID.ToString(),
@@ -132,7 +132,7 @@ namespace PigmyPro.Web.Controllers
             }
             else if (isBankAdmin)
             {
-                vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(CurrentBankID))
+                vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(CurrentBankID))
                     .Select(b => new SelectListItem
                     {
                         Value = b.BranchID.ToString(),
@@ -165,12 +165,12 @@ namespace PigmyPro.Web.Controllers
             };
 
             if (isSuperAdmin)
-                vm.BankList = (await _bankRepo.GetAllAsync())
+                vm.BankList = (await _bankRepo.GetActiveAsync())
                     .Select(b => new SelectListItem { Value = b.BankID.ToString(), Text = b.Name });
             else if (isBankAdmin)
             {
                 vm.SelectedBankID = CurrentBankID;
-                vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(CurrentBankID))
+                vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(CurrentBankID))
                     .Select(b => new SelectListItem { Value = b.BranchID.ToString(), Text = b.Name });
             }
             else
@@ -212,16 +212,21 @@ namespace PigmyPro.Web.Controllers
                         $"Account number {vm.Code2.Value} already exists for this account type and branch.");
             }
 
+            if (!string.IsNullOrWhiteSpace(vm.MobileNo) && await _accountRepo.IsMobileNumberInUseAsync(bankId, vm.MobileNo))
+            {
+                ModelState.AddModelError("MobileNo", "This mobile number is already registered to another customer account in this bank.");
+            }
+
             if (!ModelState.IsValid)
             {
                 vm.IsSuperAdmin = isSuperAdmin;
                 vm.IsBankAdmin = isBankAdmin;
                 vm.AccountTypeList = await GetAccountTypeListForBank(bankId > 0 ? bankId : (int?)null);
                 if (isSuperAdmin)
-                    vm.BankList = (await _bankRepo.GetAllAsync())
+                    vm.BankList = (await _bankRepo.GetActiveAsync())
                         .Select(b => new SelectListItem { Value = b.BankID.ToString(), Text = b.Name });
                 if (isSuperAdmin || isBankAdmin)
-                    vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(bankId))
+                    vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(bankId))
                         .Select(b => new SelectListItem { Value = b.BranchID.ToString(), Text = b.Name });
                 vm.AgentList = await GetAgentList(bankId, branchCode);
                 return View(vm);
@@ -233,8 +238,8 @@ namespace PigmyPro.Web.Controllers
                 brnc_code = branchCode,
                 CODE1 = vm.Code1,
                 CODE2 = vm.Code2 ?? 0,
-                name = vm.Name,
-                ADDR = vm.Address,
+                name = vm.Name?.ToUpper(),
+                ADDR = vm.Address?.ToUpper(),
                 BALANCE = vm.Balance,
                 OPN_DATE = vm.OpenDate,
                 AgnCode = vm.AgnCode,
@@ -286,14 +291,14 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                vm.BankList = (await _bankRepo.GetAllAsync())
+                vm.BankList = (await _bankRepo.GetActiveAsync())
                     .Select(b => new SelectListItem
                     {
                         Value = b.BankID.ToString(),
                         Text = b.Name,
                         Selected = b.BankID == targetBankId
                     });
-                vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(targetBankId))
+                vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(targetBankId))
                     .Select(b => new SelectListItem
                     {
                         Value = b.BranchID.ToString(),
@@ -303,7 +308,7 @@ namespace PigmyPro.Web.Controllers
             }
             else if (isBankAdmin)
             {
-                vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(CurrentBankID))
+                vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(CurrentBankID))
                     .Select(b => new SelectListItem
                     {
                         Value = b.BranchID.ToString(),
@@ -330,16 +335,21 @@ namespace PigmyPro.Web.Controllers
             int bankId = isSuperAdmin ? (vm.SelectedBankID ?? 0) : CurrentBankID;
             decimal branchCode = (isSuperAdmin || isBankAdmin) ? (vm.SelectedBranchCode ?? 0) : (decimal)CurrentBranchID;
 
+            if (!string.IsNullOrWhiteSpace(vm.MobileNo) && await _accountRepo.IsMobileNumberInUseAsync(bankId, vm.MobileNo, vm.Code1, branchCode, vm.Code2))
+            {
+                ModelState.AddModelError("MobileNo", "This mobile number is already registered to another customer account in this bank.");
+            }
+
             if (!ModelState.IsValid)
             {
                 vm.IsSuperAdmin = isSuperAdmin;
                 vm.IsBankAdmin = isBankAdmin;
                 vm.AccountTypeList = await GetAccountTypeListForBank(bankId > 0 ? bankId : (int?)null);
                 if (isSuperAdmin)
-                    vm.BankList = (await _bankRepo.GetAllAsync())
+                    vm.BankList = (await _bankRepo.GetActiveAsync())
                         .Select(b => new SelectListItem { Value = b.BankID.ToString(), Text = b.Name });
                 if (isSuperAdmin || isBankAdmin)
-                    vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(bankId))
+                    vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(bankId))
                         .Select(b => new SelectListItem { Value = b.BranchID.ToString(), Text = b.Name });
                 vm.AgentList = await GetAgentList(bankId, branchCode);
                 return View("Create", vm);
@@ -351,8 +361,8 @@ namespace PigmyPro.Web.Controllers
                 brnc_code = branchCode,
                 CODE1 = vm.Code1,
                 CODE2 = vm.Code2 ?? 0,
-                name = vm.Name,
-                ADDR = vm.Address,
+                name = vm.Name?.ToUpper(),
+                ADDR = vm.Address?.ToUpper(),
                 BALANCE = vm.Balance,
                 OPN_DATE = vm.OpenDate,
                 AgnCode = vm.AgnCode,
@@ -391,7 +401,7 @@ namespace PigmyPro.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> GetBranches(int bankId)
         {
-            var branches = await _branchRepo.GetAllByBankIdAsync(bankId);
+            var branches = await _branchRepo.GetActiveByBankIdAsync(bankId);
             return Json(branches.Select(b => new { value = b.BranchID.ToString(), text = b.Name }));
         }
 

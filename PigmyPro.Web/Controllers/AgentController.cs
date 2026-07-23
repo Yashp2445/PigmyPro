@@ -53,13 +53,13 @@ namespace PigmyPro.Web.Controllers
 
             IEnumerable<PigmyPro.Domain.Entities.Branch> scopedBranches;
             if (isSuperAdmin && filterBankID.HasValue)
-                scopedBranches = await _branchRepo.GetAllByBankIdAsync(filterBankID.Value);
+                scopedBranches = await _branchRepo.GetActiveByBankIdAsync(filterBankID.Value);
             else if (!isSuperAdmin)
-                scopedBranches = await _branchRepo.GetAllByBankIdAsync(CurrentBankID);
+                scopedBranches = await _branchRepo.GetActiveByBankIdAsync(CurrentBankID);
             else
                 scopedBranches = await _branchRepo.GetAllAsync();
 
-            var allBanks = isSuperAdmin ? await _bankRepo.GetAllAsync() : null;
+            var allBanks = isSuperAdmin ? await _bankRepo.GetActiveAsync() : null;
 
             var agentList = agentsResult.Items.Select(a => new AgentListVM
             {
@@ -102,7 +102,7 @@ namespace PigmyPro.Web.Controllers
 
                 if (filterBankID.HasValue)
                 {
-                    vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(filterBankID.Value))
+                    vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(filterBankID.Value))
                         .Select(b => new SelectListItem
                         {
                             Value = b.BranchID.ToString(),
@@ -113,7 +113,7 @@ namespace PigmyPro.Web.Controllers
             }
             else if (isBankAdmin)
             {
-                vm.BranchList = (await _branchRepo.GetAllByBankIdAsync(CurrentBankID))
+                vm.BranchList = (await _branchRepo.GetActiveByBankIdAsync(CurrentBankID))
                     .Select(b => new SelectListItem
                     {
                         Value = b.BranchID.ToString(),
@@ -203,11 +203,16 @@ namespace PigmyPro.Web.Controllers
                 ModelState.AddModelError("ReceiptNoPerAc", "Receipts per day must be between 1 and 3.");
             }
 
+            var bankInfo = await _bankRepo.GetByIdAsync(bankId);
+            if (vm.NoOfHolidays.HasValue && bankInfo != null && vm.NoOfHolidays.Value > (bankInfo.No_of_Holidays ?? 0))
+            {
+                ModelState.AddModelError("NoOfHolidays", "Max. Collection Days should not be more than that agent's bank's No_of_Holidays value");
+            }
+
             if (!ModelState.IsValid)
             {
                 if (isSuperAdmin) vm.BankList = await GetBankList();
                 if (isSuperAdmin || isBankAdmin) vm.BranchList = await GetBranchList(bankId);
-                var bankInfo = await _bankRepo.GetByIdAsync(CurrentBankID);
                 vm.AppLoginPrefix = bankInfo?.AppLoginPrefix;
                 return View(vm);
             }
@@ -222,7 +227,7 @@ namespace PigmyPro.Web.Controllers
                 BankID = bankId,
                 brnc_code = branchCode,
                 code = vm.Code.Value,
-                NAME = vm.NAME,
+                NAME = vm.NAME?.ToUpper(),
                 MobileNo = vm.MobileNo,
                 Block = vm.Block,
                 NoOfHolidays = vm.NoOfHolidays ?? 0,
@@ -300,11 +305,16 @@ namespace PigmyPro.Web.Controllers
                 ModelState.AddModelError("ReceiptNoPerAc", "Receipts per day must be between 1 and 3.");
             }
 
+            var bankInfo = await _bankRepo.GetByIdAsync(bankId);
+            if (vm.NoOfHolidays.HasValue && bankInfo != null && vm.NoOfHolidays.Value > (bankInfo.No_of_Holidays ?? 0))
+            {
+                ModelState.AddModelError("NoOfHolidays", "Max. Collection Days should not be more than that agent's bank's No_of_Holidays value");
+            }
+
             if (!ModelState.IsValid)
             {
                 if (isSuperAdmin) vm.BankList = await GetBankList(bankId);
                 if (isSuperAdmin || isBankAdmin) vm.BranchList = await GetBranchList(bankId, branchCode);
-                var bankInfo = await _bankRepo.GetByIdAsync(CurrentBankID);
                 vm.AppLoginPrefix = bankInfo?.AppLoginPrefix;
                 return View("Create", vm);
             }
@@ -314,7 +324,7 @@ namespace PigmyPro.Web.Controllers
                 BankID = bankId,
                 brnc_code = branchCode,
                 code = vm.Code ?? 0,
-                NAME = vm.NAME,
+                NAME = vm.NAME?.ToUpper(),
                 MobileNo = vm.MobileNo,
                 NoOfHolidays = vm.NoOfHolidays ?? 0,
                 ReceiptNoPerAc = vm.ReceiptNoPerAc,
@@ -360,7 +370,7 @@ namespace PigmyPro.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> GetBranches(int bankId)
         {
-            var branches = await _branchRepo.GetAllByBankIdAsync(bankId);
+            var branches = await _branchRepo.GetActiveByBankIdAsync(bankId);
             return Json(branches.Select(b => new { value = b.BranchID.ToString(), text = b.Name }));
         }
 
@@ -375,7 +385,7 @@ namespace PigmyPro.Web.Controllers
         public async Task<IActionResult> GetBankHolidays(int bankId)
         {
             var bank = await _bankRepo.GetByIdAsync(bankId);
-            return Json(new { holidays = bank?.No_of_Holidays ?? 0 });
+            return Json(new { holidays = bank?.No_of_Holidays ?? 0, appLoginPrefix = bank?.AppLoginPrefix ?? "" });
         }
 
         [HttpGet]
@@ -387,7 +397,7 @@ namespace PigmyPro.Web.Controllers
 
         private async Task<IEnumerable<SelectListItem>> GetBankList(int? selectedBankId = null)
         {
-            var banks = await _bankRepo.GetAllAsync();
+            var banks = await _bankRepo.GetActiveAsync();
             return banks.Select(b => new SelectListItem
             {
                 Value = b.BankID.ToString(),
@@ -398,7 +408,7 @@ namespace PigmyPro.Web.Controllers
 
         private async Task<IEnumerable<SelectListItem>> GetBranchList(int bankId, decimal? selectedBranchCode = null)
         {
-            var branches = await _branchRepo.GetAllByBankIdAsync(bankId);
+            var branches = await _branchRepo.GetActiveByBankIdAsync(bankId);
             return branches.Select(b => new SelectListItem
             {
                 Value = b.BranchID.ToString(),

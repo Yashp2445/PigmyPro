@@ -21,7 +21,7 @@ namespace PigmyPro.Web.Controllers
             _bankRepo = bankRepo;
         }
 
-        public async Task<IActionResult> Index(int? bankId, int page = 1)
+        public async Task<IActionResult> Index(int? bankId, int? branchId, int page = 1)
         {
             int pageSize = 25;
             bool isSuperAdmin = User.IsInRole(AppRoles.SuperAdmin);
@@ -31,23 +31,33 @@ namespace PigmyPro.Web.Controllers
             if (isSuperAdmin)
             {
                 if (bankId.HasValue && bankId.Value > 0)
-                    usersResult = await _userRepo.GetAllByBankIdAsync(bankId.Value, page, pageSize);
+                {
+                    if (branchId.HasValue && branchId.Value > 0)
+                        usersResult = await _userRepo.GetAllByBankAndBranchIdAsync(bankId.Value, branchId.Value, page, pageSize);
+                    else
+                        usersResult = await _userRepo.GetAllByBankIdAsync(bankId.Value, page, pageSize);
+                }
                 else
+                {
                     usersResult = new PigmyPro.Data.PagedResult<User> { Items = Enumerable.Empty<User>(), TotalCount = 0, PageNumber = page, PageSize = pageSize }; 
+                }
             }
             else
             {
-                usersResult = await _userRepo.GetAllByBankIdAsync(CurrentBankID, page, pageSize);
+                if (branchId.HasValue && branchId.Value > 0)
+                    usersResult = await _userRepo.GetAllByBankAndBranchIdAsync(CurrentBankID, branchId.Value, page, pageSize);
+                else
+                    usersResult = await _userRepo.GetAllByBankIdAsync(CurrentBankID, page, pageSize);
             }
 
             IEnumerable<PigmyPro.Domain.Entities.Branch> allBranches;
 
             if (isSuperAdmin && bankId.HasValue && bankId.Value > 0)
-                allBranches = await _branchRepo.GetAllByBankIdAsync(bankId.Value);
+                allBranches = await _branchRepo.GetActiveByBankIdAsync(bankId.Value);
             else if (!isSuperAdmin)
-                allBranches = await _branchRepo.GetAllByBankIdAsync(CurrentBankID);
+                allBranches = await _branchRepo.GetActiveByBankIdAsync(CurrentBankID);
             else
-                allBranches = await _branchRepo.GetAllAsync();
+                allBranches = Enumerable.Empty<PigmyPro.Domain.Entities.Branch>();
 
             var vm = new PigmyPro.Data.PagedResult<UserListVM>
             {
@@ -66,22 +76,39 @@ namespace PigmyPro.Web.Controllers
             };
 
             ViewBag.IsSuperAdmin = isSuperAdmin;
+            ViewBag.SelectedBankID = bankId ?? 0;
+            ViewBag.SelectedBranchID = branchId ?? 0;
 
             if (isSuperAdmin)
             {
-                var banks = await _bankRepo.GetAllAsync();
+                var banks = await _bankRepo.GetActiveAsync();
 
                 ViewBag.BankList = banks.Select(b => new SelectListItem
                 {
                     Value = b.BankID.ToString(),
-                    Text = b.Name
+                    Text = b.Name,
+                    Selected = b.BankID == bankId
+                }).ToList();
+
+                ViewBag.BranchList = allBranches.Select(b => new SelectListItem
+                {
+                    Value = b.BranchID.ToString(),
+                    Text = b.Name,
+                    Selected = b.BranchID == branchId
                 }).ToList();
             }
             else
             {
-                var banks = await _bankRepo.GetAllAsync();
+                var banks = await _bankRepo.GetActiveAsync();
                 var bank = banks.FirstOrDefault(b => b.BankID == CurrentBankID);
                 ViewBag.BankName = bank?.Name;
+
+                ViewBag.BranchList = allBranches.Select(b => new SelectListItem
+                {
+                    Value = b.BranchID.ToString(),
+                    Text = b.Name,
+                    Selected = b.BranchID == branchId
+                }).ToList();
             }
 
             return View(vm);
@@ -99,7 +126,7 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                vm.BankList = (await _bankRepo.GetAllAsync())
+                vm.BankList = (await _bankRepo.GetActiveAsync())
                     .Select(b => new SelectListItem
                     {
                         Value = b.BankID.ToString(),
@@ -131,7 +158,7 @@ namespace PigmyPro.Web.Controllers
 
                 bankId = vm.SelectedBankID ?? 0;
 
-                vm.BankList = (await _bankRepo.GetAllAsync())
+                vm.BankList = (await _bankRepo.GetActiveAsync())
                     .Select(b => new SelectListItem
                     {
                         Value = b.BankID.ToString(),
@@ -149,6 +176,9 @@ namespace PigmyPro.Web.Controllers
             if (await _userRepo.UsernameExistsAsync(vm.Username))
                 ModelState.AddModelError("Username", "This username is already taken. Please choose another.");
 
+            if (string.IsNullOrWhiteSpace(vm.Password))
+                ModelState.AddModelError("Password", "Password is required for new users.");
+
             if (!ModelState.IsValid)
             {
                 vm.BranchList = await GetBranchList(bankId);
@@ -162,8 +192,8 @@ namespace PigmyPro.Web.Controllers
                 Username = vm.Username,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.Password ?? ""),
                 Role = vm.Role,
-                Code = vm.Code,
-                Name = vm.Name,
+                Code = vm.Code?.ToUpper(),
+                Name = vm.Name?.ToUpper(),
                 MobileNo = vm.MobileNo,
                 IsActive = vm.IsActive
             };
@@ -203,7 +233,7 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                vm.BankList = (await _bankRepo.GetAllAsync())
+                vm.BankList = (await _bankRepo.GetActiveAsync())
                     .Select(b => new SelectListItem { Value = b.BankID.ToString(), Text = b.Name, Selected = b.BankID == user.BankID });
                 vm.BranchList = await GetBranchList(user.BankID);
             }
@@ -232,7 +262,7 @@ namespace PigmyPro.Web.Controllers
             if (!ModelState.IsValid)
             {
                 if (isSuperAdmin)
-                    vm.BankList = (await _bankRepo.GetAllAsync()).Select(b => new SelectListItem { Value = b.BankID.ToString(), Text = b.Name });
+                    vm.BankList = (await _bankRepo.GetActiveAsync()).Select(b => new SelectListItem { Value = b.BankID.ToString(), Text = b.Name });
                 vm.BranchList = await GetBranchList(bankId);
                 return View("Create", vm);
             }
@@ -246,8 +276,8 @@ namespace PigmyPro.Web.Controllers
             user.BankID = bankId;
             user.Username = vm.Username;
             user.Role = vm.Role;
-            user.Code = vm.Code;
-            user.Name = vm.Name;
+            user.Code = vm.Code?.ToUpper();
+            user.Name = vm.Name?.ToUpper();
             user.MobileNo = vm.MobileNo;
             user.IsActive = vm.IsActive;
             user.BranchID = (vm.Role == AppRoles.SuperAdmin || vm.Role == AppRoles.BankAdmin) ? null : vm.BranchID;
@@ -279,13 +309,20 @@ namespace PigmyPro.Web.Controllers
         // ================= HELPER =================
         private async Task<IEnumerable<SelectListItem>> GetBranchList(int bankId)
         {
-            var branches = await _branchRepo.GetAllByBankIdAsync(bankId);
+            var branches = await _branchRepo.GetActiveByBankIdAsync(bankId);
 
             return branches.Select(b => new SelectListItem
             {
                 Value = b.BranchID.ToString(),
                 Text = b.Name
             });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetBranches(int bankId)
+        {
+            var branches = await _branchRepo.GetActiveByBankIdAsync(bankId);
+            return Json(branches.Select(b => new { value = b.BranchID, text = b.Name }));
         }
 
         [HttpGet]

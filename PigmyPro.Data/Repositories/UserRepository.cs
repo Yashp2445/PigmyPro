@@ -57,6 +57,25 @@ namespace PigmyPro.Data.Repositories
             };
         }
 
+        public async Task<PagedResult<User>> GetAllByBankAndBranchIdAsync(int bankId, int branchId, int pageNumber, int pageSize)
+        {
+            var countQuery = "SELECT COUNT(*) FROM UserMast WHERE BankID = @BankID AND BranchID = @BranchID";
+            var query = @"SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date 
+                          FROM UserMast WHERE BankID = @BankID AND BranchID = @BranchID ORDER BY UserID DESC
+                          OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
+            using var connection = _context.CreateConnection();
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId, BranchID = branchId });
+            var items = await connection.QueryAsync<User>(query, new { BankID = bankId, BranchID = branchId, PageNumber = pageNumber, PageSize = pageSize });
+            
+            return new PagedResult<User>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
+
         public async Task<User?> GetByIdAsync(int id)
         {
             var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date FROM UserMast WHERE UserID = @UserID";
