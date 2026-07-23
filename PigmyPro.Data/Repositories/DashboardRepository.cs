@@ -263,8 +263,7 @@ namespace PigmyPro.Data.Repositories
         {
             // Eligibility logic:
             // 1. RadyToCash = 'Y'
-            // 2. Has acmaster records for this Bank+Branch+Agent
-            // 3. Has NO pending MobilePygTrn records
+            // 2. Has NO pending MobilePygTrn records
             var sql = @"
                 SELECT 
                     a.code AS AgentCode, 
@@ -274,12 +273,6 @@ namespace PigmyPro.Data.Repositories
                   AND a.brnc_code = @BranchID
                   AND a.Block = 0
                   AND a.RadyToCash = 'Y'
-                  AND EXISTS (
-                      SELECT 1 FROM acmaster ac 
-                      WHERE ac.BankID = a.BankID 
-                        AND CAST(ac.brnc_code AS DECIMAL(10,0)) = a.brnc_code 
-                        AND CAST(ac.AgnCode AS DECIMAL(18,0)) = a.code
-                  )
                   AND NOT EXISTS (
                       SELECT 1 FROM MobilePygTrn m 
                       WHERE m.BankID = a.BankID 

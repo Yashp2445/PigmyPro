@@ -88,6 +88,7 @@
                         <div class="col-md-4">
                             <label asp-for="NoOfHolidays" class="form-label">Max. Collection Days</label>
                             <input asp-for="NoOfHolidays" id="noOfHolidaysInput" type="number" min="0" class="form-control" placeholder="0" oninput="validateHolidays(this)" />
+                            <span asp-validation-for="NoOfHolidays" class="text-danger small"></span>
                             <span class="text-danger small" id="holidaysError"></span>
                         </div>
                         <div class="col-md-4">
@@ -195,7 +196,7 @@
     </script>
 
     <script>
-        const appLoginPrefix = '@(Model.AppLoginPrefix ?? "")'.padEnd(4, '0').substring(0, 4);
+        let appLoginPrefix = '@(Model.AppLoginPrefix ?? "")';
 
         function updateComputedUserId() {
             let branchCodeStr = '';
@@ -350,7 +351,12 @@
                 if (!bankId) return;
                 fetch('/Agent/GetBankHolidays?bankId=' + bankId)
                     .then(r => r.json())
-                    .then(data => { maxBankHolidays = data.holidays; validateHolidays(document.getElementById('noOfHolidaysInput')); });
+                    .then(data => { 
+                        maxBankHolidays = data.holidays; 
+                        appLoginPrefix = data.appLoginPrefix || '';
+                        validateHolidays(document.getElementById('noOfHolidaysInput')); 
+                        updateComputedUserId();
+                    });
             }
 
             @if (!Model.IsSuperAdmin) { <text>
@@ -364,8 +370,14 @@
             function validateHolidays(input) {
                 const errorSpan = document.getElementById('holidaysError');
                 if (maxBankHolidays > 0 && input.value > maxBankHolidays) {
-                    input.setCustomValidity('Cannot exceed Bank limit of ' + maxBankHolidays);
-                    errorSpan.textContent = 'Cannot exceed Bank limit of ' + maxBankHolidays;
+                    const msg = 'Max. Collection Days should not be more than that agent\'s bank\'s No_of_Holidays value';
+                    input.setCustomValidity(msg);
+                    errorSpan.textContent = msg;
+                    
+                    const unobtrusiveSpan = input.nextElementSibling;
+                    if (unobtrusiveSpan && unobtrusiveSpan.tagName === 'SPAN') {
+                        unobtrusiveSpan.style.display = 'none';
+                    }
                 } else {
                     input.setCustomValidity('');
                     errorSpan.textContent = '';

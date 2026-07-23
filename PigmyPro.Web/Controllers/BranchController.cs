@@ -70,7 +70,7 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                var banks = await _bankRepo.GetAllAsync();
+                var banks = await _bankRepo.GetActiveAsync();
 
                 ViewBag.BankList = banks.Select(b => new SelectListItem
                 {
@@ -99,7 +99,7 @@ namespace PigmyPro.Web.Controllers
 
             if (isSuperAdmin)
             {
-                var banks = await _bankRepo.GetAllAsync();
+                var banks = await _bankRepo.GetActiveAsync();
                 vm.BankList = banks.Select(b => new SelectListItem
                 {
                     Value = b.BankID.ToString(),
@@ -127,7 +127,7 @@ namespace PigmyPro.Web.Controllers
             {
                 if (User.IsInRole(AppRoles.SuperAdmin))
                 {
-                    var banks = await _bankRepo.GetAllAsync();
+                    var banks = await _bankRepo.GetActiveAsync();
                     vm.BankList = banks.Select(b => new SelectListItem
                     {
                         Value = b.BankID.ToString(),
@@ -140,7 +140,7 @@ namespace PigmyPro.Web.Controllers
             var entity = new Branch
             {
                 BankID = vm.BankID,
-                Name = vm.Name,
+                Name = vm.Name?.ToUpper(),
                 Active = vm.Active
             };
 
@@ -208,7 +208,7 @@ namespace PigmyPro.Web.Controllers
             {
                 BranchID = vm.BranchID,
                 BankID = vm.BankID,
-                Name = vm.Name,
+                Name = vm.Name?.ToUpper(),
                 Active = vm.Active
             };
 

@@ -102,6 +102,18 @@ namespace PigmyPro.Web.Controllers
             if (!ModelState.IsValid)
                 return View(vm);
 
+            if (!string.IsNullOrWhiteSpace(vm.ContactNo) && await _repo.IsContactNoInUseAsync(0, vm.ContactNo))
+            {
+                ModelState.AddModelError("ContactNo", "This contact number is already registered to another bank.");
+                return View(vm);
+            }
+
+            if (!string.IsNullOrWhiteSpace(vm.AppLoginPrefix) && await _repo.IsAppLoginPrefixInUseAsync(0, vm.AppLoginPrefix))
+            {
+                ModelState.AddModelError("AppLoginPrefix", "This App Login Prefix is already in use by another bank.");
+                return View(vm);
+            }
+
             long code;
             byte[]? logoData = null;
             string? logoFileName = null;
@@ -120,12 +132,12 @@ namespace PigmyPro.Web.Controllers
 
             var entity = new Bank
             {
-                Name = vm.Name,
-                Address = vm.Address,
+                Name = vm.Name?.ToUpper() ?? string.Empty,
+                Address = vm.Address?.ToUpper(),
                 ContactNo = vm.ContactNo,
-                ContactPerson = vm.ContactPerson,
+                ContactPerson = vm.ContactPerson?.ToUpper(),
                 EmailID = vm.EmailID,
-                AppLoginPrefix = vm.AppLoginPrefix,
+                AppLoginPrefix = vm.AppLoginPrefix?.ToUpper(),
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
@@ -181,6 +193,18 @@ namespace PigmyPro.Web.Controllers
             if (!ModelState.IsValid)
                 return View("Create", vm);
 
+            if (!string.IsNullOrWhiteSpace(vm.ContactNo) && await _repo.IsContactNoInUseAsync(vm.BankID, vm.ContactNo))
+            {
+                ModelState.AddModelError("ContactNo", "This contact number is already registered to another bank.");
+                return View("Create", vm);
+            }
+
+            if (!string.IsNullOrWhiteSpace(vm.AppLoginPrefix) && await _repo.IsAppLoginPrefixInUseAsync(vm.BankID, vm.AppLoginPrefix))
+            {
+                ModelState.AddModelError("AppLoginPrefix", "This App Login Prefix is already in use by another bank.");
+                return View("Create", vm);
+            }
+
             long code;
             byte[]? logoData = null;
             string? logoFileName = null;
@@ -203,12 +227,12 @@ namespace PigmyPro.Web.Controllers
             var entity = new Bank
             {
                 BankID = vm.BankID,
-                Name = vm.Name,
-                Address = vm.Address,
+                Name = vm.Name?.ToUpper() ?? string.Empty,
+                Address = vm.Address?.ToUpper(),
                 ContactNo = vm.ContactNo,
-                ContactPerson = vm.ContactPerson,
+                ContactPerson = vm.ContactPerson?.ToUpper(),
                 EmailID = vm.EmailID,
-                AppLoginPrefix = vm.AppLoginPrefix,
+                AppLoginPrefix = vm.AppLoginPrefix?.ToUpper(),
                 ActiveYN = vm.ActiveYN,
                 CollectionGLCode = code,
                 hasCBS = vm.HasCBS ? 'Y' : 'N',
@@ -268,6 +292,22 @@ namespace PigmyPro.Web.Controllers
             if (extension == ".png") mimeType = "image/png";
 
             return File(bank.Logo, mimeType);
+        }
+
+        [AcceptVerbs("Get", "Post")]
+        public async Task<IActionResult> VerifyContactNo(string ContactNo, int BankID)
+        {
+            if (string.IsNullOrWhiteSpace(ContactNo))
+            {
+                return Json(true);
+            }
+
+            if (await _repo.IsContactNoInUseAsync(BankID, ContactNo))
+            {
+                return Json("This contact number is already registered to another bank.");
+            }
+
+            return Json(true);
         }
     }
 }

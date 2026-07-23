@@ -15,5 +15,6 @@ namespace PigmyPro.Data.Interfaces
         Task<int> DeleteAsync(int bankId, decimal code1, decimal branchCode, decimal code2);
         Task<bool> ExistsAsync(int bankId, decimal code1, decimal branchCode, decimal code2);
         Task<int> GetCollectionGLCodeAsync(int bankId);
+        Task<bool> IsMobileNumberInUseAsync(int bankId, string mobileNo, decimal? excludeCode1 = null, decimal? excludeBranchCode = null, decimal? excludeCode2 = null);
     }
 }

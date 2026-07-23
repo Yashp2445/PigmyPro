@@ -55,7 +55,7 @@
             </div>
         }
 
-        @if (ViewBag.IsSuperAdmin != true && ViewBag.BranchList != null)
+        @if (ViewBag.BranchList != null)
         {
             <div style="min-width: 250px;">
                 <label class="form-label">Branch Assignment</label>
@@ -231,6 +231,37 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             setupTableSortAndSearch('userTable', 'userSearch');
+
+            const bankSelect = document.querySelector('select[name="bankId"]');
+            if (bankSelect) {
+                bankSelect.addEventListener('change', async (e) => {
+                    const bankId = e.target.value;
+                    const branchSelect = document.querySelector('select[name="branchId"]');
+                    
+                    if (branchSelect) {
+                        branchSelect.innerHTML = '<option value="">-- All Branches --</option>';
+                        
+                        if (bankId) {
+                            try {
+                                const response = await fetch(`/User/GetBranches?bankId=${bankId}`);
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    data.forEach(branch => {
+                                        const option = document.createElement('option');
+                                        option.value = branch.value;
+                                        option.textContent = branch.text;
+                                        branchSelect.appendChild(option);
+                                    });
+                                }
+                            } catch (error) {
+                                console.error('Error fetching branches:', error);
+                            }
+                        }
+                    }
+                    
+                    document.getElementById('filterForm').submit();
+                });
+            }
         });
     </script>
 }

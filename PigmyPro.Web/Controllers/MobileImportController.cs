@@ -184,12 +184,11 @@ namespace PigmyPro.Web.Controllers
                 return Json(new { eligible = false });
 
             bool readyToCash = agent.RadyToCash == "Y";
-            bool hasAcmasterRecords = await _repo.HasAcmasterRecordsAsync(bankId, resolvedBranch, agentCode);
             bool hasPendingData = await _repo.HasPendingMobileTransactionsAsync(bankId, resolvedBranch, agentCode);
 
-            bool eligible = readyToCash && hasAcmasterRecords && !hasPendingData;
+            bool eligible = readyToCash && !hasPendingData;
 
-            return Json(new { eligible, readyToCash, hasAcmasterRecords, hasPendingData });
+            return Json(new { eligible, readyToCash, hasPendingData });
         }
 
         [HttpGet]

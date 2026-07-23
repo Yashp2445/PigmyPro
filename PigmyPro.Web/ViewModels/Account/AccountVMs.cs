@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using PigmyPro.Web.ViewModels.Agent;
 
 namespace PigmyPro.Web.ViewModels.Account
 {
@@ -69,6 +70,7 @@ namespace PigmyPro.Web.ViewModels.Account
         public decimal? AgnCode { get; set; }
 
         [StringLength(15)]
+        [ValidIndianMobile(ErrorMessage = "Enter a valid 10-digit mobile number")]
         [Display(Name = "Mobile Number")]
         public string? MobileNo { get; set; }
 
