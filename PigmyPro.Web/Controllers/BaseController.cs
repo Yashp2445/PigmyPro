@@ -100,6 +100,7 @@ namespace PigmyPro.Web.Controllers
                     ViewBag.GlobalHasLogo = (sessionHasLogo == "True");
                     ViewBag.GlobalBankID = bankId;
                     ViewBag.GlobalBranchName = sessionBranchName;
+                    ViewBag.GlobalBranchID = branchId > 0 ? branchId : (int?)null;
                 }
             }
 

@@ -393,6 +393,13 @@ namespace PigmyPro.Web.Controllers
                         System.Globalization.DateTimeStyles.None, out DateTime rowDate))
                         dt = rowDate; // Index 4: Date
 
+                    string? mobile = null;
+                    if (p.Length >= 6)
+                    {
+                        mobile = p[5].Trim();
+                        if (mobile == "0") mobile = null;
+                    }
+
                     if (code2 > 0)
                     {
                         vm.ParsedRows.Add(new ImportAccountRowVM
@@ -401,7 +408,8 @@ namespace PigmyPro.Web.Controllers
                             Name = nm,
                             Balance = amt,   // WebForms uses Amount as Balance on import
                             OpnDate = dt,
-                            Amount = amt
+                            Amount = amt,
+                            MobileNumber = mobile
                         });
                         totalAmtCheck += (double)amt;
                     }
@@ -464,7 +472,8 @@ namespace PigmyPro.Web.Controllers
                     Code2 = r.Code2,
                     Name = r.Name,
                     Balance = r.Balance,
-                    OpnDate = r.OpnDate
+                    OpnDate = r.OpnDate,
+                    MobileNumber = r.MobileNumber
                 }).ToList();
 
                 string clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
