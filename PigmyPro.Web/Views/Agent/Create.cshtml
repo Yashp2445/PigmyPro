@@ -100,11 +100,15 @@
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-12">
-                            <label class="form-label text-muted mb-1" style="font-size: 13px;">Mobile App Agent User ID</label>
-                            <div class="form-control bg-light text-primary fw-bold" id="computedUserIdDisplay" style="border-style: dashed; font-family: 'JetBrains Mono', monospace;">
-                                ---
+                            <label class="form-label text-muted mb-1" style="font-size: 13px;">Mobile App Agent Credentials</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-control bg-light text-primary fw-bold flex-fill" style="border-style: dashed; font-family: 'JetBrains Mono', monospace;">
+                                    <span class="text-muted small me-2">BANK ID:</span><span id="computedBankIdDisplay">---</span>
+                                </div>
+                                <div class="form-control bg-light text-primary fw-bold flex-fill" style="border-style: dashed; font-family: 'JetBrains Mono', monospace;">
+                                    <span class="text-muted small me-2">USER ID:</span><span id="computedUserIdDisplay">---</span>
+                                </div>
                             </div>
-                            
                         </div>
                     </div>
 
@@ -213,8 +217,9 @@
             const agentCodeInput = document.getElementById('agentCodeInput');
             let agentCodeStr = agentCodeInput ? agentCodeInput.value : '';
             
-            const displayEl = document.getElementById('computedUserIdDisplay');
-            if (!displayEl) return;
+            const userDisplayEl = document.getElementById('computedUserIdDisplay');
+            const bankDisplayEl = document.getElementById('computedBankIdDisplay');
+            if (!userDisplayEl || !bankDisplayEl) return;
 
             if (appLoginPrefix && branchCodeStr && agentCodeStr) {
                 const branchInt = parseInt(branchCodeStr, 10);
@@ -223,12 +228,15 @@
                 if (!isNaN(branchInt) && !isNaN(agentInt)) {
                     const branchPadded = branchInt.toString().padStart(3, '0');
                     const agentPadded = agentInt.toString().padStart(3, '0');
-                    displayEl.textContent = appLoginPrefix + branchPadded + agentPadded;
+                    bankDisplayEl.textContent = appLoginPrefix;
+                    userDisplayEl.textContent = branchPadded + agentPadded;
                 } else {
-                    displayEl.textContent = '---';
+                    bankDisplayEl.textContent = appLoginPrefix || '---';
+                    userDisplayEl.textContent = '---';
                 }
             } else {
-                displayEl.textContent = '---';
+                bankDisplayEl.textContent = appLoginPrefix || '---';
+                userDisplayEl.textContent = '---';
             }
         }
 

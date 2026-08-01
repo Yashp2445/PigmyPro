@@ -33,5 +33,6 @@ namespace PigmyPro.Web.ViewModels.MobileImport
         public decimal Balance { get; set; }
         public DateTime OpnDate { get; set; }
         public decimal Amount { get; set; }
+        public string? MobileNumber { get; set; }
     }
 }
