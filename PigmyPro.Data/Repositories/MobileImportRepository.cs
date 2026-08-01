@@ -254,12 +254,21 @@ namespace PigmyPro.Data.Repositories
                 foreach (var r in rows)
                 {
                     await connection.ExecuteAsync(
-                        @"INSERT INTO acmaster 
-                            (BankID, CODE1, brnc_code, CODE2, name, ename, 
-                             BALANCE, OPN_DATE, AgnCode, Entry_Date)
-                          VALUES 
-                            (@BankID, 48, @BranchCode, @Code2, @Name, @Name,
-                             @Balance, @OpnDate, @AgentCode, GETDATE())",
+                        @"IF EXISTS (SELECT 1 FROM acmaster WHERE BankID = @BankID AND CODE1 = 48 AND CAST(brnc_code AS DECIMAL(10,0)) = @BranchCode AND CAST(CODE2 AS DECIMAL(18,0)) = @Code2)
+                          BEGIN
+                              UPDATE acmaster 
+                              SET name = @Name, ename = @Name, BALANCE = @Balance, OPN_DATE = @OpnDate, AgnCode = @AgentCode, Entry_Date = GETDATE(), Mobile_No = @MobileNumber
+                              WHERE BankID = @BankID AND CODE1 = 48 AND CAST(brnc_code AS DECIMAL(10,0)) = @BranchCode AND CAST(CODE2 AS DECIMAL(18,0)) = @Code2
+                          END
+                          ELSE
+                          BEGIN
+                              INSERT INTO acmaster 
+                                (BankID, CODE1, brnc_code, CODE2, name, ename, 
+                                 BALANCE, OPN_DATE, AgnCode, Entry_Date, Mobile_No)
+                              VALUES 
+                                (@BankID, 48, @BranchCode, @Code2, @Name, @Name,
+                                 @Balance, @OpnDate, @AgentCode, GETDATE(), @MobileNumber)
+                          END",
                         new
                         {
                             BankID = bankId,
@@ -268,7 +277,8 @@ namespace PigmyPro.Data.Repositories
                             r.Name,
                             r.Balance,
                             OpnDate = r.OpnDate,
-                            AgentCode = agentCode
+                            AgentCode = agentCode,
+                            MobileNumber = r.MobileNumber
                         },
                         transaction);
                 }

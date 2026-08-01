@@ -30,6 +30,7 @@ namespace PigmyPro.Data.Interfaces
         public string Name { get; set; } = string.Empty;
         public decimal Balance { get; set; }
         public DateTime OpnDate { get; set; }
+        public string? MobileNumber { get; set; }
     }
 
     public interface IMobileImportRepository

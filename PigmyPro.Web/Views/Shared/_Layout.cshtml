@@ -172,6 +172,14 @@
                                 <span class='fw-bold text-dark fs-6 m-0'>
                                     @ViewBag.GlobalBankName 
                                 </span>
+                                @if (User.IsInRole("BankAdmin") || User.IsInRole("BranchAdmin"))
+                                {
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" style="font-size: 0.75rem;">Bank ID: @ViewBag.GlobalBankID</span>
+                                }
+                                @if (User.IsInRole("BranchAdmin") && ViewBag.GlobalBranchID != null)
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle ms-1" style="font-size: 0.75rem;">Branch ID: @ViewBag.GlobalBranchID</span>
+                                }
                             </li>
                         }
                         else
