@@ -20,7 +20,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<Bank>> GetAllAsync()
         {
-            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, No_of_Holidays, LogoFileName, AppLoginPrefix FROM Banks ORDER BY BankID DESC";
+            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, RecieptPrinting, No_of_Holidays, LogoFileName, AppLoginPrefix FROM Banks ORDER BY BankID DESC";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<Bank>(query);
@@ -28,7 +28,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<Bank>> GetActiveAsync()
         {
-            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, No_of_Holidays, LogoFileName, AppLoginPrefix FROM Banks WHERE ActiveYN = 1 ORDER BY BankID DESC";
+            var query = "SELECT BankID, Name, Address, ContactNo, ContactPerson, EmailID, ActiveYN, EntryDateTime, CollectionGLCode, hasCBS, RecieptPrinting, No_of_Holidays, LogoFileName, AppLoginPrefix FROM Banks WHERE ActiveYN = 1 ORDER BY BankID DESC";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<Bank>(query);
