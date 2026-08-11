@@ -16,16 +16,20 @@ namespace PigmyPro.Data.Repositories
             _context = context;
         }
 
-        public async Task<PagedResult<CustomerAccount>> GetAllAsync(int pageNumber, int pageSize)
+        public async Task<PagedResult<CustomerAccount>> GetAllAsync(int pageNumber, int pageSize, decimal? code1 = null, decimal? agentCode = null)
         {
-            var countQuery = "SELECT COUNT(*) FROM acmaster";
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
+            var whereClause = "WHERE 1=1";
+            if (code1.HasValue) whereClause += " AND CODE1 = @code1";
+            if (agentCode.HasValue) whereClause += " AND AgnCode = @agentCode";
+
+            var countQuery = $"SELECT COUNT(*) FROM acmaster {whereClause}";
+            var query = $@"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
-                          FROM acmaster ORDER BY CODE2 DESC
+                          FROM acmaster {whereClause} ORDER BY CODE2 DESC
                           OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery);
-            var items = await connection.QueryAsync<CustomerAccount>(query, new { PageNumber = pageNumber, PageSize = pageSize });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { code1, agentCode });
+            var items = await connection.QueryAsync<CustomerAccount>(query, new { code1, agentCode, PageNumber = pageNumber, PageSize = pageSize });
             
             return new PagedResult<CustomerAccount>
             {
@@ -36,16 +40,20 @@ namespace PigmyPro.Data.Repositories
             };
         }
 
-        public async Task<PagedResult<CustomerAccount>> GetAllByBankAsync(int bankId, int pageNumber, int pageSize)
+        public async Task<PagedResult<CustomerAccount>> GetAllByBankAsync(int bankId, int pageNumber, int pageSize, decimal? code1 = null, decimal? agentCode = null)
         {
-            var countQuery = "SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID";
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
+            var whereClause = "WHERE BankID = @BankID";
+            if (code1.HasValue) whereClause += " AND CODE1 = @code1";
+            if (agentCode.HasValue) whereClause += " AND AgnCode = @agentCode";
+
+            var countQuery = $"SELECT COUNT(*) FROM acmaster {whereClause}";
+            var query = $@"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
-                          FROM acmaster WHERE BankID = @BankID ORDER BY CODE2 DESC
+                          FROM acmaster {whereClause} ORDER BY CODE2 DESC
                           OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId });
-            var items = await connection.QueryAsync<CustomerAccount>(query, new { BankID = bankId, PageNumber = pageNumber, PageSize = pageSize });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId, code1, agentCode });
+            var items = await connection.QueryAsync<CustomerAccount>(query, new { BankID = bankId, code1, agentCode, PageNumber = pageNumber, PageSize = pageSize });
             
             return new PagedResult<CustomerAccount>
             {
@@ -56,18 +64,22 @@ namespace PigmyPro.Data.Repositories
             };
         }
 
-        public async Task<PagedResult<CustomerAccount>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode, int pageNumber, int pageSize)
+        public async Task<PagedResult<CustomerAccount>> GetAllByBankAndBranchAsync(int bankId, decimal branchCode, int pageNumber, int pageSize, decimal? code1 = null, decimal? agentCode = null)
         {
-            var countQuery = "SELECT COUNT(*) FROM acmaster WHERE BankID = @BankID AND brnc_code = @brnc_code";
-            var query = @"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
+            var whereClause = "WHERE BankID = @BankID AND brnc_code = @brnc_code";
+            if (code1.HasValue) whereClause += " AND CODE1 = @code1";
+            if (agentCode.HasValue) whereClause += " AND AgnCode = @agentCode";
+
+            var countQuery = $"SELECT COUNT(*) FROM acmaster {whereClause}";
+            var query = $@"SELECT BankID, CODE1, brnc_code, CODE2, name, ADDR, BALANCE, 
                                  OPN_DATE, AgnCode, Mobile_No, Entry_Date 
                           FROM acmaster 
-                          WHERE BankID = @BankID AND brnc_code = @brnc_code 
+                          {whereClause} 
                           ORDER BY CODE2 DESC
                           OFFSET (@PageNumber - 1) * @PageSize ROWS FETCH NEXT @PageSize ROWS ONLY";
             using var connection = _context.CreateConnection();
-            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId, brnc_code = branchCode });
-            var items = await connection.QueryAsync<CustomerAccount>(query, new { BankID = bankId, brnc_code = branchCode, PageNumber = pageNumber, PageSize = pageSize });
+            var totalCount = await connection.ExecuteScalarAsync<int>(countQuery, new { BankID = bankId, brnc_code = branchCode, code1, agentCode });
+            var items = await connection.QueryAsync<CustomerAccount>(query, new { BankID = bankId, brnc_code = branchCode, code1, agentCode, PageNumber = pageNumber, PageSize = pageSize });
             
             return new PagedResult<CustomerAccount>
             {
@@ -76,6 +88,17 @@ namespace PigmyPro.Data.Repositories
                 PageNumber = pageNumber,
                 PageSize = pageSize
             };
+        }
+
+        public async Task<IEnumerable<decimal>> GetActiveAgentsFromAccountsAsync(int bankId, decimal branchCode, decimal? code1 = null)
+        {
+            var whereClause = "WHERE BankID = @BankID AND AgnCode IS NOT NULL";
+            if (branchCode > 0) whereClause += " AND brnc_code = @brnc_code";
+            if (code1.HasValue) whereClause += " AND CODE1 = @code1";
+
+            var query = $"SELECT DISTINCT AgnCode FROM acmaster {whereClause} ORDER BY AgnCode";
+            using var connection = _context.CreateConnection();
+            return await connection.QueryAsync<decimal>(query, new { BankID = bankId, brnc_code = branchCode, code1 });
         }
 
         public async Task<CustomerAccount?> GetByFullCodeAsync(int bankId, decimal code1, decimal branchCode, decimal code2)

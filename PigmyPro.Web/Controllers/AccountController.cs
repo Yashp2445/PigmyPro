@@ -34,49 +34,91 @@ namespace PigmyPro.Web.Controllers
             _agentRepo = agentRepo;
         }
 
-        public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode, decimal? filterCode1, int page = 1)
+        public async Task<IActionResult> Index(int? filterBankID, decimal? filterBranchCode, decimal? filterCode1, string? agentFilterValue, int page = 1)
         {
-            if (CurrentBankHasCBS == 'Y')
-            {
-                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
-                return RedirectToAction("Index", "Dashboard");
-            }
+
 
             int pageSize = 25;
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
 
+            if (isSuperAdmin)
+            {
+                ViewBag.HasAcMaster = 'Y';
+            }
+            else
+            {
+                var bank = await _bankRepo.GetByIdAsync(CurrentBankID);
+                ViewBag.HasAcMaster = bank?.hasAcMaster ?? 'N';
+            }
+
+            decimal? parsedAgentCode = null;
+            decimal? parsedBranchCode = filterBranchCode;
+
+            if (!string.IsNullOrEmpty(agentFilterValue))
+            {
+                if (agentFilterValue.Contains("-"))
+                {
+                    var parts = agentFilterValue.Split('-');
+                    if (parts.Length == 2)
+                    {
+                        parsedBranchCode = decimal.Parse(parts[0]);
+                        parsedAgentCode = decimal.Parse(parts[1]);
+                    }
+                }
+                else
+                {
+                    parsedAgentCode = decimal.TryParse(agentFilterValue, out var val) ? val : null;
+                }
+            }
+
             PigmyPro.Data.PagedResult<CustomerAccount> dataResult;
 
             if (isSuperAdmin)
             {
-                if (filterBankID.HasValue && filterBranchCode.HasValue)
-                    dataResult = await _accountRepo.GetAllByBankAndBranchAsync(filterBankID.Value, filterBranchCode.Value, page, pageSize);
+                if (filterBankID.HasValue && parsedBranchCode.HasValue)
+                    dataResult = await _accountRepo.GetAllByBankAndBranchAsync(filterBankID.Value, parsedBranchCode.Value, page, pageSize, filterCode1, parsedAgentCode);
                 else if (filterBankID.HasValue)
-                    dataResult = await _accountRepo.GetAllByBankAsync(filterBankID.Value, page, pageSize);
+                    dataResult = await _accountRepo.GetAllByBankAsync(filterBankID.Value, page, pageSize, filterCode1, parsedAgentCode);
                 else
                     dataResult = new PigmyPro.Data.PagedResult<CustomerAccount> { Items = Enumerable.Empty<CustomerAccount>(), TotalCount = 0, PageNumber = page, PageSize = pageSize };
             }
             else if (isBankAdmin)
             {
-                dataResult = filterBranchCode.HasValue
-                    ? await _accountRepo.GetAllByBankAndBranchAsync(CurrentBankID, filterBranchCode.Value, page, pageSize)
-                    : await _accountRepo.GetAllByBankAsync(CurrentBankID, page, pageSize);
+                dataResult = parsedBranchCode.HasValue
+                    ? await _accountRepo.GetAllByBankAndBranchAsync(CurrentBankID, parsedBranchCode.Value, page, pageSize, filterCode1, parsedAgentCode)
+                    : await _accountRepo.GetAllByBankAsync(CurrentBankID, page, pageSize, filterCode1, parsedAgentCode);
             }
             else
             {
-                dataResult = await _accountRepo.GetAllByBankAndBranchAsync(CurrentBankID, CurrentBranchID, page, pageSize);
+                dataResult = await _accountRepo.GetAllByBankAndBranchAsync(CurrentBankID, CurrentBranchID, page, pageSize, filterCode1, parsedAgentCode);
             }
 
             var data = dataResult.Items;
-            if (filterCode1.HasValue && filterCode1.Value > 0)
-            {
-                // In-memory filter on current page (acceptable for now, to preserve existing logic)
-                data = data.Where(d => d.CODE1 == filterCode1.Value);
-            }
 
             var accountTypeList = await GetAccountTypeListForBank(
                 isSuperAdmin ? filterBankID : CurrentBankID);
+
+            IEnumerable<SelectListItem>? agentList = null;
+            if (!isSuperAdmin || filterBankID.HasValue)
+            {
+                int bankIdForAgent = isSuperAdmin ? filterBankID.Value : CurrentBankID;
+                decimal branchCodeForAgent = (isSuperAdmin || isBankAdmin) ? (filterBranchCode ?? 0) : CurrentBranchID;
+                if (bankIdForAgent > 0)
+                {
+                    var validAgentCodes = await _accountRepo.GetActiveAgentsFromAccountsAsync(bankIdForAgent, branchCodeForAgent, filterCode1);
+                    var allAgents = await _agentRepo.GetAgentsAsync(bankIdForAgent, branchCodeForAgent);
+                    
+                    agentList = allAgents
+                        .Where(a => validAgentCodes.Contains(a.code))
+                        .Select(a => new SelectListItem
+                        {
+                            Value = $"{a.brnc_code}-{a.code}",
+                            Text = (branchCodeForAgent == 0 ? $"[Br: {a.brnc_code}] " : "") + (a.NAME ?? "Unnamed Agent"),
+                            Selected = agentFilterValue == $"{a.brnc_code}-{a.code}"
+                        });
+                }
+            }
 
             var accounts = data.Select(a => new AccountListVM
             {
@@ -107,7 +149,10 @@ namespace PigmyPro.Web.Controllers
                 FilterBankID = filterBankID,
                 FilterBranchCode = filterBranchCode,
                 FilterCode1 = filterCode1,
-                AccountTypeList = accountTypeList
+                FilterAgentCode = parsedAgentCode,
+                AgentFilterValue = agentFilterValue,
+                AccountTypeList = accountTypeList,
+                AgentList = agentList
             };
 
             if (isSuperAdmin)
@@ -146,11 +191,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Create()
         {
-            if (CurrentBankHasCBS == 'Y')
-            {
-                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
-                return RedirectToAction("Index", "Dashboard");
-            }
+
 
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
@@ -188,11 +229,7 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AccountCreateEditVM vm)
         {
-            if (CurrentBankHasCBS == 'Y')
-            {
-                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
-                return RedirectToAction("Index", "Dashboard");
-            }
+
 
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
@@ -256,11 +293,7 @@ namespace PigmyPro.Web.Controllers
 
         public async Task<IActionResult> Edit(decimal code1, decimal branchCode, decimal code2, int bankId)
         {
-            if (CurrentBankHasCBS == 'Y')
-            {
-                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
-                return RedirectToAction("Index", "Dashboard");
-            }
+
 
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
@@ -324,11 +357,7 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AccountCreateEditVM vm)
         {
-            if (CurrentBankHasCBS == 'Y')
-            {
-                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
-                return RedirectToAction("Index", "Dashboard");
-            }
+
 
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;
@@ -382,11 +411,7 @@ namespace PigmyPro.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(decimal code1, decimal branchCode, decimal code2, int bankId)
         {
-            if (CurrentBankHasCBS == 'Y')
-            {
-                TempData["Error"] = "Customer accounts are managed via the external Core Banking System (CBS).";
-                return RedirectToAction("Index", "Dashboard");
-            }
+
 
             bool isSuperAdmin = CurrentUserRole == AppRoles.SuperAdmin;
             bool isBankAdmin = CurrentUserRole == AppRoles.BankAdmin;

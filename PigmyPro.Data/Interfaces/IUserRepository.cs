@@ -22,5 +22,6 @@ namespace PigmyPro.Data.Interfaces
         // New SP-driven OTP methods
         Task<(string Msg, string OTP)> GenerateResetOtpAsync(string username);
         Task<(string Msg, bool Valid)> VerifyResetOtpAsync(string username, string enteredOtp);
+        Task UpdateLoginAttemptAsync(int userId, int attempts, System.DateTime? lockExpiryTime);
     }
 }

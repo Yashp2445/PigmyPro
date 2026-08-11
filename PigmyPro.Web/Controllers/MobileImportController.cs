@@ -310,7 +310,7 @@ namespace PigmyPro.Web.Controllers
                     return View("Upload", vm);
                 }
 
-                // field[3] is AgentBranchCode — 6 chars: first 3 = agent, last 3 = branch
+                // field[3] is AgentBranchCode — 6 chars: first 3 = branch, last 3 = agent
                 string agentBranchField = hParts[3].Trim();
                 if (agentBranchField.Length != 6)
                 {
@@ -318,8 +318,8 @@ namespace PigmyPro.Web.Controllers
                     return View("Upload", vm);
                 }
 
-                decimal agentCode = decimal.Parse(agentBranchField.Substring(0, 3));
-                decimal branchCode = decimal.Parse(agentBranchField.Substring(3, 3));
+                decimal branchCode = decimal.Parse(agentBranchField.Substring(0, 3));
+                decimal agentCode = decimal.Parse(agentBranchField.Substring(3, 3));
 
                 vm.AgentCode = agentCode;
                 vm.BranchCode = branchCode;
@@ -487,8 +487,8 @@ namespace PigmyPro.Web.Controllers
                     vm.TotalRecords,
                     domainRows);
 
-                TempData["Success"] = $"Upload successful. {vm.TotalRecords} account records imported.";
-                return RedirectToAction("Upload");
+                TempData["SweetAlertSuccess"] = $"Upload successful. {vm.TotalRecords} account records Uploaded.";
+                return RedirectToAction("Index", "Dashboard");
             }
             catch (Exception ex)
             {

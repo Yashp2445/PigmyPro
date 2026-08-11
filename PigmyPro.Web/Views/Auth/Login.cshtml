@@ -180,14 +180,33 @@
 
         <form asp-action="Login" method="post" onsubmit="sessionStorage.setItem('pigmypro_tab_initialized', 'true');">
             @Html.AntiForgeryToken()
+            @if (ViewBag.LockExpiryTime != null)
+            {
+                <div id="locked-alert" class="alert text-start mb-4" style="display: none; background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 1px solid #fca5a5; color: #991b1b; border-radius: var(--radius-md); padding: 16px; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.08);">
+                    <div class="d-flex align-items-center">
+                        <div style="background: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; margin-right: 16px; flex-shrink: 0; box-shadow: 0 2px 4px rgba(220, 38, 38, 0.1);">
+                            <i class="bi bi-lock-fill" style="font-size: 1.2rem; color: #dc2626;"></i> 
+                        </div>
+                        <div>
+                            <div style="font-weight: 700; font-size: 14px; margin-bottom: 2px;">Account Locked</div>
+                            <div style="font-size: 12.5px; opacity: 0.9;">Try again in <span id="locked-timer" style="font-weight: 800; font-variant-numeric: tabular-nums; background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; margin-left: 4px; display: inline-block; min-width: 50px; text-align: center;"></span></div>
+                        </div>
+                    </div>
+                </div>
+            }
+            
             @if (!ViewData.ModelState.IsValid)
             {
-                <div class="alert alert-danger text-start">
-                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-                    {
-                        <div class="mb-1"><i class="bi bi-exclamation-circle me-1"></i> @error.ErrorMessage</div>
-                    }
-                </div>
+                var generalErrors = ViewData.ModelState.Where(m => m.Key != "Locked").SelectMany(v => v.Value.Errors).ToList();
+                if (generalErrors.Any())
+                {
+                    <div id="general-alert" class="alert alert-danger text-start">
+                        @foreach (var error in generalErrors)
+                        {
+                            <div class="mb-1"><i class="bi bi-exclamation-circle me-1"></i> @error.ErrorMessage</div>
+                        }
+                    </div>
+                }
             }
             
             <div class="mb-3 text-start">
@@ -265,6 +284,56 @@
             }
         })();
 
+        @if (ViewBag.LockExpiryTime != null)
+        {
+            <text>
+            (function() {
+                const lockedUsername = '@Html.Raw(ViewBag.LockedUsername?.ToString()?.ToLowerInvariant())';
+                const lockExpiryTime = new Date('@Html.Raw(ViewBag.LockExpiryTime)');
+                const usernameInput = document.getElementById('Username');
+                const lockedAlert = document.getElementById('locked-alert');
+                const lockedTimer = document.getElementById('locked-timer');
+                let timerInterval;
+
+                function updateTimer() {
+                    const now = new Date();
+                    let diffMs = lockExpiryTime - now;
+                    if (0 >= diffMs) {
+                        lockedAlert.style.display = 'none';
+                        clearInterval(timerInterval);
+                        return;
+                    }
+
+                    const mins = Math.floor(diffMs / 60000);
+                    const secs = Math.floor((diffMs % 60000) / 1000);
+                    
+                    const minStr = mins > 0 ? `${mins}m ` : '';
+                    const secStr = `${secs}s`;
+                    lockedTimer.innerHTML = minStr + secStr;
+                }
+
+                function checkUsername() {
+                    if (usernameInput.value.toLowerCase() === lockedUsername) {
+                        if (lockExpiryTime.getTime() > new Date().getTime()) {
+                            lockedAlert.style.display = 'block';
+                            updateTimer();
+                            if (!timerInterval) {
+                                timerInterval = setInterval(updateTimer, 1000);
+                            }
+                        } else {
+                            lockedAlert.style.display = 'none';
+                        }
+                    } else {
+                        lockedAlert.style.display = 'none';
+                    }
+                }
+
+                usernameInput.addEventListener('input', checkUsername);
+                checkUsername();
+            })();
+            </text>
+        }
+
         // Check DB Connection
         (function() {
             fetch('/Auth/CheckDbConnection')
@@ -304,5 +373,22 @@
                 });
         })();
     </script>
+    
+    @if (TempData["ToasterMessage"] != null)
+    {
+        <script>
+            Swal.fire({
+                text: '@Html.Raw(TempData["ToasterMessage"])',
+                icon: 'warning',
+                confirmButtonColor: '#3b82f6',
+                confirmButtonText: 'Okay',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true
+            });
+        </script>
+    }
 </body>
 </html>
