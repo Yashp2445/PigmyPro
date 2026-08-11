@@ -17,5 +17,7 @@ namespace PigmyPro.Domain.Entities
         public string? MobileNo { get; set; }
         public bool IsActive { get; set; }
         public DateTime Entry_Date { get; set; }
+        public int? Wrong_Login_Attempt { get; set; }
+        public DateTime? Lock_Expiry_Time { get; set; }
     }
 }

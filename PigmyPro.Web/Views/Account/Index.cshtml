@@ -19,88 +19,88 @@
         <h4 class="page-title">Customer Account Opening</h4>
         <p class="page-subtitle">Complete view of customer accounts</p>
     </div>
-    <a href="/Account/Create" class="btn btn-primary">
-        <i class="bi bi-person-plus-fill"></i> Open Account
-    </a>
+    @if (ViewBag.HasAcMaster == 'Y')
+    {
+        <a href="/Account/Create" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill"></i> Open Account
+        </a>
+    }
 </div>
 
 @* ── Filter Panel ── *@
-@if (Model.IsSuperAdmin || Model.IsBankAdmin)
-{
-    <div class="filter-panel">
-        <form id="filterForm" method="get" action="/Account/Index" class="row g-3 align-items-end">
+<form id="filterForm" method="get" action="/Account/Index">
+<div class="filter-panel">
+    <div class="row g-3 align-items-end">
 
-            @if (Model.IsSuperAdmin)
-            {
-                <div class="col-md-3">
-                    <label class="form-label">Bank Tenant</label>
-                    <select name="filterBankID" id="filterBankID" class="form-select" onchange="this.form.requestSubmit()">
-                        <option value="">-- Choose Bank --</option>
-                        @foreach (var bank in Model.BankList!)
+        @if (Model.IsSuperAdmin)
+        {
+            <div class="col-md-3">
+                <label class="form-label">Bank Tenant</label>
+                <select name="filterBankID" id="filterBankID" class="form-select" onchange="this.form.requestSubmit()">
+                    <option value="">-- Choose Bank --</option>
+                    @if (Model.BankList != null)
+                    {
+                        foreach (var bank in Model.BankList)
                         {
                             <option value="@bank.Value" selected="@bank.Selected">@bank.Text</option>
                         }
-                    </select>
-                </div>
-            }
+                    }
+                </select>
+            </div>
+        }
 
-            @if (Model.IsBankAdmin || (Model.IsSuperAdmin && Model.FilterBankID.HasValue))
-            {
-                <div class="col-md-3">
-                    <label class="form-label">Branch Office</label>
-                    <select name="filterBranchCode" id="filterBranchCode" class="form-select">
-                        <option value="">-- All Branches --</option>
-                        @if (Model.BranchList != null)
+        @if (Model.IsBankAdmin || (Model.IsSuperAdmin && Model.FilterBankID.HasValue))
+        {
+            <div class="col-md-3">
+                <label class="form-label">Branch Office</label>
+                <select name="filterBranchCode" id="filterBranchCode" class="form-select">
+                    <option value="">-- All Branches --</option>
+                    @if (Model.BranchList != null)
+                    {
+                        foreach (var br in Model.BranchList)
                         {
-                            foreach (var br in Model.BranchList)
-                            {
-                                <option value="@br.Value" selected="@br.Selected">@br.Text</option>
-                            }
+                            <option value="@br.Value" selected="@br.Selected">@br.Text</option>
                         }
-                    </select>
-                </div>
+                    }
+                </select>
+            </div>
 
-                @if (Model.IsSuperAdmin)
+            @if (Model.IsSuperAdmin)
+            {
+                <input type="hidden" name="filterBankID" value="@Model.FilterBankID" />
+            }
+        }
+
+        <div class="col-md-3">
+            <label class="form-label">Agent</label>
+            <select name="agentFilterValue" id="agentFilterValue" class="form-select">
+                <option value="">-- All Agents --</option>
+                @if (Model.AgentList != null)
                 {
-                    <input type="hidden" name="filterBankID" value="@Model.FilterBankID" />
+                    foreach (var agent in Model.AgentList)
+                    {
+                        <option value="@agent.Value" selected="@agent.Selected">@agent.Text</option>
+                    }
                 }
-            }
+            </select>
+        </div>
 
-            @if (!Model.IsSuperAdmin || Model.FilterBankID.HasValue)
-            {
-                <div class="col-md-3">
-                    <label class="form-label">Account Type</label>
-                    <select name="filterCode1" id="filterCode1" class="form-select">
-                        <option value="">-- All Types --</option>
-                        @if (Model.AccountTypeList != null)
-                        {
-                            foreach (var type in Model.AccountTypeList)
-                            {
-                                bool isSelected = decimal.TryParse(type.Value, out var val) && val == Model.FilterCode1;
-                                <option value="@type.Value" selected="@isSelected">@type.Text</option>
-                            }
-                        }
-                    </select>
-                </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-filter"></i> Apply
+            </button>
+        </div>
 
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-filter"></i> Apply
-                    </button>
-                </div>
-            }
-
-            @if (Model.FilterBankID.HasValue || Model.FilterBranchCode.HasValue || Model.FilterCode1.HasValue)
-            {
-                <div class="col-auto">
-                    <a href="/Account/Index" class="btn btn-outline">Clear</a>
-                </div>
-            }
-        </form>
+        @if (Model.FilterBankID.HasValue || Model.FilterBranchCode.HasValue || !string.IsNullOrEmpty(Model.AgentFilterValue))
+        {
+            <div class="col-auto">
+                <a href="/Account/Index" class="btn btn-outline">Clear</a>
+            </div>
+        }
     </div>
-}
+</div>
+</form>
 
-@* ── Table ── *@
 <div class="card">
     <div class="card-body p-0">
         @if (!Model.Accounts.Items.Any())
@@ -121,7 +121,7 @@
         }
         else
         {
-            <div class="d-flex justify-content-end p-3 border-bottom bg-light">
+            <div class="d-flex justify-content-end align-items-center p-3 border-bottom bg-light">
                 <div class="input-group" style="max-width: 300px;">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                     <input type="text" id="accountSearch" class="form-control border-start-0" placeholder="Search accounts..." />
@@ -149,6 +149,7 @@
                                         var badgeClass = acc.Code1 switch
                                         {
                                             1 => "badge-info",
+                                            48 => "badge-info",
                                             2 => "badge-warning",
                                             _ => "badge-success"
                                         };

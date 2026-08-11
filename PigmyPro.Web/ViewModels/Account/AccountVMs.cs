@@ -29,7 +29,10 @@ namespace PigmyPro.Web.ViewModels.Account
         public int? FilterBankID { get; set; }
         public decimal? FilterBranchCode { get; set; }
         public decimal? FilterCode1 { get; set; }
+        public decimal? FilterAgentCode { get; set; }
+        public string? AgentFilterValue { get; set; }
         public IEnumerable<SelectListItem>? AccountTypeList { get; set; }
+        public IEnumerable<SelectListItem>? AgentList { get; set; }
         public IEnumerable<SelectListItem>? BankList { get; set; }
         public IEnumerable<SelectListItem>? BranchList { get; set; }
     }

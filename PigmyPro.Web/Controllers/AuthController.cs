@@ -16,7 +16,6 @@ namespace PigmyPro.Web.Controllers
         private readonly IBankRepository _bankRepo;
         private readonly IConfiguration _configuration;
         private readonly PigmyPro.Data.Context.DapperContext _dapperContext;
-        private static readonly ConcurrentDictionary<string, (int Count, DateTime LastAttempt)> _loginAttempts = new();
 
         public AuthController(IUserRepository userRepo, IBankRepository bankRepo, IConfiguration configuration, PigmyPro.Data.Context.DapperContext dapperContext)
         {
@@ -42,16 +41,22 @@ namespace PigmyPro.Web.Controllers
                 return View(vm);
 
             var usernameKey = vm.Username.ToLowerInvariant();
-            if (_loginAttempts.TryGetValue(usernameKey, out var attempt))
+            
+            int maxAttempts = 3;
+            int blockTimeSeconds = 300;
+            
+            try
             {
-                if (attempt.Count >= 5 && (DateTime.UtcNow - attempt.LastAttempt).TotalMinutes < 15)
+                using var connection = _dapperContext.CreateConnection();
+                var pwdSettings = await Dapper.SqlMapper.QueryFirstOrDefaultAsync<dynamic>(connection, "SELECT TOP 1 Wrong_Login_Attempt, Wrong_Login_Block_Time FROM passward_Setting");
+                if (pwdSettings != null)
                 {
-                    ModelState.AddModelError("", "Account temporarily locked due to too many failed attempts. Please try again later.");
-                    return View(vm);
+                    maxAttempts = pwdSettings.Wrong_Login_Attempt != null ? Convert.ToInt32(pwdSettings.Wrong_Login_Attempt) : maxAttempts;
+                    blockTimeSeconds = pwdSettings.Wrong_Login_Block_Time != null ? Convert.ToInt32(pwdSettings.Wrong_Login_Block_Time) : blockTimeSeconds;
                 }
             }
+            catch { } 
 
-            
             var admin = await _userRepo.GetAdminCredentialsAsync(vm.Username);
 
             if (admin != null)
@@ -66,7 +71,6 @@ namespace PigmyPro.Web.Controllers
 
                 if (isValid)
                 {
-                    _loginAttempts.TryRemove(usernameKey, out _);
                     return await SignInUser(
                         username: admin.Value.Username,
                         role: AppRoles.SuperAdmin,
@@ -80,11 +84,28 @@ namespace PigmyPro.Web.Controllers
                 }
             }
 
-            
             var user = await _userRepo.GetByUsernameAsync(vm.Username);
 
             if (user != null)
             {
+                if (user.Lock_Expiry_Time.HasValue)
+                {
+                    if (user.Lock_Expiry_Time.Value > DateTime.Now)
+                    {
+                        ViewBag.LockedUsername = vm.Username;
+                        ViewBag.LockExpiryTime = user.Lock_Expiry_Time.Value.ToString("o");
+                        var remainingTime = user.Lock_Expiry_Time.Value - DateTime.Now;
+                        string timeString = remainingTime.TotalMinutes >= 1 ? $"{(int)Math.Ceiling(remainingTime.TotalMinutes)} minute(s)" : $"{remainingTime.Seconds} second(s)";
+                        ModelState.AddModelError("Locked", $"Account temporarily locked due to too many failed attempts. Please try again in {timeString}.");
+                        return View(vm);
+                    }
+                    else
+                    {
+                        user.Wrong_Login_Attempt = 0;
+                        user.Lock_Expiry_Time = null;
+                        await _userRepo.UpdateLoginAttemptAsync(user.UserID, 0, null);
+                    }
+                }
 
                 bool isPasswordValid = false;
 
@@ -96,9 +117,25 @@ namespace PigmyPro.Web.Controllers
 
                 if (!isPasswordValid)
                 {
-                    HandleFailedLogin(usernameKey);
-                    ModelState.AddModelError("", "Invalid Username or Password.");
-                    return View(vm);
+                    int currentAttempts = (user.Wrong_Login_Attempt ?? 0) + 1;
+                    if (currentAttempts >= maxAttempts)
+                    {
+                        var lockTime = DateTime.Now.AddSeconds(blockTimeSeconds);
+                        await _userRepo.UpdateLoginAttemptAsync(user.UserID, currentAttempts, lockTime);
+                        ViewBag.LockedUsername = vm.Username;
+                        ViewBag.LockExpiryTime = lockTime.ToString("o");
+                        string timeString = blockTimeSeconds >= 60 ? $"{blockTimeSeconds / 60} minute(s)" : $"{blockTimeSeconds} second(s)";
+                        ModelState.AddModelError("Locked", $"Account temporarily locked due to too many failed attempts. Please try again in {timeString}.");
+                        return View(vm);
+                    }
+                    else
+                    {
+                        await _userRepo.UpdateLoginAttemptAsync(user.UserID, currentAttempts, null);
+                        int attemptsRemaining = maxAttempts - currentAttempts;
+                        TempData["ToasterMessage"] = $"Invalid Username or Password. {attemptsRemaining} attempt(s) remaining.";
+                        ModelState.AddModelError("", $"Invalid Username or Password. {attemptsRemaining} attempt(s) remaining.");
+                        return View(vm);
+                    }
                 }
 
                 if (!user.IsActive)
@@ -107,7 +144,11 @@ namespace PigmyPro.Web.Controllers
                     return View(vm);
                 }
 
-                _loginAttempts.TryRemove(usernameKey, out _);
+                if ((user.Wrong_Login_Attempt ?? 0) > 0)
+                {
+                    await _userRepo.UpdateLoginAttemptAsync(user.UserID, 0, null);
+                }
+
                 char hasCBS = 'N';
                 if (user.BankID > 0)
                 {
@@ -135,16 +176,8 @@ namespace PigmyPro.Web.Controllers
                 );
             }
 
-            HandleFailedLogin(usernameKey);
             ModelState.AddModelError("", "Invalid Username or Password.");
             return View(vm);
-        }
-
-        private void HandleFailedLogin(string usernameKey)
-        {
-            _loginAttempts.AddOrUpdate(usernameKey, 
-                _ => (1, DateTime.UtcNow), 
-                (_, current) => (current.Count >= 5 && (DateTime.UtcNow - current.LastAttempt).TotalMinutes >= 15 ? 1 : current.Count + 1, DateTime.UtcNow));
         }
 
         

@@ -71,6 +71,11 @@
                                     {
                                         <span class="badge bg-secondary text-white" style="width: fit-content;">Non-CBS</span>
                                     }
+
+                                    @if (bank.HasAcMaster)
+                                    {
+                                        <span class="badge bg-success" style="width: fit-content;">Ac Master</span>
+                                    }
                                     
                                     @if (bank.RecieptPrinting)
                                     {

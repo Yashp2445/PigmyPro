@@ -174,11 +174,14 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<IEnumerable<Agent>> GetAgentsAsync(int bankId, decimal branchCode)
         {
-            var query = @"SELECT code, NAME 
+            var query = @"SELECT brnc_code, code, NAME 
                       FROM agntmast
-                      WHERE BankID = @BankID 
-                        AND brnc_code = @brnc_code
-                      ORDER BY NAME";
+                      WHERE BankID = @BankID ";
+                      
+            if (branchCode > 0)
+                query += " AND brnc_code = @brnc_code ";
+
+            query += " ORDER BY NAME";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<Agent>(query,

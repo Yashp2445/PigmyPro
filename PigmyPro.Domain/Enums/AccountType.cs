@@ -16,6 +16,7 @@ namespace PigmyPro.Domain.Enums
                 1 => "Pigmy",
                 2 => "Loan",
                 3 => "Recurring",
+                48 => "Pigmy",
                 _ => "Other"
             };
         }
