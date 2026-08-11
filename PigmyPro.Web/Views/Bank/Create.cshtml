@@ -68,18 +68,22 @@
                     </div>
 
                     <div class="row g-3 mb-3">
-                        <div class="col-12 col-md-6 d-flex align-items-center mt-4">
-                            <div class="form-check me-4">
+                        <div class="col-12 d-flex flex-wrap align-items-center mt-2 gap-4">
+                            <div class="form-check">
                                 <input asp-for="ActiveYN" class="form-check-input" type="checkbox" />
-                                <label asp-for="ActiveYN" class="form-check-label">Active</label>
+                                <label asp-for="ActiveYN" class="form-check-label text-nowrap">Active</label>
                             </div>
                             <div class="form-check">
                                 <input asp-for="HasCBS" class="form-check-input" type="checkbox" />
-                                <label asp-for="HasCBS" class="form-check-label">Has CBS</label>
+                                <label asp-for="HasCBS" class="form-check-label text-nowrap">Has CBS</label>
                             </div>
-                            <div class="form-check ms-4">
+                            <div class="form-check">
+                                <input asp-for="HasAcMaster" class="form-check-input" type="checkbox" />
+                                <label asp-for="HasAcMaster" class="form-check-label text-nowrap">Has Ac Master</label>
+                            </div>
+                            <div class="form-check">
                                 <input asp-for="RecieptPrinting" class="form-check-input" type="checkbox" />
-                                <label asp-for="RecieptPrinting" class="form-check-label">Receipt Printing</label>
+                                <label asp-for="RecieptPrinting" class="form-check-label text-nowrap">Receipt Printing</label>
                             </div>
                         </div>
                     </div>

@@ -92,7 +92,7 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<User?> GetByUsernameAsync(string username)
         {
-            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date FROM UserMast WHERE Username = @Username";
+            var query = "SELECT UserID, BankID, BranchID, Username, PasswordHash, Role, code, name, MobileNo, IsActive, Entry_Date, Wrong_Login_Attempt, Lock_Expiry_Time FROM UserMast WHERE Username = @Username";
             using var connection = _context.CreateConnection();
             return await connection.QueryFirstOrDefaultAsync<User>(query, new { Username = username });
         }
@@ -224,6 +224,13 @@ namespace PigmyPro.Data.Repositories
             bool valid = parameters.Get<bool>("@Valid");
 
             return (msg, valid);
+        }
+
+        public async Task UpdateLoginAttemptAsync(int userId, int attempts, System.DateTime? lockExpiryTime)
+        {
+            var query = "UPDATE UserMast SET Wrong_Login_Attempt = @Attempts, Lock_Expiry_Time = @LockExpiryTime WHERE UserID = @UserID";
+            using var connection = _context.CreateConnection();
+            await connection.ExecuteAsync(query, new { UserID = userId, Attempts = attempts, LockExpiryTime = lockExpiryTime });
         }
     }
 }
