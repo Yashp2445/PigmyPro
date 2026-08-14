@@ -125,8 +125,13 @@
                     </a>
                     
                     @* <a href="/MobileImport/Upload" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "MobileImport" && ViewContext.RouteData.Values["action"]?.ToString() == "Upload" ? "active" : "")">
-                        <i class="bi bi-download"></i> Upload Master Account File
+                        <i class="bi bi-cloud-arrow-up nav-icon"></i>
+                        <span>Upload Master Data</span>
                     </a> *@
+                    <a href="/Reupload/Index" class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reupload" ? "active" : "")">
+                        <i class="bi bi-cloud-upload nav-icon"></i>
+                        <span>Re-upload Master Data</span>
+                    </a>
                 }
 
                 <div class="nav-section">Reports</div>
@@ -171,7 +176,7 @@
                                 </span>
                                 @if (User.IsInRole("BankAdmin") || User.IsInRole("BranchAdmin"))
                                 {
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" style="font-size: 0.75rem;">Bank ID: @ViewBag.GlobalBankID</span>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2" style="font-size: 0.75rem;">Bank ID: @(ViewBag.GlobalAppLoginPrefix ?? ViewBag.GlobalBankID)</span>
                                 }
                                 @if (User.IsInRole("BranchAdmin") && ViewBag.GlobalBranchID != null)
                                 {

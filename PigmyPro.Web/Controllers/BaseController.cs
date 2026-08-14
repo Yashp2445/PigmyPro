@@ -64,8 +64,9 @@ namespace PigmyPro.Web.Controllers
                     string sessionBankName = HttpContext.Session.GetString("GlobalBankName");
                     string sessionHasLogo = HttpContext.Session.GetString("GlobalHasLogo");
                     string sessionBranchName = HttpContext.Session.GetString("GlobalBranchName");
+                    string sessionAppLoginPrefix = HttpContext.Session.GetString("GlobalAppLoginPrefix");
 
-                    if (sessionBankName == null || sessionHasLogo == null)
+                    if (sessionBankName == null || sessionHasLogo == null || sessionAppLoginPrefix == null)
                     {
                         var bankRepo = context.HttpContext.RequestServices.GetService(typeof(PigmyPro.Data.Interfaces.IBankRepository)) as PigmyPro.Data.Interfaces.IBankRepository;
                         if (bankRepo != null)
@@ -75,8 +76,13 @@ namespace PigmyPro.Web.Controllers
                             {
                                 sessionBankName = bank.Name;
                                 sessionHasLogo = (!string.IsNullOrEmpty(bank.LogoFileName)).ToString();
+                                sessionAppLoginPrefix = bank.AppLoginPrefix;
                                 HttpContext.Session.SetString("GlobalBankName", sessionBankName);
                                 HttpContext.Session.SetString("GlobalHasLogo", sessionHasLogo);
+                                if (sessionAppLoginPrefix != null)
+                                {
+                                    HttpContext.Session.SetString("GlobalAppLoginPrefix", sessionAppLoginPrefix);
+                                }
                             }
                         }
                     }
@@ -99,6 +105,7 @@ namespace PigmyPro.Web.Controllers
                     ViewBag.GlobalBankName = sessionBankName ?? "Bank Overview";
                     ViewBag.GlobalHasLogo = (sessionHasLogo == "True");
                     ViewBag.GlobalBankID = bankId;
+                    ViewBag.GlobalAppLoginPrefix = sessionAppLoginPrefix;
                     ViewBag.GlobalBranchName = sessionBranchName;
                     ViewBag.GlobalBranchID = branchId > 0 ? branchId : (int?)null;
                 }
