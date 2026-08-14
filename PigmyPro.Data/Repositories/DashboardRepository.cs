@@ -253,7 +253,7 @@ namespace PigmyPro.Data.Repositories
                     GROUP BY BankID, Agent, Brnc_code
                 ) tc ON tc.BankID = a.BankID AND tc.Agent = a.code AND tc.Brnc_code = a.brnc_code
                 WHERE a.BankID = @BankID AND a.brnc_code = @BranchID
-                ORDER BY tc.TodayAmount DESC, a.NAME";
+                ORDER BY tc.TodayAmount DESC, a.code";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<AgentCollectionRow>(sql, new { BankID = bankId, BranchID = branchId, });
@@ -279,7 +279,7 @@ namespace PigmyPro.Data.Repositories
                         AND CAST(m.Brnc_code AS DECIMAL(10,0)) = a.brnc_code 
                         AND CAST(m.Agent AS DECIMAL(18,0)) = a.code
                   )
-                ORDER BY a.NAME";
+                ORDER BY a.code";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<AgentUploadReadyRow>(sql, new { BankID = bankId, BranchID = branchId });
@@ -324,7 +324,7 @@ namespace PigmyPro.Data.Repositories
                     AND CAST(max_dt.Agent AS NUMERIC(18,0)) = CAST(a.code AS NUMERIC(18,0)) 
                     AND CAST(max_dt.Brnc_code AS NUMERIC(18,0)) = CAST(a.brnc_code AS NUMERIC(18,0))
                 WHERE a.BankID = @BankID{branchFilter}
-                ORDER BY ISNULL(DATEDIFF(day, max_dt.MaxDate, GETDATE()), 999999) DESC, a.NAME";
+                ORDER BY ISNULL(DATEDIFF(day, max_dt.MaxDate, GETDATE()), 999999) DESC, a.code";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<AgentOverviewRow>(sql, new
@@ -374,7 +374,7 @@ namespace PigmyPro.Data.Repositories
                   AND max_dt.MaxDate IS NOT NULL 
                   AND DATEDIFF(day, max_dt.MaxDate, GETDATE()) > 7
                   {branchFilter}
-                ORDER BY DATEDIFF(day, max_dt.MaxDate, GETDATE()) DESC, a.NAME";
+                ORDER BY DATEDIFF(day, max_dt.MaxDate, GETDATE()) DESC, a.code";
 
             using var connection = _context.CreateConnection();
             return await connection.QueryAsync<AgentOverviewRow>(sql, new
@@ -449,19 +449,12 @@ namespace PigmyPro.Data.Repositories
 
         public async Task<CollectionDepositedSummary> GetTodayDepositedCollectionAsync(int bankId, int? branchId = null)
         {
-            var branchFilter = branchId.HasValue ? " AND dil.Brnc_Code = @BranchID" : "";
+            var branchFilter = branchId.HasValue ? " and MobilePygTrn_ALL.Brnc_code = @BranchID " : "";
 
             var sql = $@"
-                SELECT 
-                    COUNT(DISTINCT dil.Agent_Code) AS AgentCount, 
-                    ISNULL(SUM(mpa.Amount), 0) AS TotalAmount
-                FROM DataImportLog dil
-                JOIN MobilePygTrn_ALL mpa 
-                    ON mpa.BankID = dil.BankID
-                    AND CAST(mpa.Brnc_code AS DECIMAL(10,0)) = dil.Brnc_Code
-                    AND CAST(mpa.Agent AS DECIMAL(18,0)) = dil.Agent_Code
-                WHERE dil.BankID = @BankID
-                    AND CAST(dil.Import_Date AS DATE) = CAST(GETDATE() AS DATE)
+                select count(distinct(MobilePygTrn_ALL.Agent)),sum(MobilePygTrn_ALL.Amount) as total_amount
+                from MobilePygTrn_ALL
+                where cast( MobilePygTrn_ALL.Download_Date as date) = CAST(GETDATE() AS DATE)  and MobilePygTrn_ALL.BankID = @BankID
                     {branchFilter}";
 
             using var connection = _context.CreateConnection();

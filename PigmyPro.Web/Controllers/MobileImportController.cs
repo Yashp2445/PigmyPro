@@ -643,9 +643,6 @@ namespace PigmyPro.Web.Controllers
                 sb.AppendLine($"{code2Str},{rowAmtStr},{name},{balStr},{dateStr},{rowAmtStr}");
             }
 
-            // User explicitly requested to skip LogExportAsync and SetAgentDownloadFlagAsync.
-            // (DataExportLog logging is omitted per user confirmation).
-
             var bytes = Encoding.ASCII.GetBytes(sb.ToString());
             return File(bytes, "text/plain", "PCRX.DAT");
         }
