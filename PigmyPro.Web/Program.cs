@@ -89,6 +89,7 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IAgentRepository, AgentRepository>();
 builder.Services.AddScoped<IPigmyStatementRepository, PigmyStatementRepository>();
 builder.Services.AddScoped<IMobileImportRepository, MobileImportRepository>();
+builder.Services.AddScoped<IReuploadRepository, ReuploadRepository>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IAuditRepository, AuditRepository>();
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
