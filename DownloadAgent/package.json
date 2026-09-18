@@ -1,0 +1,12 @@
+{
+  "name": "pigmy-download-agent",
+  "version": "1.0.0",
+  "description": "Local file download agent for PigmyPro Banking Application",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

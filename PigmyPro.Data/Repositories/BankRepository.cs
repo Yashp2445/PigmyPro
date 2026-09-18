@@ -93,7 +93,7 @@ namespace PigmyPro.Data.Repositories
 
             var rows = await connection.ExecuteAsync("sp_insertUpdateBank", p, commandType: CommandType.StoredProcedure);
             ThrowIfSpFailed(p.Get<string>("Msg"));
-            return rows;
+            return rows; 
         }
 
         public async Task<int> DeleteAsync(int id)

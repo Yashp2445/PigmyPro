@@ -147,6 +147,7 @@ namespace PigmyPro.Web.Controllers
             }
             else
             {
+                vm.SelectedBankID = CurrentBankID;
                 vm.BranchCode = (decimal)CurrentBranchID;
                 vm.Code = await _agentRepo.GetNextAgentCodeAsync(CurrentBankID, (decimal)CurrentBranchID);
             }
