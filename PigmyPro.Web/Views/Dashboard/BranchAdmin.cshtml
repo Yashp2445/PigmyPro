@@ -71,118 +71,122 @@
 <!-- Agent Registry Tables -->
 <div class="row g-4 mb-4">
     <!-- Ready to Cash: Yes -->
-    <div class="col-lg-6">
+    <div class="col-xl-6 col-12">
         <div class="card h-100">
-            <div class="card-header bg-success bg-opacity-10">
+            <div class="card-header bg-success bg-opacity-10 py-2 px-3">
                 <h5 class="card-title text-success-emphasis m-0"><i class="bi bi-check-circle me-2"></i>Ready to Cash</h5>
             </div>
             <div class="card-body p-0">
-                <div class="table-wrapper">
-                    <table class="table mb-0 table-sm align-middle">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Agent Name</th>
-                                <th class="text-center">No. of Receipts</th>
-                                <th class="text-end">Collection Amount</th>
-                                <th class="text-center">Download</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{
-                                var readyAgents = Model.AgentOverview.Where(x => x.RadyToCash == "Y" && x.TodayAmount > 0).ToList();
-                            }
-                            @if (readyAgents.Any())
-                            {
-                                @foreach (var agent in readyAgents)
+                <div class="table-wrapper border-0 shadow-none rounded-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Code</th>
+                                    <th>Agent Name</th>
+                                    <th class="text-center" style="white-space: nowrap;">Receipts</th>
+                                    <th class="text-end" style="white-space: nowrap;">Collection Amount</th>
+                                    <th class="text-center" style="width: 70px; white-space: nowrap;">Download</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    var readyAgents = Model.AgentOverview.Where(x => x.RadyToCash == "Y" && x.TodayAmount > 0).ToList();
+                                }
+                                @if (readyAgents.Any())
+                                {
+                                    @foreach (var agent in readyAgents)
+                                    {
+                                        <tr>
+                                            <td class="mono-data">@agent.AgentCode</td>
+                                            <td class="fw-bold">
+                                                <div class="cell-truncate" style="max-width: 140px;" title="@agent.AgentName">@agent.AgentName</div>
+                                            </td>
+                                            <td class="text-center mono-data">@agent.ReceiptCount</td>
+                                            <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
+                                            <td class="text-center">
+                                                <form asp-controller="MobileImport" asp-action="DownloadExport" method="post" class="m-0 p-0">
+                                                    <input type="hidden" name="agentCode" value="@agent.AgentCode" />
+                                                    <button type="submit" class="btn btn-success btn-sm px-2 py-1" title="Download collection file">
+                                                        <i class="bi bi-download"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
                                 {
                                     <tr>
-                                        <td class="mono-data">@agent.AgentCode</td>
-                                        <td class="fw-bold">
-                                            <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
-                                        </td>
-                                        <td class="text-center mono-data">@agent.ReceiptCount</td>
-                                        <td class="text-end fw-bold text-primary mono-data">₹@agent.TodayAmount.ToString("N2")</td>
-                                        <td class="text-center">
-                                            <form asp-controller="MobileImport" asp-action="DownloadExport" method="post" class="m-0 p-0">
-                                                <input type="hidden" name="agentCode" value="@agent.AgentCode" />
-                                                <button type="submit" class="btn btn-success btn-sm px-2 py-1">
-                                                    <i class="bi bi-download"></i>
-                                                </button>
-                                            </form>
+                                        <td colspan="5">
+                                            <div class="empty-state py-4">
+                                                <i class="bi bi-people empty-state-icon" style="font-size: 32px; margin-bottom: 8px;"></i>
+                                                <div class="empty-state-title">No agents ready to cash</div>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="5">
-                                        <div class="empty-state">
-                                            <i class="bi bi-people empty-state-icon"></i>
-                                            <div class="empty-state-title">No agents ready to cash</div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Ready for Master Upload -->
-    <div class="col-lg-6">
+    <div class="col-xl-6 col-12">
         <div class="card h-100 border-primary border-opacity-50">
-            <div class="card-header bg-primary bg-opacity-10">
+            <div class="card-header bg-primary bg-opacity-10 py-2 px-3">
                 <h5 class="card-title text-primary-emphasis m-0"><i class="bi bi-cloud-arrow-up me-2"></i>Ready for Master Upload</h5>
             </div>
             <div class="card-body p-0">
-                <div class="table-wrapper">
-                    <table class="table mb-0 table-sm align-middle">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Agent Name</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (Model.AgentsReadyForUpload.Any())
-                            {
-                                @foreach (var agent in Model.AgentsReadyForUpload)
+                <div class="table-wrapper border-0 shadow-none rounded-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0 table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">Code</th>
+                                    <th>Agent Name</th>
+                                    <th class="text-center" style="white-space: nowrap;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.AgentsReadyForUpload.Any())
+                                {
+                                    @foreach (var agent in Model.AgentsReadyForUpload)
+                                    {
+                                        <tr>
+                                            <td class="mono-data">@agent.AgentCode</td>
+                                            <td class="fw-bold">
+                                                <div class="cell-truncate" style="max-width: 140px;" title="@agent.AgentName">@agent.AgentName</div>
+                                            </td>
+                                            <td class="text-center">
+                                                <form asp-controller="MobileImport" asp-action="ParseFile" method="post" enctype="multipart/form-data" class="d-flex align-items-center m-0 p-0 justify-content-center gap-2 flex-wrap">
+                                                    <input type="hidden" name="SelectedAgentCode" value="@agent.AgentCode" />
+                                                    <input type="file" name="uploadedFile" class="form-control form-control-sm" style="max-width: 140px; font-size: 11px;" accept=".dat" required />
+                                                    <button type="submit" class="btn btn-primary btn-sm px-2 py-1 text-nowrap">
+                                                        <i class="bi bi-upload"></i> Upload
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
                                 {
                                     <tr>
-                                        <td class="mono-data">@agent.AgentCode</td>
-                                        <td class="fw-bold">
-                                            <div class="cell-truncate" title="@agent.AgentName">@agent.AgentName</div>
-                                        </td>
-                                        <td class="text-center">
-                                            <form asp-controller="MobileImport" asp-action="ParseFile" method="post" enctype="multipart/form-data" class="d-flex align-items-center m-0 p-0 justify-content-center gap-2">
-                                                <input type="hidden" name="SelectedAgentCode" value="@agent.AgentCode" />
-                                                <input type="file" name="uploadedFile" class="form-control form-control-sm" style="max-width: 150px;" accept=".dat" required />
-                                                <button type="submit" class="btn btn-primary btn-sm px-2 py-1">
-                                                    <i class="bi bi-upload"></i> Upload
-                                                </button>
-                                            </form>
+                                        <td colspan="3">
+                                            <div class="empty-state py-4">
+                                                <i class="bi bi-cloud-check empty-state-icon" style="font-size: 32px; margin-bottom: 8px;"></i>
+                                                <div class="empty-state-title">No agents ready for master upload</div>
+                                            </div>
                                         </td>
                                     </tr>
                                 }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="3">
-                                        <div class="empty-state">
-                                            <i class="bi bi-cloud-check empty-state-icon"></i>
-                                            <div class="empty-state-title">No agents ready for master upload</div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
